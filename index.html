@@ -66,6 +66,451 @@
       <div class="outer">
         <section id="main">
   
+    <article id="post-RocketMQ一行代码造成大量消息发送失败" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2020/12/07/RocketMQ%E4%B8%80%E8%A1%8C%E4%BB%A3%E7%A0%81%E9%80%A0%E6%88%90%E5%A4%A7%E9%87%8F%E6%B6%88%E6%81%AF%E5%8F%91%E9%80%81%E5%A4%B1%E8%B4%A5/" class="article-date">
+  <time datetime="2020-12-07T14:51:57.000Z" itemprop="datePublished">2020-12-07</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/rocketmq/">rocketmq</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/2020/12/07/RocketMQ%E4%B8%80%E8%A1%8C%E4%BB%A3%E7%A0%81%E9%80%A0%E6%88%90%E5%A4%A7%E9%87%8F%E6%B6%88%E6%81%AF%E5%8F%91%E9%80%81%E5%A4%B1%E8%B4%A5/">RocketMQ一行代码造成大量消息发送失败</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h2 id="1、问题现象"><a href="#1、问题现象" class="headerlink" title="1、问题现象"></a>1、问题现象</h2><p>首先接到项目反馈使用 RocketMQ 会出现如下错误：<br><img src="https://img-blog.csdnimg.cn/2020051623272777.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br>错误信息关键点：MQBrokerException：CODE:2 DESC:[TIMEOUT_CLEAN_QUEUE]broker busy,start flow control for a while,period in queue：205ms，size of queue:880。</p>
+<p>由于项目组并没有对消息发送失败做任何补偿，导致丢失消息发送失败，故需要对这个问题进行深层次的探讨，并加以解决。</p>
+<h2 id="2、问题分析"><a href="#2、问题分析" class="headerlink" title="2、问题分析"></a>2、问题分析</h2><p>首先我们根据关键字：TIMEOUT_CLEAN_QUEUE 去 RocketMQ 中查询，去探究在什么时候会抛出如上错误。根据全文搜索如下图所示：<br><img src="https://img-blog.csdnimg.cn/20200517091330168.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br>该方法是在 BrokerFastFailure 中定义的，通过名称即可以看成其设计目的：Broker端快速失败机制。</p>
+<p><strong>Broker 端快速失败其原理图如下：</strong><br><img src="https://img-blog.csdnimg.cn/20200517091356312.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"></p>
+<ul>
+<li>消息发送者向 Broker 发送消息写入请求，Broker 端在接收到请求后会首先放入一个队列中(SendThreadPoolQueue)，默认容量为 10000。</li>
+<li>Broker 会专门使用一个线程池(SendMessageExecutor)去从队列中获取任务并执行消息写入请求，为了保证消息的顺序处理，该线程池默认线程个数为1。</li>
+</ul>
+<p>如果 Broker 端受到垃圾回收等等因素造成单条写入数据发生抖动，单个 Broker 端积压的请求太多从而得不到及时处理，会极大的造成客户端消息发送的时间延长。</p>
+<p>设想一下，如果由于 Broker 压力增大，写入一条消息需要500ms甚至超过1s，并且队列中积压了5000条消息，消息发送端的默认超时时间为3s，如果按照这样的速度，这些请求在轮到 Broker 执行写入请求时，客户端已经将这个请求超时了，这样不仅会造成大量的无效处理，还会导致客户端发送超时。</p>
+        
+          <p class="article-more-link">
+            <a href="/2020/12/07/RocketMQ%E4%B8%80%E8%A1%8C%E4%BB%A3%E7%A0%81%E9%80%A0%E6%88%90%E5%A4%A7%E9%87%8F%E6%B6%88%E6%81%AF%E5%8F%91%E9%80%81%E5%A4%B1%E8%B4%A5/#more">Read More</a>
+          </p>
+        
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://example.com/2020/12/07/RocketMQ%E4%B8%80%E8%A1%8C%E4%BB%A3%E7%A0%81%E9%80%A0%E6%88%90%E5%A4%A7%E9%87%8F%E6%B6%88%E6%81%AF%E5%8F%91%E9%80%81%E5%A4%B1%E8%B4%A5/" data-id="ckieodeoq0005rwrggee66hvl" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/rocketmq/" rel="tag">rocketmq</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-RocketMQ msgId与offsetMsgId释疑(实战篇)" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2020/12/07/RocketMQ%20msgId%E4%B8%8EoffsetMsgId%E9%87%8A%E7%96%91(%E5%AE%9E%E6%88%98%E7%AF%87)/" class="article-date">
+  <time datetime="2020-12-07T14:49:57.000Z" itemprop="datePublished">2020-12-07</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/rocketmq/">rocketmq</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/2020/12/07/RocketMQ%20msgId%E4%B8%8EoffsetMsgId%E9%87%8A%E7%96%91(%E5%AE%9E%E6%88%98%E7%AF%87)/">我的另一种参与 RocketMQ 开源社区的方式</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>首先先“SHOW”一波我在 RocketMQ 开源社区所获得的成就：2019年RocketMQ社区授予我优秀布道师荣誉称号，证书很高大上，奖品丰厚哦。<br><img src="https://img-blog.csdnimg.cn/20200608190532198.jpg?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br>布道师是什么？开源项目不是都在追求如何成为一名 Committer？其实这个就是参与开源项目的两种不同方式。如何参与一个开源项目，容我慢慢道来。</p>
+<p>@<a href="%E6%9C%AC%E8%8A%82%E7%9B%AE%E5%BD%95">TOC</a></p>
+<h2 id="1、与-RocketMQ-相识、相知到“在一起”"><a href="#1、与-RocketMQ-相识、相知到“在一起”" class="headerlink" title="1、与 RocketMQ 相识、相知到“在一起”"></a>1、与 RocketMQ 相识、相知到“在一起”</h2><p>在2017年听到阿里巴巴将 RocketMQ 捐赠给 Apache基金会成为 Apache 的顶级项目，我内心是无比激动，因为终于可以一睹一款高性能的消息中间件的实现原理。</p>
+<p>通过阅读 RocketMQ 官方文档，以下几个特别的点吸引了我的注意，让我下定决心深入研究一番。</p>
+<ul>
+<li>RocketMQ 为什么性能高效，到底运用了什么“厉害”的技术</li>
+<li>RocketMQ 如何实现刷盘（可以类比一下数据库方面的刷盘、redo、undo日志）</li>
+<li>RocketMQ 文件存储设计理念、基于文件的 Hash 索引是怎么实现的</li>
+<li>定时消息、消息过滤等实现原理</li>
+<li>如何进行网络编程（Netty实战）</li>
+</ul>
+<p>心动不如行动，下定决心后便开始了我的源码分析 RocketMQ 之旅，大概在4个多月的时间中连续发表了30余篇文章，从 Nameserver、消息发送高可用设计、消息存储、消息消费、消息过滤、事务消息等各个方面对其进行了体系化的剖析，边写边分享，边分享边传播，终于得到了机械工业出版社华章分社的杨福川老师的认可，邀请我出书。</p>
+<p>在杨老师和张工的帮助与指点下，经过将近半年的努力，书稿基本完稿。</p>
+<p>由于我当时是一位名不经传的新人，按照出版行业的惯例，需要找一些该领域内专家大牛帮忙做序或写写推荐语。</p>
+<p>当时我是初生牛犊不怕虎，蹦出了一个非常大胆的想法，是不是可以联系 RocketMQ 官方的一些大佬，最终我直接锁定了 RocketMQ 创始人冯嘉大神，希望他能帮我作序推荐。</p>
+<p>令人惊喜的是冯嘉大神非常平易见人，得知我的来意后，他说了这样一句话：“我是非常愿意为写书的朋友作序，但需要评估一下书稿的质量，如果质量OK，非常愿意效劳”。</p>
+<p>我备受鼓舞，在和出版社初步沟通后，将试读稿件再加上消息存储整章的内容发给冯嘉大神后，经冯嘉大神认真审稿后，决定帮忙推荐作序，真的让我备受鼓舞。</p>
+<p>随着《RocketMQ技术内幕》一书的正式出版上市，并得到广大读者朋友的认可，与官方的联系也越来越多，后面在 RocketMQ 中国社区负责人青峰大佬的筹备下，我还参与了 RocketMQ 官方社区的源码解析直播活动、官方文档审稿等工作，并在社区得到了不错的反响。</p>
+<p><strong>说到这里大家是不是觉得非常奇怪，是不是都认为你只是在写文章，写书，没有真正参与开源社区呀，没有贡献代码，这个算哪门子参与开源社区？</strong></p>
+<p>其实我一开始连我自己也没有意识到我正在参与一个开源项目，直到我在冯嘉大神为我写的序言中看到他给了我一个新的称号：<strong>RocketMQ布道师</strong>，从而才真正了解到参与开源的另外一种方式：做一个开源项目的传播者，让更多人更容易的使用它，即降低大众对它的使用门槛。</p>
+<p>我后面也特意去查了一下开源项目的布道师是一个什么的角色，或者说什么样的人能被称之为布道师。个人的理解就是首先认可并热爱这项技术，并持续输出高质量的技术类文章、文档等有助于技术传播的素材，让更多人更容易理解并使用它。</p>
+<p>有了新的称号，那就得更加努力，朝着优秀努力，在2019年我又陆续发表了20几篇关于RocketMQ相关的文章，这些文章含金量极高，不仅及时跟进了RocketMQ4.3之后的新特性：消息轨迹、ACL、主从切换等机制，更是发表了数篇实战类文章，详细指出在生产环境下一些使用误区，更是输出了几篇生产环境真实故障与解决方案。最终于2019年 RocketMQ 官方社区授予我优秀布道师荣誉称号。</p>
+<p>RocketMQ 成就了现在的我，我也会继续努力，为传播RocketMQ尽一份力所能及的力量。2020年，继续努力。</p>
+<h2 id="2、如何成为开源项目的-Committer"><a href="#2、如何成为开源项目的-Committer" class="headerlink" title="2、如何成为开源项目的 Committer"></a>2、如何成为开源项目的 Committer</h2><p>有一些粉丝在问我，您对 RocketMQ 研究的这么深入，为什么不考虑贡献代码，成为一名 Committer 呢？这是因为参与开源项目需要具备一些基本条件，当下我的实际情况不符合，那成为一个开源项目的 Committer 有些什么条件呢？</p>
+        
+          <p class="article-more-link">
+            <a href="/2020/12/07/RocketMQ%20msgId%E4%B8%8EoffsetMsgId%E9%87%8A%E7%96%91(%E5%AE%9E%E6%88%98%E7%AF%87)/#more">Read More</a>
+          </p>
+        
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://example.com/2020/12/07/RocketMQ%20msgId%E4%B8%8EoffsetMsgId%E9%87%8A%E7%96%91(%E5%AE%9E%E6%88%98%E7%AF%87)/" data-id="ckieodeop0004rwrgb1vd79gq" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/rocketmq/" rel="tag">rocketmq</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-我的另一种参与 RocketMQ 开源社区的方式" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2020/12/07/%E6%88%91%E7%9A%84%E5%8F%A6%E4%B8%80%E7%A7%8D%E5%8F%82%E4%B8%8E%20RocketMQ%20%E5%BC%80%E6%BA%90%E7%A4%BE%E5%8C%BA%E7%9A%84%E6%96%B9%E5%BC%8F/" class="article-date">
+  <time datetime="2020-12-07T14:49:57.000Z" itemprop="datePublished">2020-12-07</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/rocketmq/">rocketmq</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/2020/12/07/%E6%88%91%E7%9A%84%E5%8F%A6%E4%B8%80%E7%A7%8D%E5%8F%82%E4%B8%8E%20RocketMQ%20%E5%BC%80%E6%BA%90%E7%A4%BE%E5%8C%BA%E7%9A%84%E6%96%B9%E5%BC%8F/">我的另一种参与 RocketMQ 开源社区的方式</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>首先先“SHOW”一波我在 RocketMQ 开源社区所获得的成就：2019年RocketMQ社区授予我优秀布道师荣誉称号，证书很高大上，奖品丰厚哦。<br><img src="https://img-blog.csdnimg.cn/20200608190532198.jpg?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br>布道师是什么？开源项目不是都在追求如何成为一名 Committer？其实这个就是参与开源项目的两种不同方式。如何参与一个开源项目，容我慢慢道来。</p>
+<p>@<a href="%E6%9C%AC%E8%8A%82%E7%9B%AE%E5%BD%95">TOC</a></p>
+<h2 id="1、与-RocketMQ-相识、相知到“在一起”"><a href="#1、与-RocketMQ-相识、相知到“在一起”" class="headerlink" title="1、与 RocketMQ 相识、相知到“在一起”"></a>1、与 RocketMQ 相识、相知到“在一起”</h2><p>在2017年听到阿里巴巴将 RocketMQ 捐赠给 Apache基金会成为 Apache 的顶级项目，我内心是无比激动，因为终于可以一睹一款高性能的消息中间件的实现原理。</p>
+<p>通过阅读 RocketMQ 官方文档，以下几个特别的点吸引了我的注意，让我下定决心深入研究一番。</p>
+<ul>
+<li>RocketMQ 为什么性能高效，到底运用了什么“厉害”的技术</li>
+<li>RocketMQ 如何实现刷盘（可以类比一下数据库方面的刷盘、redo、undo日志）</li>
+<li>RocketMQ 文件存储设计理念、基于文件的 Hash 索引是怎么实现的</li>
+<li>定时消息、消息过滤等实现原理</li>
+<li>如何进行网络编程（Netty实战）</li>
+</ul>
+<p>心动不如行动，下定决心后便开始了我的源码分析 RocketMQ 之旅，大概在4个多月的时间中连续发表了30余篇文章，从 Nameserver、消息发送高可用设计、消息存储、消息消费、消息过滤、事务消息等各个方面对其进行了体系化的剖析，边写边分享，边分享边传播，终于得到了机械工业出版社华章分社的杨福川老师的认可，邀请我出书。</p>
+<p>在杨老师和张工的帮助与指点下，经过将近半年的努力，书稿基本完稿。</p>
+<p>由于我当时是一位名不经传的新人，按照出版行业的惯例，需要找一些该领域内专家大牛帮忙做序或写写推荐语。</p>
+<p>当时我是初生牛犊不怕虎，蹦出了一个非常大胆的想法，是不是可以联系 RocketMQ 官方的一些大佬，最终我直接锁定了 RocketMQ 创始人冯嘉大神，希望他能帮我作序推荐。</p>
+<p>令人惊喜的是冯嘉大神非常平易见人，得知我的来意后，他说了这样一句话：“我是非常愿意为写书的朋友作序，但需要评估一下书稿的质量，如果质量OK，非常愿意效劳”。</p>
+<p>我备受鼓舞，在和出版社初步沟通后，将试读稿件再加上消息存储整章的内容发给冯嘉大神后，经冯嘉大神认真审稿后，决定帮忙推荐作序，真的让我备受鼓舞。</p>
+<p>随着《RocketMQ技术内幕》一书的正式出版上市，并得到广大读者朋友的认可，与官方的联系也越来越多，后面在 RocketMQ 中国社区负责人青峰大佬的筹备下，我还参与了 RocketMQ 官方社区的源码解析直播活动、官方文档审稿等工作，并在社区得到了不错的反响。</p>
+<p><strong>说到这里大家是不是觉得非常奇怪，是不是都认为你只是在写文章，写书，没有真正参与开源社区呀，没有贡献代码，这个算哪门子参与开源社区？</strong></p>
+<p>其实我一开始连我自己也没有意识到我正在参与一个开源项目，直到我在冯嘉大神为我写的序言中看到他给了我一个新的称号：<strong>RocketMQ布道师</strong>，从而才真正了解到参与开源的另外一种方式：做一个开源项目的传播者，让更多人更容易的使用它，即降低大众对它的使用门槛。</p>
+<p>我后面也特意去查了一下开源项目的布道师是一个什么的角色，或者说什么样的人能被称之为布道师。个人的理解就是首先认可并热爱这项技术，并持续输出高质量的技术类文章、文档等有助于技术传播的素材，让更多人更容易理解并使用它。</p>
+<p>有了新的称号，那就得更加努力，朝着优秀努力，在2019年我又陆续发表了20几篇关于RocketMQ相关的文章，这些文章含金量极高，不仅及时跟进了RocketMQ4.3之后的新特性：消息轨迹、ACL、主从切换等机制，更是发表了数篇实战类文章，详细指出在生产环境下一些使用误区，更是输出了几篇生产环境真实故障与解决方案。最终于2019年 RocketMQ 官方社区授予我优秀布道师荣誉称号。</p>
+<p>RocketMQ 成就了现在的我，我也会继续努力，为传播RocketMQ尽一份力所能及的力量。2020年，继续努力。</p>
+<h2 id="2、如何成为开源项目的-Committer"><a href="#2、如何成为开源项目的-Committer" class="headerlink" title="2、如何成为开源项目的 Committer"></a>2、如何成为开源项目的 Committer</h2><p>有一些粉丝在问我，您对 RocketMQ 研究的这么深入，为什么不考虑贡献代码，成为一名 Committer 呢？这是因为参与开源项目需要具备一些基本条件，当下我的实际情况不符合，那成为一个开源项目的 Committer 有些什么条件呢？</p>
+        
+          <p class="article-more-link">
+            <a href="/2020/12/07/%E6%88%91%E7%9A%84%E5%8F%A6%E4%B8%80%E7%A7%8D%E5%8F%82%E4%B8%8E%20RocketMQ%20%E5%BC%80%E6%BA%90%E7%A4%BE%E5%8C%BA%E7%9A%84%E6%96%B9%E5%BC%8F/#more">Read More</a>
+          </p>
+        
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://example.com/2020/12/07/%E6%88%91%E7%9A%84%E5%8F%A6%E4%B8%80%E7%A7%8D%E5%8F%82%E4%B8%8E%20RocketMQ%20%E5%BC%80%E6%BA%90%E7%A4%BE%E5%8C%BA%E7%9A%84%E6%96%B9%E5%BC%8F/" data-id="ckieodeow000frwrg83rl50ed" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/rocketmq/" rel="tag">rocketmq</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-RocketMQ消息发送常见错误与解决方案" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2020/12/07/RocketMQ%E6%B6%88%E6%81%AF%E5%8F%91%E9%80%81%E5%B8%B8%E8%A7%81%E9%94%99%E8%AF%AF%E4%B8%8E%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88/" class="article-date">
+  <time datetime="2020-12-07T14:46:57.000Z" itemprop="datePublished">2020-12-07</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/rocketmq/">rocketmq</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/2020/12/07/RocketMQ%E6%B6%88%E6%81%AF%E5%8F%91%E9%80%81%E5%B8%B8%E8%A7%81%E9%94%99%E8%AF%AF%E4%B8%8E%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88/">RocketMQ消息发送常见错误与解决方案</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>本文将结合自己使用RocketMQ的经验，对消息发送常见的问题进行分享，基本会遵循出现问题，分析问题、解决问题。</p>
+<h2 id="1、No-route-info-of-this-topic"><a href="#1、No-route-info-of-this-topic" class="headerlink" title="1、No route info of this topic"></a>1、No route info of this topic</h2><p>无法找到路由信息，其完整的错误堆栈信息如下：<br><img src="https://img-blog.csdnimg.cn/20200927212104148.png#pic_center" alt="在这里插入图片描述">而且很多读者朋友会说Broker端开启了自动创建主题也会出现上述问题。</p>
+<p>RocketMQ的路由寻找流程如下图所示：<br><img src="https://img-blog.csdnimg.cn/2020092721214148.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述">上面的核心关键点如下：</p>
+<ul>
+<li>如果Broker开启了自动创建Topic，在启动的时候会默认创建主题：TBW102，并会随着Broker发送到Nameserver的心跳包汇报给Nameserver，继而从Nameserver查询路由信息时能返回路由信息。</li>
+<li>消息发送者在消息发送时首先会查本地缓存，如果本地缓存中存在，直接返回路由信息。</li>
+<li>如果缓存不存在，则向Nameserver查询路由信息，如果Nameserver存在该路由信息，就直接返回。</li>
+<li>如果Nameserver不存在该topic的路由信息，如果没有开启自动创建主题，则抛出 No route info of this topic。</li>
+<li>如果开启了自动创建主题，则使用默认主题向Nameserver查询路由信息，并使用默认Topic的路由信息为自己的路由信息，将不会抛出 No route info of this topic。</li>
+</ul>
+<p>通常情况下 No route info of this topic 这个错误一般是在刚搭建RocketMQ，刚入门 RocketMQ遇到的比较多，通常的排查思路如下：</p>
+<ul>
+<li><p>可以通过rocketmq-console查询路由信息是否存在，或使用如下命令查询路由信息：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">cd $&#123;ROCKETMQ_HOME&#125;/bin</span><br><span class="line">sh ./mqadmin topicRoute -n 127.0.0.1:9876 -t dw_test_0003</span><br></pre></td></tr></table></figure>
+<p>其输出结果如下所示：<br><img src="https://img-blog.csdnimg.cn/20200927212234119.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"></p>
+</li>
+<li><p>如果通过命令无法查询到路由信息，则查看Broker是否开启了自动创建topic，参数为：autoCreateTopicEnable,该参数默认为true。但在生产环境不建议开启。</p>
+</li>
+<li><p>如果开启了自动创建路由信息，但还是抛出这个错误，这个时候请检查客户端(Producer)连接的Nameserver地址是否与Broker中配置的nameserver地址是否一致。</p>
+</li>
+</ul>
+<p>经过上面的步骤，基本就能解决该错误。</p>
+        
+          <p class="article-more-link">
+            <a href="/2020/12/07/RocketMQ%E6%B6%88%E6%81%AF%E5%8F%91%E9%80%81%E5%B8%B8%E8%A7%81%E9%94%99%E8%AF%AF%E4%B8%8E%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88/#more">Read More</a>
+          </p>
+        
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://example.com/2020/12/07/RocketMQ%E6%B6%88%E6%81%AF%E5%8F%91%E9%80%81%E5%B8%B8%E8%A7%81%E9%94%99%E8%AF%AF%E4%B8%8E%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88/" data-id="ckieodeov000brwrg0xr1hizn" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/rocketmq/" rel="tag">rocketmq</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-RocketMQ学习环境搭建(RocketMQ安装与IDEA Debug环境搭建)" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2020/12/07/RocketMQ%E5%AD%A6%E4%B9%A0%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA(RocketMQ%E5%AE%89%E8%A3%85%E4%B8%8EIDEA%20Debug%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA)/" class="article-date">
+  <time datetime="2020-12-07T14:42:28.000Z" itemprop="datePublished">2020-12-07</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/rocketmq/">rocketmq</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/2020/12/07/RocketMQ%E5%AD%A6%E4%B9%A0%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA(RocketMQ%E5%AE%89%E8%A3%85%E4%B8%8EIDEA%20Debug%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA)/">RocketMQ学习环境搭建(RocketMQ安装与IDEA Debug环境搭建)</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>本文主要分如下几个部分展开：</p>
+<ul>
+<li>Linux服务器安装RocketMQ、RocketMQ-Console</li>
+<li>IDEA中搭建可调试环境</li>
+</ul>
+<h2 id="1、Linux安装RocketMQ、RocketMQ-Console"><a href="#1、Linux安装RocketMQ、RocketMQ-Console" class="headerlink" title="1、Linux安装RocketMQ、RocketMQ-Console"></a>1、Linux安装RocketMQ、RocketMQ-Console</h2><h3 id="1-1安装RocketMQ"><a href="#1-1安装RocketMQ" class="headerlink" title="1.1安装RocketMQ"></a>1.1安装RocketMQ</h3><p>Step1：从如下地址下载RocketMQ安装包</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">cd /opt/application</span><br><span class="line">wget https://mirrors.tuna.tsinghua.edu.cn/apache/rocketmq/4.7.1/rocketmq-all-4.7.1-bin-release.zip</span><br></pre></td></tr></table></figure>
+
+<p>Step2：解压安装包</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">unzip rocketmq-all-4.7.1-bin-release.zip</span><br><span class="line">ls -l</span><br></pre></td></tr></table></figure>
+
+<p>解压后的文件如下图所示：<br><img src="https://img-blog.csdnimg.cn/20201011210742646.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br>其中 conf 文件夹存放的是RocketMQ的配置文件，提供了各种部署结构的示例配置。例如2m-2s-async是2主2从异步复制的配置示例；2m-noslave是2主的示例配置。由于本文主要是搭建一个学习环境，故采取的部署架构为1主的部署架构，关于生产环境下如何搭建RocketMQ集群、如何调优参数将在该专栏的后续文章中专门介绍。</p>
+<p>Step3：修改Nameserver jvm参数</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">cd bin</span><br><span class="line">vi runserver.sh</span><br><span class="line"></span><br><span class="line"><span class="meta">#</span><span class="bash"> 定位到如下代码</span></span><br><span class="line">JAVA_OPT=&quot;$&#123;JAVA_OPT&#125; -server -Xms4g -Xmx4g -Xmn2g -XX:MetaspaceSize=128m -XX:MaxMetaspaceSize=320m&quot;</span><br><span class="line"></span><br><span class="line"><span class="meta">#</span><span class="bash"> 修改　<span class="string">&quot;-Xms -Xmx -Xmn&quot;</span>　参数</span></span><br><span class="line">JAVA_OPT=&quot;$&#123;JAVA_OPT&#125; -server -Xms512M -Xmx512M -Xmn256M -XX:MetaspaceSize=128m -XX:MaxMetaspaceSize=320m&quot;</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>温馨提示：这里修改JVM参数主要目的是个人学习电脑内存不够，默认NameServer 会占用4G。</p>
+</blockquote>
+<p>Step4：启动nameserver</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nohup ./mqnamesrv &amp;</span><br></pre></td></tr></table></figure>
+
+<p>查看${user_home}/logs/rocketmqlogs/namesrv.log日志文件，如果输出结果如下图所示即表示启动成功。<br><img src="https://img-blog.csdnimg.cn/20201011210817888.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"></p>
+        
+          <p class="article-more-link">
+            <a href="/2020/12/07/RocketMQ%E5%AD%A6%E4%B9%A0%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA(RocketMQ%E5%AE%89%E8%A3%85%E4%B8%8EIDEA%20Debug%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA)/#more">Read More</a>
+          </p>
+        
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://example.com/2020/12/07/RocketMQ%E5%AD%A6%E4%B9%A0%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA(RocketMQ%E5%AE%89%E8%A3%85%E4%B8%8EIDEA%20Debug%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA)/" data-id="ckieodeor0006rwrg16scgs6l" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/rocketmq/" rel="tag">rocketmq</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-RocketMQ核心概念扫盲篇" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2020/12/07/RocketMQ%E6%A0%B8%E5%BF%83%E6%A6%82%E5%BF%B5%E6%89%AB%E7%9B%B2%E7%AF%87/" class="article-date">
+  <time datetime="2020-12-07T14:40:25.000Z" itemprop="datePublished">2020-12-07</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/rocketmq/">rocketmq</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/2020/12/07/RocketMQ%E6%A0%B8%E5%BF%83%E6%A6%82%E5%BF%B5%E6%89%AB%E7%9B%B2%E7%AF%87/">RocketMQ核心概念扫盲篇</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>在正式进入RocketMQ的学习之前，我觉得有必要梳理一下RocketMQ核心概念，为大家学习RocketMQ打下牢固的基础。</p>
+<h2 id="1、RocketMQ部署架构"><a href="#1、RocketMQ部署架构" class="headerlink" title="1、RocketMQ部署架构"></a>1、RocketMQ部署架构</h2><p><img src="https://img-blog.csdnimg.cn/20201018221302331.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br>在RocketMQ主要的组件如下：</p>
+<ul>
+<li><p>Nameserver</p>
+<p>Nameserver集群，topic的路由注册中心，为客户端根据Topic提供路由服务，从而引导客户端向Broker发送消息。Nameserver之间的节点不通信。路由信息在Nameserver集群中数据一致性采取的最终一致性。</p>
+</li>
+<li><p>Broker</p>
+<p>消息存储服务器，分为两种角色：Master与Slave，上图中呈现的就是2主2从的部署架构，在RocketMQ中，主服务承担读写操作，从服务器作为一个备份，当主服务器存在压力时，从服务器可以承担读服务（消息消费）。所有Broker，包含Slave服务器每隔30s会向Nameserver发送心跳包，心跳包中会包含存在在Broker上所有的topic的路由信息。</p>
+</li>
+<li><p>Client</p>
+<p>消息客户端，包括Producer(消息发送者)和Consumer(消费消费者)．客户端在同一时间只会连接一台nameserver，只有在连接出现异常时才会向尝试连接另外一台。客户端每隔30s向Nameserver发起topic的路由信息查询。</p>
+</li>
+</ul>
+<blockquote>
+<p>温馨提示：Nameserver是在内存中存储Topic的路由信息，持久化Topic路由信息的地方是在Broker中，即${    ROCKETMQ_HOME}/store/config/topics.json。</p>
+</blockquote>
+<p>在RocketMQ4.5.0版本后引入了多副本机制，即一个复制组（m-s）可以演变为基于raft协议的复制组，复制组内部使用raft协议保证broker节点数据的强一致性，该部署架构在金融行业用的比较多。</p>
+        
+          <p class="article-more-link">
+            <a href="/2020/12/07/RocketMQ%E6%A0%B8%E5%BF%83%E6%A6%82%E5%BF%B5%E6%89%AB%E7%9B%B2%E7%AF%87/#more">Read More</a>
+          </p>
+        
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://example.com/2020/12/07/RocketMQ%E6%A0%B8%E5%BF%83%E6%A6%82%E5%BF%B5%E6%89%AB%E7%9B%B2%E7%AF%87/" data-id="ckieodeot000arwrgfrm8dcgq" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/rocketmq/" rel="tag">rocketmq</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-Kafka与RocketMQ性能对比大揭秘" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2020/12/07/Kafka%E4%B8%8ERocketMQ%E6%80%A7%E8%83%BD%E5%AF%B9%E6%AF%94%E5%A4%A7%E6%8F%AD%E7%A7%98/" class="article-date">
+  <time datetime="2020-12-07T14:37:01.000Z" itemprop="datePublished">2020-12-07</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/kafka-rocketmq/">kafka rocketmq</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/2020/12/07/Kafka%E4%B8%8ERocketMQ%E6%80%A7%E8%83%BD%E5%AF%B9%E6%AF%94%E5%A4%A7%E6%8F%AD%E7%A7%98/">Kafka与RocketMQ性能对比大揭秘</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>在双十一过程中投入同样的硬件资源，Kafka 搭建的日志集群单个Topic可以达到几百万的TPS，而使用RocketMQ组件的核心业务集群，集群TPS只能达到几十万TPS，这样的现象激发了我对两者性能方面的思考。</p>
+<blockquote>
+<p>温馨提示：TPS只是众多性能指标中的一个，我们在做技术选型方面要从多方面考虑，本文并不打算就消息中间件选型方面投入太多笔墨，重点想尝试剖析两者在性能方面的设计思想。</p>
+</blockquote>
+        
+          <p class="article-more-link">
+            <a href="/2020/12/07/Kafka%E4%B8%8ERocketMQ%E6%80%A7%E8%83%BD%E5%AF%B9%E6%AF%94%E5%A4%A7%E6%8F%AD%E7%A7%98/#more">Read More</a>
+          </p>
+        
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://example.com/2020/12/07/Kafka%E4%B8%8ERocketMQ%E6%80%A7%E8%83%BD%E5%AF%B9%E6%AF%94%E5%A4%A7%E6%8F%AD%E7%A7%98/" data-id="ckieodeom0001rwrgcajicln7" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/kafka-rocketmq/" rel="tag">kafka rocketmq</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
     <article id="post-10年IT老兵给职场新人的一些建议" class="article article-type-post" itemscope itemprop="blogPost">
   <div class="article-meta">
     <a href="/2020/12/07/10%E5%B9%B4IT%E8%80%81%E5%85%B5%E7%BB%99%E8%81%8C%E5%9C%BA%E6%96%B0%E4%BA%BA%E7%9A%84%E4%B8%80%E4%BA%9B%E5%BB%BA%E8%AE%AE/" class="article-date">
@@ -103,7 +548,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://example.com/2020/12/07/10%E5%B9%B4IT%E8%80%81%E5%85%B5%E7%BB%99%E8%81%8C%E5%9C%BA%E6%96%B0%E4%BA%BA%E7%9A%84%E4%B8%80%E4%BA%9B%E5%BB%BA%E8%AE%AE/" data-id="ckieknayv0000p4rg7sekc4fz" class="article-share-link">Share</a>
+      <a data-url="http://example.com/2020/12/07/10%E5%B9%B4IT%E8%80%81%E5%85%B5%E7%BB%99%E8%81%8C%E5%9C%BA%E6%96%B0%E4%BA%BA%E7%9A%84%E4%B8%80%E4%BA%9B%E5%BB%BA%E8%AE%AE/" data-id="ckieodeoh0000rwrgcnlah6w0" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E7%A8%8B%E5%BA%8F%E4%BA%BA%E7%94%9F/" rel="tag">程序人生</a></li></ul>
@@ -125,7 +570,7 @@
   <div class="widget-wrap">
     <h3 class="widget-title">分类</h3>
     <div class="widget">
-      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/%E7%A8%8B%E5%BA%8F%E4%BA%BA%E7%94%9F-%E9%80%86%E8%A2%AD-%E8%81%8C%E5%9C%BA%E5%8F%91%E5%B1%95/">程序人生 逆袭 职场发展</a></li></ul>
+      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/kafka-rocketmq/">kafka rocketmq</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/rocketmq/">rocketmq</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/%E7%A8%8B%E5%BA%8F%E4%BA%BA%E7%94%9F-%E9%80%86%E8%A2%AD-%E8%81%8C%E5%9C%BA%E5%8F%91%E5%B1%95/">程序人生 逆袭 职场发展</a></li></ul>
     </div>
   </div>
 
@@ -135,7 +580,7 @@
   <div class="widget-wrap">
     <h3 class="widget-title">标签</h3>
     <div class="widget">
-      <ul class="tag-list" itemprop="keywords"><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E7%A8%8B%E5%BA%8F%E4%BA%BA%E7%94%9F/" rel="tag">程序人生</a></li></ul>
+      <ul class="tag-list" itemprop="keywords"><li class="tag-list-item"><a class="tag-list-link" href="/tags/kafka-rocketmq/" rel="tag">kafka rocketmq</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rocketmq/" rel="tag">rocketmq</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E7%A8%8B%E5%BA%8F%E4%BA%BA%E7%94%9F/" rel="tag">程序人生</a></li></ul>
     </div>
   </div>
 
@@ -145,7 +590,7 @@
   <div class="widget-wrap">
     <h3 class="widget-title">标签云</h3>
     <div class="widget tagcloud">
-      <a href="/tags/%E7%A8%8B%E5%BA%8F%E4%BA%BA%E7%94%9F/" style="font-size: 10px;">程序人生</a>
+      <a href="/tags/kafka-rocketmq/" style="font-size: 10px;">kafka rocketmq</a> <a href="/tags/rocketmq/" style="font-size: 20px;">rocketmq</a> <a href="/tags/%E7%A8%8B%E5%BA%8F%E4%BA%BA%E7%94%9F/" style="font-size: 10px;">程序人生</a>
     </div>
   </div>
 
@@ -167,7 +612,23 @@
       <ul>
         
           <li>
-            <a href="/2020/12/07/10%E5%B9%B4IT%E8%80%81%E5%85%B5%E7%BB%99%E8%81%8C%E5%9C%BA%E6%96%B0%E4%BA%BA%E7%9A%84%E4%B8%80%E4%BA%9B%E5%BB%BA%E8%AE%AE/">10年IT老兵给职场新人的一些建议</a>
+            <a href="/2020/12/07/RocketMQ%E4%B8%80%E8%A1%8C%E4%BB%A3%E7%A0%81%E9%80%A0%E6%88%90%E5%A4%A7%E9%87%8F%E6%B6%88%E6%81%AF%E5%8F%91%E9%80%81%E5%A4%B1%E8%B4%A5/">RocketMQ一行代码造成大量消息发送失败</a>
+          </li>
+        
+          <li>
+            <a href="/2020/12/07/RocketMQ%20msgId%E4%B8%8EoffsetMsgId%E9%87%8A%E7%96%91(%E5%AE%9E%E6%88%98%E7%AF%87)/">我的另一种参与 RocketMQ 开源社区的方式</a>
+          </li>
+        
+          <li>
+            <a href="/2020/12/07/%E6%88%91%E7%9A%84%E5%8F%A6%E4%B8%80%E7%A7%8D%E5%8F%82%E4%B8%8E%20RocketMQ%20%E5%BC%80%E6%BA%90%E7%A4%BE%E5%8C%BA%E7%9A%84%E6%96%B9%E5%BC%8F/">我的另一种参与 RocketMQ 开源社区的方式</a>
+          </li>
+        
+          <li>
+            <a href="/2020/12/07/RocketMQ%E6%B6%88%E6%81%AF%E5%8F%91%E9%80%81%E5%B8%B8%E8%A7%81%E9%94%99%E8%AF%AF%E4%B8%8E%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88/">RocketMQ消息发送常见错误与解决方案</a>
+          </li>
+        
+          <li>
+            <a href="/2020/12/07/RocketMQ%E5%AD%A6%E4%B9%A0%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA(RocketMQ%E5%AE%89%E8%A3%85%E4%B8%8EIDEA%20Debug%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA)/">RocketMQ学习环境搭建(RocketMQ安装与IDEA Debug环境搭建)</a>
           </li>
         
       </ul>
