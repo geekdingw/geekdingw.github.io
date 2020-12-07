@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   
-  <meta name="baidu-site-verification" content="code-rCnT5pBTbm" />
+
   
   <title>中间件兴趣圈</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
@@ -66,10 +66,10 @@
       <div class="outer">
         <section id="main">
   
-    <article id="post-再谈 RocketMQ broker busy(实战篇)" class="article article-type-post" itemscope itemprop="blogPost">
+    <article id="post-RocketMQ 主题扩分片后遇到的坑" class="article article-type-post" itemscope itemprop="blogPost">
   <div class="article-meta">
-    <a href="/2020/12/07/%E5%86%8D%E8%B0%88%20RocketMQ%20broker%20busy(%E5%AE%9E%E6%88%98%E7%AF%87)/" class="article-date">
-  <time datetime="2020-12-07T15:04:01.000Z" itemprop="datePublished">2020-12-07</time>
+    <a href="/2020/12/07/RocketMQ%20%E4%B8%BB%E9%A2%98%E6%89%A9%E5%88%86%E7%89%87%E5%90%8E%E9%81%87%E5%88%B0%E7%9A%84%E5%9D%91/" class="article-date">
+  <time datetime="2020-12-07T15:49:01.000Z" itemprop="datePublished">2020-12-07</time>
 </a>
     
   <div class="article-category">
@@ -84,7 +84,7 @@
         
   
     <h1 itemprop="name">
-      <a class="article-title" href="/2020/12/07/%E5%86%8D%E8%B0%88%20RocketMQ%20broker%20busy(%E5%AE%9E%E6%88%98%E7%AF%87)/">再谈 RocketMQ broker busy(实战篇)</a>
+      <a class="article-title" href="/2020/12/07/RocketMQ%20%E4%B8%BB%E9%A2%98%E6%89%A9%E5%88%86%E7%89%87%E5%90%8E%E9%81%87%E5%88%B0%E7%9A%84%E5%9D%91/">RocketMQ 主题扩分片后遇到的坑</a>
     </h1>
   
 
@@ -92,29 +92,253 @@
     
     <div class="article-entry" itemprop="articleBody">
       
-        <p>本文将在 <a target="_blank" rel="noopener" href="https://blog.csdn.net/prestigeding/article/details/92800672">RocketMQ 消息发送system busy、broker busy原因分析与解决方案</a> 的基础上，结合生产上的日志尝试再次理解 broker busy 以及探讨解决方案。</p>
-<p>首先，broker busy 相关的日志关键字如下：</p>
-<ul>
-<li>[REJECTREQUEST]system busy</li>
-<li>too many requests and system thread pool busy</li>
-<li>[PC_SYNCHRONIZED]broker busy</li>
-<li>[PCBUSY_CLEAN_QUEUE]broker busy</li>
-<li>[TIMEOUT_CLEAN_QUEUE]broker busy</li>
-</ul>
-<p>上述前面4个关键字在上篇文章中已详细介绍，本文先对出现上述错误进行一个总结，具体的分析过程请查阅上篇文章。</p>
-<p>本文先给出一张流程图，展示上述5种 broker busy 分别会在消息发送的哪个阶段抛出，以便大家能够清晰的了解其发生的原因。<br><img src="https://img-blog.csdnimg.cn/20191024084015845.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br><strong>针对前4种 broker busy 出现的问题已经在上篇文章中详细介绍，主要是由于 Broker 在追加消息时持有的锁时间超过了设置的1s，Broker 为了自我保护，会抛出错误，客户端会选择其他 broker 服务器进行重试。如果对不是金融级服务，建议将 transientStorePoolEnable = true，可以有效避免前面 4 种 broker ，因为开启这个参数，消息首先会存储在堆外内存中，并且 RocketMQ 提供了内存锁定的功能，其追加性能能得到一定的保障，这样可以做到在内存使用层面的读写分离，即写消息是直接写入堆外内存，消费消息直接从 pagecache中读，然后定时将堆外内存的消息写入 pagecache。但这种方案随之带来的就是可能存在消息丢失，如果对消息非常严谨的话，建议扩容集群，或迁移topic到新的集群。</strong></p>
+        <p>消息组接到某项目组反馈，topic 在扩容后出现部分队列无法被消费者，导致消息积压，影响线上业务？</p>
+<p>考虑到该问题是发送在真实的线上环境，为了避免泄密，本文先在笔者的虚拟机中来重现问题。<br>@<a href="%E6%9C%AC%E8%8A%82%E7%9B%AE%E5%BD%95">TOC</a></p>
+<h2 id="1、案情回顾"><a href="#1、案情回顾" class="headerlink" title="1、案情回顾"></a>1、案情回顾</h2><h3 id="1-1-集群现状"><a href="#1-1-集群现状" class="headerlink" title="1.1 集群现状"></a>1.1 集群现状</h3><p>集群信息如下：<br><img src="https://img-blog.csdnimg.cn/20190906232935331.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>例如业务主体名 topic_dw_test_by_order_01 的路由信息如图所示：<br><img src="https://img-blog.csdnimg.cn/20190906233008367.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>当前的消费者信息：<br><img src="https://img-blog.csdnimg.cn/20190906233034814.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>broker 的配置信息如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">brokerClusterName &#x3D; DefaultCluster</span><br><span class="line">brokerName &#x3D; broker-a</span><br><span class="line">brokerId &#x3D; 0</span><br><span class="line">deleteWhen &#x3D; 04</span><br><span class="line">fileReservedTime &#x3D; 48</span><br><span class="line">brokerRole &#x3D; ASYNC_MASTER</span><br><span class="line">flushDiskType &#x3D; ASYNC_FLUSH</span><br><span class="line">brokerIP1&#x3D;192.168.0.220</span><br><span class="line">brokerIP2-192.168.0.220</span><br><span class="line">namesrvAddr&#x3D;192.168.0.221:9876;192.168.0.220:9876</span><br><span class="line">storePathRootDir&#x3D;&#x2F;opt&#x2F;application&#x2F;rocketmq-all-4.5.2-bin-release&#x2F;store</span><br><span class="line">storePathCommitLog&#x3D;&#x2F;opt&#x2F;application&#x2F;rocketmq-all-4.5.2-bin-release&#x2F;store&#x2F;commitlog</span><br><span class="line">autoCreateTopicEnable&#x3D;false</span><br><span class="line">autoCreateSubscriptionGroup&#x3D;false</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>备注：公司对 topic、消费组进行了严格的管控，项目组需要使用时需要向运维人员申请，故 broker 集群不允许自动创建主题与自动创建消费组。</p>
+</blockquote>
+<p>由于该业务量稳步提升，项目组觉得该主题的队列数太少，不利于增加消费者来提高其消费能力，故向运维人员提出增加队列的需求。</p>
+<h3 id="1-2、RocketMQ-在线扩容队列"><a href="#1-2、RocketMQ-在线扩容队列" class="headerlink" title="1.2、RocketMQ 在线扩容队列"></a>1.2、RocketMQ 在线扩容队列</h3><p>运维通过公司自研的消息运维平台，直接以指定集群的方式为 topic 扩容，该运维平台底层其实使用了RocketMQ 提供的 updateTopic 命令，其命令说明如下：</p>
         
           <p class="article-more-link">
-            <a href="/2020/12/07/%E5%86%8D%E8%B0%88%20RocketMQ%20broker%20busy(%E5%AE%9E%E6%88%98%E7%AF%87)/#more">Read More</a>
+            <a href="/2020/12/07/RocketMQ%20%E4%B8%BB%E9%A2%98%E6%89%A9%E5%88%86%E7%89%87%E5%90%8E%E9%81%87%E5%88%B0%E7%9A%84%E5%9D%91/#more">Read More</a>
           </p>
         
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://example.com/2020/12/07/%E5%86%8D%E8%B0%88%20RocketMQ%20broker%20busy(%E5%AE%9E%E6%88%98%E7%AF%87)/" data-id="ckiep6dty000b00rg9ktu81bd" class="article-share-link">Share</a>
+      <a data-url="http://example.com/2020/12/07/RocketMQ%20%E4%B8%BB%E9%A2%98%E6%89%A9%E5%88%86%E7%89%87%E5%90%8E%E9%81%87%E5%88%B0%E7%9A%84%E5%9D%91/" data-id="ckieqedx4000aukrg4atudota" class="article-share-link">Share</a>
       
       
-  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/rocketmq-broker-busy-TIMEOUT-CLEAN-QUEUE-PCBUSY-CLEAN-QUEUE/" rel="tag">rocketmq broker busy TIMEOUT_CLEAN_QUEUE PCBUSY_CLEAN_QUEUE</a></li></ul>
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/rocketmq-%E4%B8%BB%E9%A2%98%E6%89%A9%E5%AE%B9-%E5%AE%9E%E6%88%98-%E5%9D%91/" rel="tag">rocketmq 主题扩容 实战 坑</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-源码分析 RocketMQ DLedger 多副本存储实现" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2020/12/07/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90%20RocketMQ%20DLedger%20%E5%A4%9A%E5%89%AF%E6%9C%AC%E5%AD%98%E5%82%A8%E5%AE%9E%E7%8E%B0/" class="article-date">
+  <time datetime="2020-12-07T15:47:01.000Z" itemprop="datePublished">2020-12-07</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/rocketmq/">rocketmq</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/2020/12/07/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90%20RocketMQ%20DLedger%20%E5%A4%9A%E5%89%AF%E6%9C%AC%E5%AD%98%E5%82%A8%E5%AE%9E%E7%8E%B0/">源码分析 RocketMQ DLedger 多副本存储实现</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>RocketMQ DLedger 的存储实现思路与 RocketMQ 的存储实现思路相似，本文就不再从源码角度详细剖析其实现，只是点出其实现关键点。我们不妨简单回顾一下 CommitLog 文件、ConsumeQueue 文件设计思想。</p>
+<p>其文件组成形式如下：<br><img src="https://img-blog.csdnimg.cn/20190831215052708.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>正如上图所示，多个 commitlog 文件组成一个逻辑上的连续文件，使用 MappedFileQueue 表示，单个 commitlog 文件使用 MappedFile 表示。</p>
+<blockquote>
+<p>温馨提示：如果想详细了解 RocketMQ 关于存储部分的讲解，可以关注笔者的《RocketMQ 技术内幕》一书。</p>
+</blockquote>
+<h2 id="1、DLedger-存储相关类图"><a href="#1、DLedger-存储相关类图" class="headerlink" title="1、DLedger 存储相关类图"></a>1、DLedger 存储相关类图</h2><p><img src="https://img-blog.csdnimg.cn/20190831215151796.jpg?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"></p>
+<h3 id="1-1-DLedgerStore"><a href="#1-1-DLedgerStore" class="headerlink" title="1.1 DLedgerStore"></a>1.1 DLedgerStore</h3><p>存储抽象类，定义如下核心方法：</p>
+<ul>
+<li>public abstract DLedgerEntry appendAsLeader(DLedgerEntry entry)<br>向主节点追加日志(数据)。</li>
+<li>public abstract DLedgerEntry appendAsFollower(DLedgerEntry entry, long leaderTerm, String leaderId)<br>向从节点同步日志。</li>
+<li>public abstract DLedgerEntry get(Long index)<br>根据日志下标查找日志。</li>
+<li>public abstract long getCommittedIndex()<br>获取已提交的下标。</li>
+<li>public abstract long getLedgerEndTerm()<br>获取 Leader 当前最大的投票轮次。</li>
+<li>public abstract long getLedgerEndIndex()<br>获取 Leader 下一条日志写入的下标（最新日志的下标）。</li>
+<li>public abstract long getLedgerBeginIndex()<br>获取 Leader 第一条消息的下标。</li>
+<li>public void updateCommittedIndex(long term, long committedIndex)<br>更新commitedIndex的值，为空实现，由具体的存储子类实现。</li>
+<li>protected void updateLedgerEndIndexAndTerm()<br>更新 Leader 维护的 ledgerEndIndex 和 ledgerEndTerm 。</li>
+<li>public void flush()<br>刷写，空方法，由具体子类实现。</li>
+<li>public long truncate(DLedgerEntry entry, long leaderTerm, String leaderId)<br>删除日志，空方法，由具体子类实现。</li>
+<li>public void startup()<br>启动存储管理器，空方法，由具体子类实现。</li>
+<li>public void shutdown()<br>关闭存储管理器，空方法，由具体子类实现。</li>
+</ul>
+<h3 id="1-2-DLedgerMemoryStore"><a href="#1-2-DLedgerMemoryStore" class="headerlink" title="1.2 DLedgerMemoryStore"></a>1.2 DLedgerMemoryStore</h3><p>Dledger 基于内存实现的日志存储。</p>
+<h3 id="1-3-DLedgerMmapFileStore"><a href="#1-3-DLedgerMmapFileStore" class="headerlink" title="1.3  DLedgerMmapFileStore"></a>1.3  DLedgerMmapFileStore</h3><p>基于文件内存映射机制的存储实现。其核心属性如下：</p>
+<ul>
+<li>long ledgerBeginIndex =  -1<br>日志的起始索引，默认为 -1。<br>l- ong ledgerEndIndex = -1<br>下一条日志下标，默认为 -1。</li>
+<li>long committedIndex = -1<br>已提交的日志索引。</li>
+<li>long ledgerEndTerm<br>当前最大的投票轮次。</li>
+<li>DLedgerConfig dLedgerConfig<br>DLedger 的配置信息。</li>
+<li>MemberState memberState<br>状态机。</li>
+<li>MmapFileList dataFileList<br>日志文件(数据文件)的内存映射Queue。</li>
+<li>MmapFileList indexFileList<br>索引文件的内存映射文件集合。（可对标 RocketMQ MappedFIleQueue )。</li>
+<li>ThreadLocal&lt; ByteBuffer&gt; localIndexBuffer<br>本地线程变量，用来缓存索引ByteBuffer。</li>
+<li>ThreadLocal&lt; ByteBuffer&gt; localEntryBuffer<br>本地线程变量，用来缓存数据索引ByteBuffer。</li>
+<li>FlushDataService flushDataService<br>数据文件刷盘线程。</li>
+<li>CleanSpaceService cleanSpaceService<br>清除过期日志文件线程。</li>
+<li>boolean isDiskFull = false<br>磁盘是否已满。</li>
+<li>long lastCheckPointTimeMs<br>上一次检测点（时间戳）。</li>
+<li>AtomicBoolean hasLoaded<br>是否已经加载，主要用来避免重复加载(初始化)日志文件。</li>
+<li>AtomicBoolean hasRecovered<br> ​    是否已恢复。</li>
+</ul>
+        
+          <p class="article-more-link">
+            <a href="/2020/12/07/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90%20RocketMQ%20DLedger%20%E5%A4%9A%E5%89%AF%E6%9C%AC%E5%AD%98%E5%82%A8%E5%AE%9E%E7%8E%B0/#more">Read More</a>
+          </p>
+        
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://example.com/2020/12/07/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90%20RocketMQ%20DLedger%20%E5%A4%9A%E5%89%AF%E6%9C%AC%E5%AD%98%E5%82%A8%E5%AE%9E%E7%8E%B0/" data-id="ckieqedxf000vukrg5343ca85" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/rocketmq/" rel="tag">rocketmq</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-源码分析 RocketMQ DLedger 多副本之 Leader 选主" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2020/12/07/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90%20RocketMQ%20DLedger%20%E5%A4%9A%E5%89%AF%E6%9C%AC%E4%B9%8B%20Leader%20%E9%80%89%E4%B8%BB/" class="article-date">
+  <time datetime="2020-12-07T15:43:01.000Z" itemprop="datePublished">2020-12-07</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/rocketmq/">rocketmq</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/2020/12/07/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90%20RocketMQ%20DLedger%20%E5%A4%9A%E5%89%AF%E6%9C%AC%E4%B9%8B%20Leader%20%E9%80%89%E4%B8%BB/">源码分析 RocketMQ DLedger 多副本之 Leader 选主</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>本文将按照<a target="_blank" rel="noopener" href="https://blog.csdn.net/prestigeding/article/details/99101912">《RocketMQ 多副本前置篇：初探raft协议》</a>的思路来学习RocketMQ选主逻辑。首先先回顾一下关于Leader的一些思考：</p>
+<ol>
+<li>节点状态<br>需要引入3种节点状态：Follower(跟随者)、Candidate(候选者)，该状态下的节点会发起投票请求，Leader(主节点)。</li>
+<li>选举计时器<br>Follower、Candidate两个状态时，需要维护一个定时器，每次定时时间从150ms-300ms直接进行随机，即每个节点的定时过期不一样，Follower状态时，定时器到点后，触发一轮投票。节点在收到投票请求、Leader的心跳请求并作出响应后，需要重置定时器。</li>
+<li>投票轮次Team<br>Candidate状态的节点，每发起一轮投票，Team加一。</li>
+<li>投票机制<br>每一轮一个节点只能为一个节点投赞成票，例如节点A中维护的轮次为3，并且已经为节点B投了赞成票，如果收到其他节点，投票轮次为3，则会投反对票，如果收到轮次为4的节点，是又可以投赞成票的。</li>
+<li>成为Leader的条件<br>必须得到集群中初始数量的大多数，例如如果集群中有3台，则必须得到两票，如果其中一台服务器宕机，剩下的两个节点，还能进行选主吗？答案是可以的，因为可以得到2票，超过初始集群中3的一半，所以通常集群中的机器各位尽量为奇数，因为4台的可用性与3台的一样。</li>
+</ol>
+<blockquote>
+<p>温馨提示：本文是从源码的角度分析 DLedger 选主实现原理，可能比较鼓噪，文末给出了选主流程图。</p>
+</blockquote>
+<p>@<a href="%E6%9C%AC%E8%8A%82%E7%9B%AE%E5%BD%95">TOC</a></p>
+<h2 id="1、DLedger关于选主的核心类图"><a href="#1、DLedger关于选主的核心类图" class="headerlink" title="1、DLedger关于选主的核心类图"></a>1、DLedger关于选主的核心类图</h2><p><img src="https://img-blog.csdnimg.cn/20190817201207350.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"></p>
+<h3 id="1-1-DLedgerConfig"><a href="#1-1-DLedgerConfig" class="headerlink" title="1.1 DLedgerConfig"></a>1.1 DLedgerConfig</h3><p>多副本模块相关的配置信息，例如集群节点信息。</p>
+<h3 id="1-2-MemberState"><a href="#1-2-MemberState" class="headerlink" title="1.2 MemberState"></a>1.2 MemberState</h3><p>节点状态机，即raft协议中的follower、candidate、leader三种状态的状态机实现。</p>
+<h3 id="1-3-raft协议相关"><a href="#1-3-raft协议相关" class="headerlink" title="1.3 raft协议相关"></a>1.3 raft协议相关</h3><h4 id="1-3-1-DLedgerClientProtocol"><a href="#1-3-1-DLedgerClientProtocol" class="headerlink" title="1.3.1 DLedgerClientProtocol"></a>1.3.1 DLedgerClientProtocol</h4><p>DLedger客户端协议，主要定义如下三个方法，在后面的日志复制部分会重点阐述。</p>
+<ul>
+<li>CompletableFuture&lt; GetEntriesResponse&gt; get(GetEntriesRequest request)<br>客户端从服务器获取日志条目（获取数据）</li>
+<li>CompletableFuture&lt; AppendEntryResponse&gt; append(AppendEntryRequest request)<br>客户端向服务器追加日志（存储数据）</li>
+<li>CompletableFuture&lt; MetadataResponse&gt; metadata(MetadataRequest request)<br>获取元数据。</li>
+</ul>
+<h4 id="1-3-2-DLedgerProtocol"><a href="#1-3-2-DLedgerProtocol" class="headerlink" title="1.3.2 DLedgerProtocol"></a>1.3.2 DLedgerProtocol</h4><p>DLedger服务端协议，主要定义如下三个方法。</p>
+<ul>
+<li>CompletableFuture&lt; VoteResponse&gt; vote(VoteRequest request)<br>发起投票请求。</li>
+<li>CompletableFuture&lt; HeartBeatResponse&gt; heartBeat(HeartBeatRequest request)<br>Leader向从节点发送心跳包。</li>
+<li>CompletableFuture&lt; PullEntriesResponse&gt; pull(PullEntriesRequest request)<br>拉取日志条目，在日志复制部分会详细介绍。</li>
+<li>CompletableFuture&lt; PushEntryResponse&gt; push(PushEntryRequest request)<br>推送日志条件，在日志复制部分会详细介绍。</li>
+</ul>
+<h4 id="1-3-3-协议处理Handler"><a href="#1-3-3-协议处理Handler" class="headerlink" title="1.3.3 协议处理Handler"></a>1.3.3 协议处理Handler</h4><p>DLedgerClientProtocolHandler、DLedgerProtocolHander协议处理器。</p>
+<h3 id="1-4-DLedgerRpcService"><a href="#1-4-DLedgerRpcService" class="headerlink" title="1.4 DLedgerRpcService"></a>1.4 DLedgerRpcService</h3><p>DLedger Server(节点)之间的网络通信，默认基于Netty实现，其实现类为：DLedgerRpcNettyService。</p>
+<h3 id="1-5-DLedgerLeaderElector"><a href="#1-5-DLedgerLeaderElector" class="headerlink" title="1.5 DLedgerLeaderElector"></a>1.5 DLedgerLeaderElector</h3><p>Leader选举实现器。</p>
+<h3 id="1-6-DLedgerServer"><a href="#1-6-DLedgerServer" class="headerlink" title="1.6 DLedgerServer"></a>1.6 DLedgerServer</h3><p>Dledger Server，Dledger节点的封装类。</p>
+<p>接下来将从DLedgerLeaderElector开始剖析DLedger是如何实现Leader选举的。（基于raft协议）。</p>
+        
+          <p class="article-more-link">
+            <a href="/2020/12/07/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90%20RocketMQ%20DLedger%20%E5%A4%9A%E5%89%AF%E6%9C%AC%E4%B9%8B%20Leader%20%E9%80%89%E4%B8%BB/#more">Read More</a>
+          </p>
+        
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://example.com/2020/12/07/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90%20RocketMQ%20DLedger%20%E5%A4%9A%E5%89%AF%E6%9C%AC%E4%B9%8B%20Leader%20%E9%80%89%E4%B8%BB/" data-id="ckieqedxv001nukrg3rbj0bns" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/rocketmq-%E5%A4%9A%E5%89%AF%E6%9C%AC-raft-%E9%80%89%E4%B8%BB/" rel="tag">rocketmq 多副本 raft 选主</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-RocketMQ 多副本前置篇：初探raft协议" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2020/12/07/RocketMQ%20%E5%A4%9A%E5%89%AF%E6%9C%AC%E5%89%8D%E7%BD%AE%E7%AF%87%EF%BC%9A%E5%88%9D%E6%8E%A2raft%E5%8D%8F%E8%AE%AE/" class="article-date">
+  <time datetime="2020-12-07T15:40:01.000Z" itemprop="datePublished">2020-12-07</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/rocketmq/">rocketmq</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/2020/12/07/RocketMQ%20%E5%A4%9A%E5%89%AF%E6%9C%AC%E5%89%8D%E7%BD%AE%E7%AF%87%EF%BC%9A%E5%88%9D%E6%8E%A2raft%E5%8D%8F%E8%AE%AE/">RocketMQ 多副本前置篇：初探raft协议</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>Raft协议是分布式领域解决一致性的又一著名协议，主要包含Leader选举、日志复制两个部分。</p>
+<blockquote>
+<p>温馨提示：<br>本文根据raft官方给出的raft动画进行学习，其动画展示地址：<a target="_blank" rel="noopener" href="http://thesecretlivesofdata.com/raft/">http://thesecretlivesofdata.com/raft/</a></p>
+</blockquote>
+<p>@<a href="%E6%9C%AC%E8%8A%82%E7%9B%AE%E5%BD%95">TOC</a></p>
+<h2 id="1、Leader选举"><a href="#1、Leader选举" class="headerlink" title="1、Leader选举"></a>1、Leader选举</h2><h3 id="1-1-一轮投票中，只有一个节点发起投票的情况"><a href="#1-1-一轮投票中，只有一个节点发起投票的情况" class="headerlink" title="1.1  一轮投票中，只有一个节点发起投票的情况"></a>1.1  一轮投票中，只有一个节点发起投票的情况</h3><p><img src="https://img-blog.csdnimg.cn/20190810192221312.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>Raft协议中节点有3种状态（角色）：</p>
+<ul>
+<li>Follower<br>跟随者。</li>
+<li>Candidate<br>候选者。</li>
+<li>Leader<br>领导者(Leader)，通常我们所说的的主节点。</li>
+</ul>
+<p>首先3个节点初始状态为 Follower，每个节点会有一个超时时间(计时器)，其时间设置为150ms~300ms之间的随机值。当计时器到期后，节点状态从 Follower 变成 Candidate，如下图所示：<br><img src="https://img-blog.csdnimg.cn/20190810193027410.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>通常情况下，三个节点中会有一个节点的计时器率先到期，节点状态变为 Candidate ，候选者状态下的节点会发起选举投票。我们先来考虑只有一个节点变为Candidate时是如何进行选主的。</p>
+<p>当节点状态为Candidate，将发起一轮投票，由于是第一轮投票，设置本轮投票轮次为1，并首先为自己投上一票，正如上图所示的NodeA节点，Team为1，Vote Count为1.<br><img src="https://img-blog.csdnimg.cn/20190810193206869.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>当一个节点的定时器超时后，首先为自己投上一票，然后向该组内其他的节点发起投票(用拉票更加合适)，发送投票请求。<br><img src="https://img-blog.csdnimg.cn/20190810193241874.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>当集群内的节点收到投票请求外，如果本轮未进行过投票，则赞同，否则反对，然后将结果返回，并重置计时器。<br><img src="https://img-blog.csdnimg.cn/2019081019345071.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>当节点A收到的赞同票大于一半时，则升级为该集群的 Leader，然后定时向集群内的其他节点发送心跳，以便确定自己的领导地位，正如下图所示。<br><img src="https://img-blog.csdnimg.cn/20190810193534746.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>Node A，集群中的 Leader正在向其他节点发送心跳包。<br><img src="https://img-blog.csdnimg.cn/20190810193603638.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>节点在收到 Leader 的心跳包后，返回响应结果，并重置自身的计时器，如果 Flower 状态的节点在计时时间超时内没有收到Leader 的心跳包，就会从 Flower 节点变成 Candidate,该节点就会发起下一轮投票。</p>
+<p>例如NodeA节点宕机，停止向它的从发送心跳，我们来看一下集群如何重新选主。</p>
+        
+          <p class="article-more-link">
+            <a href="/2020/12/07/RocketMQ%20%E5%A4%9A%E5%89%AF%E6%9C%AC%E5%89%8D%E7%BD%AE%E7%AF%87%EF%BC%9A%E5%88%9D%E6%8E%A2raft%E5%8D%8F%E8%AE%AE/#more">Read More</a>
+          </p>
+        
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://example.com/2020/12/07/RocketMQ%20%E5%A4%9A%E5%89%AF%E6%9C%AC%E5%89%8D%E7%BD%AE%E7%AF%87%EF%BC%9A%E5%88%9D%E6%8E%A2raft%E5%8D%8F%E8%AE%AE/" data-id="ckieqedx00004ukrg9fl2eav3" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/rocketmq-%E5%A4%9A%E5%89%AF%E6%9C%AC-raft-%E4%B8%BB%E4%BB%8E%E5%88%87%E6%8D%A2/" rel="tag">rocketmq 多副本 raft 主从切换</a></li></ul>
 
     </footer>
   </div>
@@ -163,10 +387,67 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://example.com/2020/12/07/%E4%B8%80%E6%AC%A1%20RocketMQ%20%E8%BF%9B%E7%A8%8B%E8%87%AA%E5%8A%A8%E9%80%80%E5%87%BA%E6%8E%92%E6%9F%A5%E7%BB%8F%E9%AA%8C%E5%88%86%E4%BA%AB%EF%BC%88%E5%AE%9E%E6%88%98%E7%AF%87%EF%BC%89/" data-id="ckiep6du1000h00rgbdsx9mnk" class="article-share-link">Share</a>
+      <a data-url="http://example.com/2020/12/07/%E4%B8%80%E6%AC%A1%20RocketMQ%20%E8%BF%9B%E7%A8%8B%E8%87%AA%E5%8A%A8%E9%80%80%E5%87%BA%E6%8E%92%E6%9F%A5%E7%BB%8F%E9%AA%8C%E5%88%86%E4%BA%AB%EF%BC%88%E5%AE%9E%E6%88%98%E7%AF%87%EF%BC%89/" data-id="ckieqedxb000lukrg4qe0hk4v" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/rocketmq/" rel="tag">rocketmq</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-再谈 RocketMQ broker busy(实战篇)" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2020/12/07/%E5%86%8D%E8%B0%88%20RocketMQ%20broker%20busy(%E5%AE%9E%E6%88%98%E7%AF%87)/" class="article-date">
+  <time datetime="2020-12-07T15:04:01.000Z" itemprop="datePublished">2020-12-07</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/rocketmq/">rocketmq</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/2020/12/07/%E5%86%8D%E8%B0%88%20RocketMQ%20broker%20busy(%E5%AE%9E%E6%88%98%E7%AF%87)/">再谈 RocketMQ broker busy(实战篇)</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>本文将在 <a target="_blank" rel="noopener" href="https://blog.csdn.net/prestigeding/article/details/92800672">RocketMQ 消息发送system busy、broker busy原因分析与解决方案</a> 的基础上，结合生产上的日志尝试再次理解 broker busy 以及探讨解决方案。</p>
+<p>首先，broker busy 相关的日志关键字如下：</p>
+<ul>
+<li>[REJECTREQUEST]system busy</li>
+<li>too many requests and system thread pool busy</li>
+<li>[PC_SYNCHRONIZED]broker busy</li>
+<li>[PCBUSY_CLEAN_QUEUE]broker busy</li>
+<li>[TIMEOUT_CLEAN_QUEUE]broker busy</li>
+</ul>
+<p>上述前面4个关键字在上篇文章中已详细介绍，本文先对出现上述错误进行一个总结，具体的分析过程请查阅上篇文章。</p>
+<p>本文先给出一张流程图，展示上述5种 broker busy 分别会在消息发送的哪个阶段抛出，以便大家能够清晰的了解其发生的原因。<br><img src="https://img-blog.csdnimg.cn/20191024084015845.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br><strong>针对前4种 broker busy 出现的问题已经在上篇文章中详细介绍，主要是由于 Broker 在追加消息时持有的锁时间超过了设置的1s，Broker 为了自我保护，会抛出错误，客户端会选择其他 broker 服务器进行重试。如果对不是金融级服务，建议将 transientStorePoolEnable = true，可以有效避免前面 4 种 broker ，因为开启这个参数，消息首先会存储在堆外内存中，并且 RocketMQ 提供了内存锁定的功能，其追加性能能得到一定的保障，这样可以做到在内存使用层面的读写分离，即写消息是直接写入堆外内存，消费消息直接从 pagecache中读，然后定时将堆外内存的消息写入 pagecache。但这种方案随之带来的就是可能存在消息丢失，如果对消息非常严谨的话，建议扩容集群，或迁移topic到新的集群。</strong></p>
+        
+          <p class="article-more-link">
+            <a href="/2020/12/07/%E5%86%8D%E8%B0%88%20RocketMQ%20broker%20busy(%E5%AE%9E%E6%88%98%E7%AF%87)/#more">Read More</a>
+          </p>
+        
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://example.com/2020/12/07/%E5%86%8D%E8%B0%88%20RocketMQ%20broker%20busy(%E5%AE%9E%E6%88%98%E7%AF%87)/" data-id="ckieqedxc000nukrg7vapcbfa" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/rocketmq-broker-busy-TIMEOUT-CLEAN-QUEUE-PCBUSY-CLEAN-QUEUE/" rel="tag">rocketmq broker busy TIMEOUT_CLEAN_QUEUE PCBUSY_CLEAN_QUEUE</a></li></ul>
 
     </footer>
   </div>
@@ -226,7 +507,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://example.com/2020/12/07/%E8%B8%A9%E5%9D%91%E8%AE%B0%EF%BC%9Arocketmq-console%20%E6%B6%88%E8%B4%B9TPS%E4%B8%BA0%EF%BC%8C%E4%BD%86%E6%B6%88%E6%81%AF%E7%A7%AF%E5%8E%8B%E6%95%B0%E5%8D%B4%E5%9C%A8%E9%99%8D%E4%BD%8E%E6%98%AF%E4%B8%AA%E4%BB%80%E4%B9%88%E2%80%9C%E9%AC%BC%E2%80%9D/" data-id="ckiep6dug001800rg1p8k2dbe" class="article-share-link">Share</a>
+      <a data-url="http://example.com/2020/12/07/%E8%B8%A9%E5%9D%91%E8%AE%B0%EF%BC%9Arocketmq-console%20%E6%B6%88%E8%B4%B9TPS%E4%B8%BA0%EF%BC%8C%E4%BD%86%E6%B6%88%E6%81%AF%E7%A7%AF%E5%8E%8B%E6%95%B0%E5%8D%B4%E5%9C%A8%E9%99%8D%E4%BD%8E%E6%98%AF%E4%B8%AA%E4%BB%80%E4%B9%88%E2%80%9C%E9%AC%BC%E2%80%9D/" data-id="ckieqedxq001kukrg9um988ef" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/rocketmq/" rel="tag">rocketmq</a></li></ul>
@@ -328,7 +609,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://example.com/2020/12/07/RocketMQ%20msgId%E4%B8%8EoffsetMsgId%E9%87%8A%E7%96%91(%E5%AE%9E%E6%88%98%E7%AF%87)/" data-id="ckiep6dtu000500rgfi2ccaun" class="article-share-link">Share</a>
+      <a data-url="http://example.com/2020/12/07/RocketMQ%20msgId%E4%B8%8EoffsetMsgId%E9%87%8A%E7%96%91(%E5%AE%9E%E6%88%98%E7%AF%87)/" data-id="ckieqedx20005ukrgeih0bltx" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/rocketmq/" rel="tag">rocketmq</a></li></ul>
@@ -384,7 +665,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://example.com/2020/12/07/RocketMQ%E4%B8%80%E8%A1%8C%E4%BB%A3%E7%A0%81%E9%80%A0%E6%88%90%E5%A4%A7%E9%87%8F%E6%B6%88%E6%81%AF%E5%8F%91%E9%80%81%E5%A4%B1%E8%B4%A5/" data-id="ckiep6dtt000400rg2n9sa7h8" class="article-share-link">Share</a>
+      <a data-url="http://example.com/2020/12/07/RocketMQ%E4%B8%80%E8%A1%8C%E4%BB%A3%E7%A0%81%E9%80%A0%E6%88%90%E5%A4%A7%E9%87%8F%E6%B6%88%E6%81%AF%E5%8F%91%E9%80%81%E5%A4%B1%E8%B4%A5/" data-id="ckieqedx20006ukrg1yy07z3b" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/rocketmq/" rel="tag">rocketmq</a></li></ul>
@@ -454,259 +735,10 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://example.com/2020/12/07/%E6%88%91%E7%9A%84%E5%8F%A6%E4%B8%80%E7%A7%8D%E5%8F%82%E4%B8%8E%20RocketMQ%20%E5%BC%80%E6%BA%90%E7%A4%BE%E5%8C%BA%E7%9A%84%E6%96%B9%E5%BC%8F/" data-id="ckiep6du3000m00rg2wo6agk5" class="article-share-link">Share</a>
+      <a data-url="http://example.com/2020/12/07/%E6%88%91%E7%9A%84%E5%8F%A6%E4%B8%80%E7%A7%8D%E5%8F%82%E4%B8%8E%20RocketMQ%20%E5%BC%80%E6%BA%90%E7%A4%BE%E5%8C%BA%E7%9A%84%E6%96%B9%E5%BC%8F/" data-id="ckieqedxe000sukrgb3wb0kd1" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/rocketmq/" rel="tag">rocketmq</a></li></ul>
-
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-RocketMQ消息发送常见错误与解决方案" class="article article-type-post" itemscope itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/2020/12/07/RocketMQ%E6%B6%88%E6%81%AF%E5%8F%91%E9%80%81%E5%B8%B8%E8%A7%81%E9%94%99%E8%AF%AF%E4%B8%8E%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88/" class="article-date">
-  <time datetime="2020-12-07T14:46:57.000Z" itemprop="datePublished">2020-12-07</time>
-</a>
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/rocketmq/">rocketmq</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/2020/12/07/RocketMQ%E6%B6%88%E6%81%AF%E5%8F%91%E9%80%81%E5%B8%B8%E8%A7%81%E9%94%99%E8%AF%AF%E4%B8%8E%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88/">RocketMQ消息发送常见错误与解决方案</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <p>本文将结合自己使用RocketMQ的经验，对消息发送常见的问题进行分享，基本会遵循出现问题，分析问题、解决问题。</p>
-<h2 id="1、No-route-info-of-this-topic"><a href="#1、No-route-info-of-this-topic" class="headerlink" title="1、No route info of this topic"></a>1、No route info of this topic</h2><p>无法找到路由信息，其完整的错误堆栈信息如下：<br><img src="https://img-blog.csdnimg.cn/20200927212104148.png#pic_center" alt="在这里插入图片描述">而且很多读者朋友会说Broker端开启了自动创建主题也会出现上述问题。</p>
-<p>RocketMQ的路由寻找流程如下图所示：<br><img src="https://img-blog.csdnimg.cn/2020092721214148.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述">上面的核心关键点如下：</p>
-<ul>
-<li>如果Broker开启了自动创建Topic，在启动的时候会默认创建主题：TBW102，并会随着Broker发送到Nameserver的心跳包汇报给Nameserver，继而从Nameserver查询路由信息时能返回路由信息。</li>
-<li>消息发送者在消息发送时首先会查本地缓存，如果本地缓存中存在，直接返回路由信息。</li>
-<li>如果缓存不存在，则向Nameserver查询路由信息，如果Nameserver存在该路由信息，就直接返回。</li>
-<li>如果Nameserver不存在该topic的路由信息，如果没有开启自动创建主题，则抛出 No route info of this topic。</li>
-<li>如果开启了自动创建主题，则使用默认主题向Nameserver查询路由信息，并使用默认Topic的路由信息为自己的路由信息，将不会抛出 No route info of this topic。</li>
-</ul>
-<p>通常情况下 No route info of this topic 这个错误一般是在刚搭建RocketMQ，刚入门 RocketMQ遇到的比较多，通常的排查思路如下：</p>
-<ul>
-<li><p>可以通过rocketmq-console查询路由信息是否存在，或使用如下命令查询路由信息：</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">cd $&#123;ROCKETMQ_HOME&#125;/bin</span><br><span class="line">sh ./mqadmin topicRoute -n 127.0.0.1:9876 -t dw_test_0003</span><br></pre></td></tr></table></figure>
-<p>其输出结果如下所示：<br><img src="https://img-blog.csdnimg.cn/20200927212234119.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"></p>
-</li>
-<li><p>如果通过命令无法查询到路由信息，则查看Broker是否开启了自动创建topic，参数为：autoCreateTopicEnable,该参数默认为true。但在生产环境不建议开启。</p>
-</li>
-<li><p>如果开启了自动创建路由信息，但还是抛出这个错误，这个时候请检查客户端(Producer)连接的Nameserver地址是否与Broker中配置的nameserver地址是否一致。</p>
-</li>
-</ul>
-<p>经过上面的步骤，基本就能解决该错误。</p>
-        
-          <p class="article-more-link">
-            <a href="/2020/12/07/RocketMQ%E6%B6%88%E6%81%AF%E5%8F%91%E9%80%81%E5%B8%B8%E8%A7%81%E9%94%99%E8%AF%AF%E4%B8%8E%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88/#more">Read More</a>
-          </p>
-        
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="http://example.com/2020/12/07/RocketMQ%E6%B6%88%E6%81%AF%E5%8F%91%E9%80%81%E5%B8%B8%E8%A7%81%E9%94%99%E8%AF%AF%E4%B8%8E%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88/" data-id="ckiep6dtz000f00rg4eey6za1" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/rocketmq/" rel="tag">rocketmq</a></li></ul>
-
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-RocketMQ学习环境搭建(RocketMQ安装与IDEA Debug环境搭建)" class="article article-type-post" itemscope itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/2020/12/07/RocketMQ%E5%AD%A6%E4%B9%A0%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA(RocketMQ%E5%AE%89%E8%A3%85%E4%B8%8EIDEA%20Debug%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA)/" class="article-date">
-  <time datetime="2020-12-07T14:42:28.000Z" itemprop="datePublished">2020-12-07</time>
-</a>
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/rocketmq/">rocketmq</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/2020/12/07/RocketMQ%E5%AD%A6%E4%B9%A0%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA(RocketMQ%E5%AE%89%E8%A3%85%E4%B8%8EIDEA%20Debug%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA)/">RocketMQ学习环境搭建(RocketMQ安装与IDEA Debug环境搭建)</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <p>本文主要分如下几个部分展开：</p>
-<ul>
-<li>Linux服务器安装RocketMQ、RocketMQ-Console</li>
-<li>IDEA中搭建可调试环境</li>
-</ul>
-<h2 id="1、Linux安装RocketMQ、RocketMQ-Console"><a href="#1、Linux安装RocketMQ、RocketMQ-Console" class="headerlink" title="1、Linux安装RocketMQ、RocketMQ-Console"></a>1、Linux安装RocketMQ、RocketMQ-Console</h2><h3 id="1-1安装RocketMQ"><a href="#1-1安装RocketMQ" class="headerlink" title="1.1安装RocketMQ"></a>1.1安装RocketMQ</h3><p>Step1：从如下地址下载RocketMQ安装包</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">cd /opt/application</span><br><span class="line">wget https://mirrors.tuna.tsinghua.edu.cn/apache/rocketmq/4.7.1/rocketmq-all-4.7.1-bin-release.zip</span><br></pre></td></tr></table></figure>
-
-<p>Step2：解压安装包</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">unzip rocketmq-all-4.7.1-bin-release.zip</span><br><span class="line">ls -l</span><br></pre></td></tr></table></figure>
-
-<p>解压后的文件如下图所示：<br><img src="https://img-blog.csdnimg.cn/20201011210742646.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br>其中 conf 文件夹存放的是RocketMQ的配置文件，提供了各种部署结构的示例配置。例如2m-2s-async是2主2从异步复制的配置示例；2m-noslave是2主的示例配置。由于本文主要是搭建一个学习环境，故采取的部署架构为1主的部署架构，关于生产环境下如何搭建RocketMQ集群、如何调优参数将在该专栏的后续文章中专门介绍。</p>
-<p>Step3：修改Nameserver jvm参数</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">cd bin</span><br><span class="line">vi runserver.sh</span><br><span class="line"></span><br><span class="line"><span class="meta">#</span><span class="bash"> 定位到如下代码</span></span><br><span class="line">JAVA_OPT=&quot;$&#123;JAVA_OPT&#125; -server -Xms4g -Xmx4g -Xmn2g -XX:MetaspaceSize=128m -XX:MaxMetaspaceSize=320m&quot;</span><br><span class="line"></span><br><span class="line"><span class="meta">#</span><span class="bash"> 修改　<span class="string">&quot;-Xms -Xmx -Xmn&quot;</span>　参数</span></span><br><span class="line">JAVA_OPT=&quot;$&#123;JAVA_OPT&#125; -server -Xms512M -Xmx512M -Xmn256M -XX:MetaspaceSize=128m -XX:MaxMetaspaceSize=320m&quot;</span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>温馨提示：这里修改JVM参数主要目的是个人学习电脑内存不够，默认NameServer 会占用4G。</p>
-</blockquote>
-<p>Step4：启动nameserver</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nohup ./mqnamesrv &amp;</span><br></pre></td></tr></table></figure>
-
-<p>查看${user_home}/logs/rocketmqlogs/namesrv.log日志文件，如果输出结果如下图所示即表示启动成功。<br><img src="https://img-blog.csdnimg.cn/20201011210817888.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"></p>
-        
-          <p class="article-more-link">
-            <a href="/2020/12/07/RocketMQ%E5%AD%A6%E4%B9%A0%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA(RocketMQ%E5%AE%89%E8%A3%85%E4%B8%8EIDEA%20Debug%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA)/#more">Read More</a>
-          </p>
-        
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="http://example.com/2020/12/07/RocketMQ%E5%AD%A6%E4%B9%A0%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA(RocketMQ%E5%AE%89%E8%A3%85%E4%B8%8EIDEA%20Debug%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA)/" data-id="ckiep6dtv000600rgblwi0qgt" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/rocketmq/" rel="tag">rocketmq</a></li></ul>
-
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-RocketMQ核心概念扫盲篇" class="article article-type-post" itemscope itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/2020/12/07/RocketMQ%E6%A0%B8%E5%BF%83%E6%A6%82%E5%BF%B5%E6%89%AB%E7%9B%B2%E7%AF%87/" class="article-date">
-  <time datetime="2020-12-07T14:40:25.000Z" itemprop="datePublished">2020-12-07</time>
-</a>
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/rocketmq/">rocketmq</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/2020/12/07/RocketMQ%E6%A0%B8%E5%BF%83%E6%A6%82%E5%BF%B5%E6%89%AB%E7%9B%B2%E7%AF%87/">RocketMQ核心概念扫盲篇</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <p>在正式进入RocketMQ的学习之前，我觉得有必要梳理一下RocketMQ核心概念，为大家学习RocketMQ打下牢固的基础。</p>
-<h2 id="1、RocketMQ部署架构"><a href="#1、RocketMQ部署架构" class="headerlink" title="1、RocketMQ部署架构"></a>1、RocketMQ部署架构</h2><p><img src="https://img-blog.csdnimg.cn/20201018221302331.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br>在RocketMQ主要的组件如下：</p>
-<ul>
-<li><p>Nameserver</p>
-<p>Nameserver集群，topic的路由注册中心，为客户端根据Topic提供路由服务，从而引导客户端向Broker发送消息。Nameserver之间的节点不通信。路由信息在Nameserver集群中数据一致性采取的最终一致性。</p>
-</li>
-<li><p>Broker</p>
-<p>消息存储服务器，分为两种角色：Master与Slave，上图中呈现的就是2主2从的部署架构，在RocketMQ中，主服务承担读写操作，从服务器作为一个备份，当主服务器存在压力时，从服务器可以承担读服务（消息消费）。所有Broker，包含Slave服务器每隔30s会向Nameserver发送心跳包，心跳包中会包含存在在Broker上所有的topic的路由信息。</p>
-</li>
-<li><p>Client</p>
-<p>消息客户端，包括Producer(消息发送者)和Consumer(消费消费者)．客户端在同一时间只会连接一台nameserver，只有在连接出现异常时才会向尝试连接另外一台。客户端每隔30s向Nameserver发起topic的路由信息查询。</p>
-</li>
-</ul>
-<blockquote>
-<p>温馨提示：Nameserver是在内存中存储Topic的路由信息，持久化Topic路由信息的地方是在Broker中，即${    ROCKETMQ_HOME}/store/config/topics.json。</p>
-</blockquote>
-<p>在RocketMQ4.5.0版本后引入了多副本机制，即一个复制组（m-s）可以演变为基于raft协议的复制组，复制组内部使用raft协议保证broker节点数据的强一致性，该部署架构在金融行业用的比较多。</p>
-        
-          <p class="article-more-link">
-            <a href="/2020/12/07/RocketMQ%E6%A0%B8%E5%BF%83%E6%A6%82%E5%BF%B5%E6%89%AB%E7%9B%B2%E7%AF%87/#more">Read More</a>
-          </p>
-        
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="http://example.com/2020/12/07/RocketMQ%E6%A0%B8%E5%BF%83%E6%A6%82%E5%BF%B5%E6%89%AB%E7%9B%B2%E7%AF%87/" data-id="ckiep6dtx000a00rga9kk2jkn" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/rocketmq/" rel="tag">rocketmq</a></li></ul>
-
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-Kafka与RocketMQ性能对比大揭秘" class="article article-type-post" itemscope itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/2020/12/07/Kafka%E4%B8%8ERocketMQ%E6%80%A7%E8%83%BD%E5%AF%B9%E6%AF%94%E5%A4%A7%E6%8F%AD%E7%A7%98/" class="article-date">
-  <time datetime="2020-12-07T14:37:01.000Z" itemprop="datePublished">2020-12-07</time>
-</a>
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/kafka-rocketmq/">kafka rocketmq</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/2020/12/07/Kafka%E4%B8%8ERocketMQ%E6%80%A7%E8%83%BD%E5%AF%B9%E6%AF%94%E5%A4%A7%E6%8F%AD%E7%A7%98/">Kafka与RocketMQ性能对比大揭秘</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <p>在双十一过程中投入同样的硬件资源，Kafka 搭建的日志集群单个Topic可以达到几百万的TPS，而使用RocketMQ组件的核心业务集群，集群TPS只能达到几十万TPS，这样的现象激发了我对两者性能方面的思考。</p>
-<blockquote>
-<p>温馨提示：TPS只是众多性能指标中的一个，我们在做技术选型方面要从多方面考虑，本文并不打算就消息中间件选型方面投入太多笔墨，重点想尝试剖析两者在性能方面的设计思想。</p>
-</blockquote>
-        
-          <p class="article-more-link">
-            <a href="/2020/12/07/Kafka%E4%B8%8ERocketMQ%E6%80%A7%E8%83%BD%E5%AF%B9%E6%AF%94%E5%A4%A7%E6%8F%AD%E7%A7%98/#more">Read More</a>
-          </p>
-        
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="http://example.com/2020/12/07/Kafka%E4%B8%8ERocketMQ%E6%80%A7%E8%83%BD%E5%AF%B9%E6%AF%94%E5%A4%A7%E6%8F%AD%E7%A7%98/" data-id="ckiep6dtp000100rggdb76wno" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/kafka-rocketmq/" rel="tag">kafka rocketmq</a></li></ul>
 
     </footer>
   </div>
@@ -740,7 +772,7 @@
   <div class="widget-wrap">
     <h3 class="widget-title">标签</h3>
     <div class="widget">
-      <ul class="tag-list" itemprop="keywords"><li class="tag-list-item"><a class="tag-list-link" href="/tags/kafka-rocketmq/" rel="tag">kafka rocketmq</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rocketmq/" rel="tag">rocketmq</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rocketmq-broker-busy-TIMEOUT-CLEAN-QUEUE-PCBUSY-CLEAN-QUEUE/" rel="tag">rocketmq broker busy TIMEOUT_CLEAN_QUEUE PCBUSY_CLEAN_QUEUE</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E7%A8%8B%E5%BA%8F%E4%BA%BA%E7%94%9F/" rel="tag">程序人生</a></li></ul>
+      <ul class="tag-list" itemprop="keywords"><li class="tag-list-item"><a class="tag-list-link" href="/tags/kafka-rocketmq/" rel="tag">kafka rocketmq</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rocketmq/" rel="tag">rocketmq</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rocketmq-broker-busy-TIMEOUT-CLEAN-QUEUE-PCBUSY-CLEAN-QUEUE/" rel="tag">rocketmq broker busy TIMEOUT_CLEAN_QUEUE PCBUSY_CLEAN_QUEUE</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rocketmq-%E4%B8%BB%E9%A2%98%E6%89%A9%E5%AE%B9-%E5%AE%9E%E6%88%98-%E5%9D%91/" rel="tag">rocketmq 主题扩容 实战 坑</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rocketmq-%E5%A4%9A%E5%89%AF%E6%9C%AC-raft-%E4%B8%BB%E4%BB%8E%E5%88%87%E6%8D%A2/" rel="tag">rocketmq 多副本 raft 主从切换</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rocketmq-%E5%A4%9A%E5%89%AF%E6%9C%AC-raft-%E9%80%89%E4%B8%BB/" rel="tag">rocketmq 多副本 raft 选主</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E7%A8%8B%E5%BA%8F%E4%BA%BA%E7%94%9F/" rel="tag">程序人生</a></li></ul>
     </div>
   </div>
 
@@ -750,7 +782,7 @@
   <div class="widget-wrap">
     <h3 class="widget-title">标签云</h3>
     <div class="widget tagcloud">
-      <a href="/tags/kafka-rocketmq/" style="font-size: 10px;">kafka rocketmq</a> <a href="/tags/rocketmq/" style="font-size: 20px;">rocketmq</a> <a href="/tags/rocketmq-broker-busy-TIMEOUT-CLEAN-QUEUE-PCBUSY-CLEAN-QUEUE/" style="font-size: 10px;">rocketmq broker busy TIMEOUT_CLEAN_QUEUE PCBUSY_CLEAN_QUEUE</a> <a href="/tags/%E7%A8%8B%E5%BA%8F%E4%BA%BA%E7%94%9F/" style="font-size: 10px;">程序人生</a>
+      <a href="/tags/kafka-rocketmq/" style="font-size: 10px;">kafka rocketmq</a> <a href="/tags/rocketmq/" style="font-size: 20px;">rocketmq</a> <a href="/tags/rocketmq-broker-busy-TIMEOUT-CLEAN-QUEUE-PCBUSY-CLEAN-QUEUE/" style="font-size: 10px;">rocketmq broker busy TIMEOUT_CLEAN_QUEUE PCBUSY_CLEAN_QUEUE</a> <a href="/tags/rocketmq-%E4%B8%BB%E9%A2%98%E6%89%A9%E5%AE%B9-%E5%AE%9E%E6%88%98-%E5%9D%91/" style="font-size: 10px;">rocketmq 主题扩容 实战 坑</a> <a href="/tags/rocketmq-%E5%A4%9A%E5%89%AF%E6%9C%AC-raft-%E4%B8%BB%E4%BB%8E%E5%88%87%E6%8D%A2/" style="font-size: 10px;">rocketmq 多副本 raft 主从切换</a> <a href="/tags/rocketmq-%E5%A4%9A%E5%89%AF%E6%9C%AC-raft-%E9%80%89%E4%B8%BB/" style="font-size: 10px;">rocketmq 多副本 raft 选主</a> <a href="/tags/%E7%A8%8B%E5%BA%8F%E4%BA%BA%E7%94%9F/" style="font-size: 10px;">程序人生</a>
     </div>
   </div>
 
@@ -772,23 +804,23 @@
       <ul>
         
           <li>
-            <a href="/2020/12/07/%E5%86%8D%E8%B0%88%20RocketMQ%20broker%20busy(%E5%AE%9E%E6%88%98%E7%AF%87)/">再谈 RocketMQ broker busy(实战篇)</a>
+            <a href="/2020/12/07/RocketMQ%20%E4%B8%BB%E9%A2%98%E6%89%A9%E5%88%86%E7%89%87%E5%90%8E%E9%81%87%E5%88%B0%E7%9A%84%E5%9D%91/">RocketMQ 主题扩分片后遇到的坑</a>
+          </li>
+        
+          <li>
+            <a href="/2020/12/07/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90%20RocketMQ%20DLedger%20%E5%A4%9A%E5%89%AF%E6%9C%AC%E5%AD%98%E5%82%A8%E5%AE%9E%E7%8E%B0/">源码分析 RocketMQ DLedger 多副本存储实现</a>
+          </li>
+        
+          <li>
+            <a href="/2020/12/07/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90%20RocketMQ%20DLedger%20%E5%A4%9A%E5%89%AF%E6%9C%AC%E4%B9%8B%20Leader%20%E9%80%89%E4%B8%BB/">源码分析 RocketMQ DLedger 多副本之 Leader 选主</a>
+          </li>
+        
+          <li>
+            <a href="/2020/12/07/RocketMQ%20%E5%A4%9A%E5%89%AF%E6%9C%AC%E5%89%8D%E7%BD%AE%E7%AF%87%EF%BC%9A%E5%88%9D%E6%8E%A2raft%E5%8D%8F%E8%AE%AE/">RocketMQ 多副本前置篇：初探raft协议</a>
           </li>
         
           <li>
             <a href="/2020/12/07/%E4%B8%80%E6%AC%A1%20RocketMQ%20%E8%BF%9B%E7%A8%8B%E8%87%AA%E5%8A%A8%E9%80%80%E5%87%BA%E6%8E%92%E6%9F%A5%E7%BB%8F%E9%AA%8C%E5%88%86%E4%BA%AB%EF%BC%88%E5%AE%9E%E6%88%98%E7%AF%87%EF%BC%89/">一次 RocketMQ 进程自动退出排查经验分享（实战篇）</a>
-          </li>
-        
-          <li>
-            <a href="/2020/12/07/%E8%B8%A9%E5%9D%91%E8%AE%B0%EF%BC%9Arocketmq-console%20%E6%B6%88%E8%B4%B9TPS%E4%B8%BA0%EF%BC%8C%E4%BD%86%E6%B6%88%E6%81%AF%E7%A7%AF%E5%8E%8B%E6%95%B0%E5%8D%B4%E5%9C%A8%E9%99%8D%E4%BD%8E%E6%98%AF%E4%B8%AA%E4%BB%80%E4%B9%88%E2%80%9C%E9%AC%BC%E2%80%9D/">踩坑记：rocketmq-console 消费TPS为0，但消息积压数却在降低是个什么“鬼”</a>
-          </li>
-        
-          <li>
-            <a href="/2020/12/07/RocketMQ%20msgId%E4%B8%8EoffsetMsgId%E9%87%8A%E7%96%91(%E5%AE%9E%E6%88%98%E7%AF%87)/">RocketMQ msgId与offsetMsgId释疑(实战篇)</a>
-          </li>
-        
-          <li>
-            <a href="/2020/12/07/RocketMQ%E4%B8%80%E8%A1%8C%E4%BB%A3%E7%A0%81%E9%80%A0%E6%88%90%E5%A4%A7%E9%87%8F%E6%B6%88%E6%81%AF%E5%8F%91%E9%80%81%E5%A4%B1%E8%B4%A5/">RocketMQ一行代码造成大量消息发送失败</a>
           </li>
         
       </ul>
