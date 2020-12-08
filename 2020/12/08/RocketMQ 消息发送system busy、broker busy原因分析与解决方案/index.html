@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+
+  
+  <title>RocketMQ 消息发送system busy、broker busy原因分析与解决方案 | 中间件兴趣圈</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="1、现象最近收到很多RocketMQ使用者，反馈生产环境中在消息发送过程中偶尔会出现如下4个错误信息之一：1）[REJECTREQUEST]system busy, start flow control for a while2）too many requests and system thread pool busy, RejectedExecutionException3）[PC_SYNCHR">
+<meta property="og:type" content="article">
+<meta property="og:title" content="RocketMQ 消息发送system busy、broker busy原因分析与解决方案">
+<meta property="og:url" content="http://example.com/2020/12/08/RocketMQ%20%E6%B6%88%E6%81%AF%E5%8F%91%E9%80%81system%20busy%E3%80%81broker%20busy%E5%8E%9F%E5%9B%A0%E5%88%86%E6%9E%90%E4%B8%8E%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88/index.html">
+<meta property="og:site_name" content="中间件兴趣圈">
+<meta property="og:description" content="1、现象最近收到很多RocketMQ使用者，反馈生产环境中在消息发送过程中偶尔会出现如下4个错误信息之一：1）[REJECTREQUEST]system busy, start flow control for a while2）too many requests and system thread pool busy, RejectedExecutionException3）[PC_SYNCHR">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/20190618213541816.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/20190618213801293.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/20190618214230830.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/20190618214320459.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/2019061821440272.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/20190618214632249.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/20190618214837186.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/20190618214915789.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/20190618215005406.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/20190618215027611.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/20190618215119506.png">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/2019061821520312.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70">
+<meta property="article:published_time" content="2020-12-08T14:23:35.000Z">
+<meta property="article:modified_time" content="2020-12-08T14:24:34.545Z">
+<meta property="article:author" content="中间件兴趣圈">
+<meta property="article:tag" content="rocketmq">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://img-blog.csdnimg.cn/20190618213541816.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70">
+  
+    <link rel="alternate" href="/atom.xml" title="中间件兴趣圈" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  
+    <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css">
+  
+  
+<link rel="stylesheet" href="/css/style.css">
+
+<meta name="generator" content="Hexo 5.2.0"></head>
+
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">中间件兴趣圈</a>
+      </h1>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="搜索"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://example.com"></form>
+      </div>
+    </div>
+  </div>
+</header>
+      <div class="outer">
+        <section id="main"><article id="post-RocketMQ 消息发送system busy、broker busy原因分析与解决方案" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2020/12/08/RocketMQ%20%E6%B6%88%E6%81%AF%E5%8F%91%E9%80%81system%20busy%E3%80%81broker%20busy%E5%8E%9F%E5%9B%A0%E5%88%86%E6%9E%90%E4%B8%8E%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88/" class="article-date">
+  <time datetime="2020-12-08T14:23:35.000Z" itemprop="datePublished">2020-12-08</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/rocketmq/">rocketmq</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      RocketMQ 消息发送system busy、broker busy原因分析与解决方案
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <div id="vip-container"><h2 id="1、现象"><a href="#1、现象" class="headerlink" title="1、现象"></a>1、现象</h2><p>最近收到很多RocketMQ使用者，反馈生产环境中在消息发送过程中偶尔会出现如下4个错误信息之一：<br>1）[REJECTREQUEST]system busy, start flow control for a while<br>2）too many requests and system thread pool busy, RejectedExecutionException<br>3）[PC_SYNCHRONIZED]broker busy, start flow control for a while<br>4）[PCBUSY_CLEAN_QUEUE]broker busy, start flow control for a while, period in queue: %sms, size of queue: %d</p>
+<h2 id="2、原理解读"><a href="#2、原理解读" class="headerlink" title="2、原理解读"></a>2、原理解读</h2><p>在进行消息中间件的选型时，如果待选中间件在功能上、性能上都能满足业务的情况下，建议把中间件的实现语言这个因素也考虑进去，毕竟选择一门用自己擅长的语言实现的中间件会更具掌控性。在出现异常的情况下，我们可以根据自己的经验提取错误信息关键字system busy，在RocketMQ源码中直接搜索，得到抛出上述错误信息的代码如下：<br><img src="https://img-blog.csdnimg.cn/20190618213541816.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>其代码入口为：org.apache.rocketmq.remoting.netty.NettyRemotingAbstract#processRequestCommand。从图中可以看出，抛出上述错误的关键原因是：pair.getObject1().rejectRequest()和抛出RejectedExecutionException异常。</p>
+<blockquote>
+<p>备注：本文偏实战，源码只是作为分析的重点证据，故本文只会点出关键源码，并不会详细跟踪其整个实现流程，如果想详细了解其实现，可以查阅笔者编著的《RocketMQ技术内幕》。</p>
+</blockquote>
+<h3 id="2-1-RocketMQ-网络处理机制概述"><a href="#2-1-RocketMQ-网络处理机制概述" class="headerlink" title="2.1 RocketMQ 网络处理机制概述"></a>2.1 RocketMQ 网络处理机制概述</h3><p>RocketMQ的网络设计非常值得我们学习与借鉴，首先在客户端端将不同的请求定义不同的请求命令CODE，服务端会将客户端请求进行分类，每个命令或每类请求命令定义一个处理器(NettyRequestProcessor)，然后每一个NettyRequestProcessor绑定到一个单独的线程池，进行命令处理，不同类型的请求将使用不同的线程池进行处理，实现线程隔离。</p>
+<a id="more"></a>
+
+<p>为了方便下文的描述，我们先简单的认识一下NettyRequestProcessor、Pair、RequestCode。其核心关键点如下：<br><img src="https://img-blog.csdnimg.cn/20190618213801293.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"></p>
+<ol>
+<li>NettyRequestProcessor<br>RocketMQ 服务端请求处理器，例如SendMessageProcessor是消息发送处理器、PullMessageProcessor是消息拉取命令处理器。</li>
+<li>RequestCode<br>请求CODE，用来区分请求的类型，例如SEND_MESSAGE：表示该请求为消息发送，PULL_MESSAGE:消息拉取请求。</li>
+<li>Pair<br>用来封装NettyRequestProcessor与ExecuteService的绑定关系。在RocketMQ的网络处理模型中，会为每一个NettyRequestProcessor与特定的线程池绑定，所有该NettyRequestProcessor的处理逻辑都在该线程池中运行。</li>
+</ol>
+<h3 id="2-2-pair-getObject1-rejectRequest"><a href="#2-2-pair-getObject1-rejectRequest" class="headerlink" title="2.2 pair.getObject1().rejectRequest()"></a>2.2 pair.getObject1().rejectRequest()</h3><p>由于读者朋友提出的问题，都是发生在消息发送过程中，故本文重点关注SendMessageProcessor#rejectRequest方法。<br>SendMessageProcessor#rejectRequest</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">boolean</span> <span class="title">rejectRequest</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">this</span>.brokerController.getMessageStore().isOSPageCacheBusy() ||               <span class="comment">// @1</span></span><br><span class="line">        <span class="keyword">this</span>.brokerController.getMessageStore().isTransientStorePoolDeficient();        <span class="comment">// @2</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>拒绝请求的条件有两个，只要其中任意一个满足，则返回true。</p>
+<p>代码@1：Os PageCache busy，判断操作系统PageCache是否繁忙，如果忙，则返回true。想必看到这里大家肯定与我一样好奇，RocketMQ是如何判断pageCache是否繁忙呢？下面会重点分析。</p>
+<p>代码@2：transientStorePool是否不足。</p>
+<h4 id="2-2-1-isOSPageCacheBusy"><a href="#2-2-1-isOSPageCacheBusy" class="headerlink" title="2.2.1 isOSPageCacheBusy()"></a>2.2.1 isOSPageCacheBusy()</h4><p>DefaultMessageStore#isOSPageCacheBusy()</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">boolean</span> <span class="title">isOSPageCacheBusy</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">long</span> begin = <span class="keyword">this</span>.getCommitLog().getBeginTimeInLock();  <span class="comment">// @1 start</span></span><br><span class="line">    <span class="keyword">long</span> diff = <span class="keyword">this</span>.systemClock.now() - begin;                         <span class="comment">// @1  end</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> diff &lt; <span class="number">10000000</span></span><br><span class="line">                &amp;&amp; diff &gt; <span class="keyword">this</span>.messageStoreConfig.getOsPageCacheBusyTimeOutMills();     <span class="comment">// @2</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>代码@1：先重点解释begin、diff两个局部变量的含义：</p>
+<ul>
+<li>begin<br>通俗的一点讲，就是将消息写入Commitlog文件所持有锁的时间，精确说是将消息体追加到内存映射文件(DirectByteBuffer)或pageCache(FileChannel#map)该过程中开始持有锁的时间戳，具体的代码请参考：CommitLog#putMessage。</li>
+<li>diff<br>一次消息追加过程中持有锁的总时长，即往内存映射文件或pageCache追加一条消息所耗时间。</li>
+</ul>
+<p>代码@2：如果一次消息追加过程的时间超过了Broker配置文件osPageCacheBusyTimeOutMills，则认为pageCache繁忙，osPageCacheBusyTimeOutMills默认值为1000，表示1s。</p>
+<h4 id="2-2-2-isTransientStorePoolDeficient"><a href="#2-2-2-isTransientStorePoolDeficient" class="headerlink" title="2.2.2 isTransientStorePoolDeficient()"></a>2.2.2 isTransientStorePoolDeficient()</h4><p>DefaultMessageStore#isTransientStorePoolDeficient</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">boolean</span> <span class="title">isTransientStorePoolDeficient</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> remainTransientStoreBufferNumbs() == <span class="number">0</span>;</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">int</span> <span class="title">remainTransientStoreBufferNumbs</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">this</span>.transientStorePool.remainBufferNumbs();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>最终调用TransientStorePool#remainBufferNumbs方法。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">int</span> <span class="title">remainBufferNumbs</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">if</span> (storeConfig.isTransientStorePoolEnable()) &#123;</span><br><span class="line">            <span class="keyword">return</span> availableBuffers.size();</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> Integer.MAX_VALUE;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>如果启用transientStorePoolEnable机制，返回当前可用的ByteBuffer个数，即整个isTransientStorePoolDeficient方法的用意是是否还存在可用的ByteBuffer，如果不存在，即表示pageCache繁忙。那什么是transientStorePoolEnable机制呢？</p>
+<h3 id="2-3-漫谈transientStorePoolEnable机制"><a href="#2-3-漫谈transientStorePoolEnable机制" class="headerlink" title="2.3 漫谈transientStorePoolEnable机制"></a>2.3 漫谈transientStorePoolEnable机制</h3><p>Java NIO的内存映射机制，提供了将文件系统中的文件映射到内存机制，实现对文件的操作转换对内存地址的操作，极大的提高了IO特性，但这部分内存并不是常驻内存，可以被置换到交换内存(虚拟内存)，RocketMQ为了提高消息发送的性能，引入了内存锁定机制，即将最近需要操作的commitlog文件映射到内存，并提供内存锁定功能，确保这些文件始终存在内存中，该机制的控制参数就是transientStorePoolEnable。</p>
+<h3 id="2-3-1-MappedFile"><a href="#2-3-1-MappedFile" class="headerlink" title="2.3.1 MappedFile"></a>2.3.1 MappedFile</h3><p>重点关注MappedFile的ByteBuffer writeBuffer、MappedByteBuffer mappedByteBuffer这两个属性的初始化，因为这两个方法是写消息与查消息操作的直接数据结构。<br><img src="https://img-blog.csdnimg.cn/20190618214230830.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>两个关键点如下：</p>
+<ul>
+<li>ByteBuffer writeBuffer<br>如果开启了transientStorePoolEnable,则使用ByteBuffer.allocateDirect(fileSize),创建(java.nio的内存映射机制)。如果未开启，则为空。</li>
+<li>MappedByteBuffer mappedByteBuffer<br>使用FileChannel#map方法创建，即真正意义上的PageCache。</li>
+</ul>
+<p>消息写入时：<br>MappedFile#appendMessagesInner<br><img src="https://img-blog.csdnimg.cn/20190618214320459.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>从中可见，在消息写入时，如果writerBuffer不为空，说明开启了transientStorePoolEnable机制，则消息首先写入writerBuffer中，如果其为空，则写入mappedByteBuffer中。</p>
+<p>消息拉取(读消息)：<br>MappedFile#selectMappedBuffer<br><img src="https://img-blog.csdnimg.cn/2019061821440272.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>消息读取时，是从mappedByteBuffer中读(pageCache)。</p>
+<p>大家是不是发现了一个有趣的点，如果开启transientStorePoolEnable机制，是不是有了读写分离的效果，先写入writerBuffer中，读却是从mappedByteBuffer中读取。</p>
+<p>为了对transientStorePoolEnable引入意图阐述的更加明白，这里我引入Rocketmq社区贡献者胡宗棠关于此问题的见解。</p>
+<p>通常有如下两种方式进行读写：</p>
+<ol>
+<li>第一种，Mmap+PageCache的方式，读写消息都走的是pageCache，这样子读写都在pagecache里面不可避免会有锁的问题，在并发的读写操作情况下，会出现缺页中断降低，内存加锁，污染页的回写。</li>
+<li>第二种，DirectByteBuffer(堆外内存)+PageCache的两层架构方式，这样子可以实现读写消息分离，写入消息时候写到的是DirectByteBuffer——堆外内存中,读消息走的是PageCache(对于,DirectByteBuffer是两步刷盘，一步是刷到PageCache，还有一步是刷到磁盘文件中)，带来的好处就是，避免了内存操作的很多容易堵的地方，降低了时延，比如说缺页中断降低，内存加锁，污染页的回写。</li>
+</ol>
+<blockquote>
+<p>温馨提示：如果想与胡宗棠大神进一步沟通交流，可以关注他的github账号：<a target="_blank" rel="noopener" href="https://github.com/zongtanghu">https://github.com/zongtanghu</a></p>
+</blockquote>
+<p>不知道大家会不会有另外一个担忧，如果开启了transientStorePoolEnable，内存锁定机制，那是不是随着commitlog文件的不断增加，最终导致内存溢出？</p>
+<h3 id="2-3-2-TransientStorePool初始化"><a href="#2-3-2-TransientStorePool初始化" class="headerlink" title="2.3.2 TransientStorePool初始化"></a>2.3.2 TransientStorePool初始化</h3><p><img src="https://img-blog.csdnimg.cn/20190618214632249.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>从这里可以看出，TransientStorePool默认会初始化5个DirectByteBuffer(对外内存)，并提供内存锁定功能，即这部分内存不会被置换，可以通过transientStorePoolSize参数控制。</p>
+<p>在消息写入消息时，首先从池子中获取一个DirectByteBuffer进行消息的追加。当5个DirectByteBuffer全部写满消息后，该如何处理呢？从RocketMQ的设计中来看，同一时间，只会对一个commitlog文件进行顺序写，写完一个后，继续创建一个新的commitlog文件。故TransientStorePool的设计思想是循环利用这5个DirectByteBuffer，只需要写入到DirectByteBuffer的内容被提交到PageCache后，即可重复利用。对应的代码如下：<br>TransientStorePool#returnBuffer</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">returnBuffer</span><span class="params">(ByteBuffer byteBuffer)</span> </span>&#123;</span><br><span class="line">    byteBuffer.position(<span class="number">0</span>);</span><br><span class="line">    byteBuffer.limit(fileSize);</span><br><span class="line">    <span class="keyword">this</span>.availableBuffers.offerFirst(byteBuffer);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>其调用栈如下：<br><img src="https://img-blog.csdnimg.cn/20190618214837186.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>从上面的分析看来，并不会随着消息的不断写入而导致内存溢出。</p>
+<h2 id="3、现象解答"><a href="#3、现象解答" class="headerlink" title="3、现象解答"></a>3、现象解答</h2><h3 id="3-1-REJECTREQUEST-system-busy"><a href="#3-1-REJECTREQUEST-system-busy" class="headerlink" title="3.1 [REJECTREQUEST]system busy"></a>3.1 [REJECTREQUEST]system busy</h3><p><img src="https://img-blog.csdnimg.cn/20190618214915789.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>其抛出的源码入口点：NettyRemotingAbstract#processRequestCommand，上面的原理分析部分已经详细介绍其实现原理，总结如下。</p>
+<p>在不开启transientStorePoolEnable机制时，如果Broker PageCache繁忙时则抛出上述错误，判断PageCache繁忙的依据就是向PageCache追加消息时，如果持有锁的时间超过1s，则会抛出该错误；在开启transientStorePoolEnable机制时，其判断依据是如果TransientStorePool中不存在可用的堆外内存时抛出该错误。</p>
+<h3 id="3-2-too-many-requests-and-system-thread-pool-busy-RejectedExecutionException"><a href="#3-2-too-many-requests-and-system-thread-pool-busy-RejectedExecutionException" class="headerlink" title="3.2 too many requests and system thread pool busy, RejectedExecutionException"></a>3.2 too many requests and system thread pool busy, RejectedExecutionException</h3><p><img src="https://img-blog.csdnimg.cn/20190618215005406.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>其抛出的源码入口点：NettyRemotingAbstract#processRequestCommand，其调用地方紧跟3.1,是在向线程池执行任务时，被线程池拒绝执行时抛出的，我们可以顺便看看Broker消息处理发送的线程信息：<br>BrokerController#registerProcessor<br><img src="https://img-blog.csdnimg.cn/20190618215027611.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>该线程池的队列长度默认为10000，我们可以通过sendThreadPoolQueueCapacity来改变默认值。</p>
+<h3 id="3-3-PC-SYNCHRONIZED-broker-busy"><a href="#3-3-PC-SYNCHRONIZED-broker-busy" class="headerlink" title="3.3 [PC_SYNCHRONIZED]broker busy"></a>3.3 [PC_SYNCHRONIZED]broker busy</h3><p><img src="https://img-blog.csdnimg.cn/20190618215119506.png" alt="在这里插入图片描述"><br>其抛出的源码入口点：DefaultMessageStore#putMessage，在进行消息追加时，再一次判断PageCache是否繁忙，如果繁忙，则抛出上述错误。</p>
+<h3 id="3-4-broker-busy-period-in-queue-sms-size-of-queue-d"><a href="#3-4-broker-busy-period-in-queue-sms-size-of-queue-d" class="headerlink" title="3.4 broker busy,  period in queue: %sms, size of queue: %d"></a>3.4 broker busy,  period in queue: %sms, size of queue: %d</h3><p><img src="https://img-blog.csdnimg.cn/2019061821520312.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>其抛出源码的入口点：BrokerFastFailure#cleanExpiredRequest。该方法的调用频率为每隔10s中执行一次，不过有一个执行前提条件就是Broker端要开启快速失败，默认为开启，可以通过参数brokerFastFailureEnable来设置。该方法的实现要点是每隔10s，检测一次，如果检测到PageCache繁忙，并且发送队列中还有排队的任务，则直接不再等待，直接抛出系统繁忙错误，使正在排队的线程快速失败，结束等待。</p>
+<h2 id="4、实践建议"><a href="#4、实践建议" class="headerlink" title="4、实践建议"></a>4、实践建议</h2><p>经过上面的原理讲解与现象分析，消息发送时抛出system busy、broker busy的原因都是PageCache繁忙，那是不是可以通过调整上述提到的某些参数来避免抛出错误呢？.例如如下参数：</p>
+<ul>
+<li>osPageCacheBusyTimeOutMills<br>设置PageCache系统超时的时间，默认为1000，表示1s，那是不是可以把增加这个值，例如设置为2000或3000。作者观点：非常不可取。</li>
+<li>sendThreadPoolQueueCapacity<br>Broker服务器处理的排队队列，默认为10000，如果队列中积压了10000个请求，则会抛出RejectExecutionException。作者观点：不可取。</li>
+<li>brokerFastFailureEnable<br>是否启用快速失败，默认为true，表示当如果发现Broker服务器的PageCache繁忙，如果发现sendThreadPoolQueue队列中不为空，表示还有排队的发送请求在排队等待执行，则直接结束等待，返回broker busy。那如果不开启快速失败，则同样可以避免抛出这个错误。作者观点：非常不可取。</li>
+</ul>
+<p>修改上述参数，都不可取，原因是出现system busy、broker busy这个错误，其本质是系统的PageCache繁忙，通俗一点讲就是向PageCache追加消息时，单个消息发送占用的时间超过1s了，如果继续往该Broker服务器发送消息并等待，其TPS根本无法满足，哪还是高性能的消息中间了呀。故才会采用快速失败机制，直接给消息发送者返回错误，消息发送者默认情况会重试2次，将消息发往其他Broker，保证其高可用。</p>
+<p>下面根据个人的见解，提出如下解决办法：</p>
+<h3 id="4-1-开启transientStorePoolEnable"><a href="#4-1-开启transientStorePoolEnable" class="headerlink" title="4.1 开启transientStorePoolEnable"></a>4.1 开启transientStorePoolEnable</h3><p>在broker.config中将transientStorePoolEnable=true。</p>
+<ul>
+<li><p>方案依据：<br>启用“读写”分离，消息发送时消息先追加到DirectByteBuffer(堆外内存)中，然后在异步刷盘机制下，会将DirectByteBuffer中的内容提交到PageCache，然后刷写到磁盘。消息拉取时，直接从PageCache中拉取，实现了读写分离，减轻了PageCaceh的压力，能从根本上解决该问题。</p>
+</li>
+<li><p>方案缺点：<br>会增加数据丢失的可能性，如果Broker JVM进程异常退出，提交到PageCache中的消息是不会丢失的，但存在堆外内存(DirectByteBuffer)中但还未提交到PageCache中的这部分消息，将会丢失。但通常情况下，RocketMQ进程退出的可能性不大。</p>
+</li>
+</ul>
+<h3 id="4-2-扩容Broker服务器"><a href="#4-2-扩容Broker服务器" class="headerlink" title="4.2 扩容Broker服务器"></a>4.2 扩容Broker服务器</h3><p>方案依据：</p>
+<p>当Broker服务器自身比较忙的时候，快速失败，并且在接下来的一段时间内会规避该Broker，这样该Broker恢复提供了时间保证，Broker本身的架构是支持分布式水平扩容的，增加Topic的队列数，降低单台Broker服务器的负载，从而避免出现PageCache。</p>
+<blockquote>
+<p>温馨提示：在Broker扩容时候，可以复制集群中任意一台Broker服务下${ROCKETMQ_HOME}/store/config/topics.json到新Broker服务器指定目录，避免在新Broker服务器上为Broker创建队列，然后消息发送者、消息消费者都能动态获取Topic的路由信息。</p>
+</blockquote>
+<p>与之扩容对应的，也可以通过对原有Broker进行升配，例如增加内存、把机械盘换成SSD，但这种情况，通常需要重启Broekr服务器，没有扩容来的方便。</p>
+<p>本文就介绍到这里了，如果大家觉得文章对自己有用的话，麻烦帮忙点赞、转发，谢谢。亲爱的读者朋友，还有更好的方案没？欢迎留言与作者互动，共同探讨。</p>
+</div>
+
+			<script src="https://my.openwrite.cn/js/readmore.js" type="text/javascript"></script>
+			<script>
+			var isMobile = navigator.userAgent.match(/(phone|pad|pod|iPhone|iPod|ios|iPad|Android|Mobile|BlackBerry|IEMobile|MQQBrowser|JUC|Fennec|wOSBrowser|BrowserNG|WebOS|Symbian|Windows Phone)/i);
+			if (!isMobile) {
+			    var btw = new BTWPlugin();
+			    btw.init({
+			        "id": "vip-container",
+			        "blogId": "18019-1573088808868-542",
+			        "name": "中间件兴趣圈",
+			        "qrcode": "https://img-blog.csdnimg.cn/20190314214003962.jpg",
+			        "keyword": "more"
+			    });
+			}
+			</script>
+		
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://example.com/2020/12/08/RocketMQ%20%E6%B6%88%E6%81%AF%E5%8F%91%E9%80%81system%20busy%E3%80%81broker%20busy%E5%8E%9F%E5%9B%A0%E5%88%86%E6%9E%90%E4%B8%8E%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88/" data-id="ckig4lifq003nm4rg7m3p8usu" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/rocketmq/" rel="tag">rocketmq</a></li></ul>
+
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+    <a href="/2020/12/08/RocketMQ%E5%AE%9E%E6%88%98%EF%BC%9A%E7%94%9F%E4%BA%A7%E7%8E%AF%E5%A2%83%E4%B8%AD%EF%BC%8CautoCreateTopicEnable%E4%B8%BA%E4%BB%80%E4%B9%88%E4%B8%8D%E8%83%BD%E8%AE%BE%E7%BD%AE%E4%B8%BAtrue/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Newer</strong>
+      <div class="article-nav-title">
+        
+          RocketMQ实战：生产环境中，autoCreateTopicEnable为什么不能设置为true
+        
+      </div>
+    </a>
+  
+  
+    <a href="/2020/12/08/RocketMQ%20HA%E6%9C%BA%E5%88%B6(%E4%B8%BB%E4%BB%8E%E5%90%8C%E6%AD%A5)/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">RocketMQ HA机制(主从同步)</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+</section>
+        
+          <aside id="sidebar">
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">分类</h3>
+    <div class="widget">
+      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/kafka-rocketmq/">kafka rocketmq</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/rocketmq/">rocketmq</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/sentinel/">sentinel</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/%E7%A8%8B%E5%BA%8F%E4%BA%BA%E7%94%9F-%E9%80%86%E8%A2%AD-%E8%81%8C%E5%9C%BA%E5%8F%91%E5%B1%95/">程序人生 逆袭 职场发展</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">标签</h3>
+    <div class="widget">
+      <ul class="tag-list" itemprop="keywords"><li class="tag-list-item"><a class="tag-list-link" href="/tags/kafka-rocketmq/" rel="tag">kafka rocketmq</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rocketmq/" rel="tag">rocketmq</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rocketmq-broker-busy-TIMEOUT-CLEAN-QUEUE-PCBUSY-CLEAN-QUEUE/" rel="tag">rocketmq broker busy TIMEOUT_CLEAN_QUEUE PCBUSY_CLEAN_QUEUE</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rocketmq-%E4%B8%BB%E9%A2%98%E6%89%A9%E5%AE%B9-%E5%AE%9E%E6%88%98-%E5%9D%91/" rel="tag">rocketmq 主题扩容 实战 坑</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rocketmq-%E5%A4%9A%E5%89%AF%E6%9C%AC-raft-%E4%B8%BB%E4%BB%8E%E5%88%87%E6%8D%A2/" rel="tag">rocketmq 多副本 raft 主从切换</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rocketmq-%E5%A4%9A%E5%89%AF%E6%9C%AC-raft-%E9%80%89%E4%B8%BB/" rel="tag">rocketmq 多副本 raft 选主</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/sentinel/" rel="tag">sentinel</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E7%A8%8B%E5%BA%8F%E4%BA%BA%E7%94%9F/" rel="tag">程序人生</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">标签云</h3>
+    <div class="widget tagcloud">
+      <a href="/tags/kafka-rocketmq/" style="font-size: 10px;">kafka rocketmq</a> <a href="/tags/rocketmq/" style="font-size: 20px;">rocketmq</a> <a href="/tags/rocketmq-broker-busy-TIMEOUT-CLEAN-QUEUE-PCBUSY-CLEAN-QUEUE/" style="font-size: 10px;">rocketmq broker busy TIMEOUT_CLEAN_QUEUE PCBUSY_CLEAN_QUEUE</a> <a href="/tags/rocketmq-%E4%B8%BB%E9%A2%98%E6%89%A9%E5%AE%B9-%E5%AE%9E%E6%88%98-%E5%9D%91/" style="font-size: 10px;">rocketmq 主题扩容 实战 坑</a> <a href="/tags/rocketmq-%E5%A4%9A%E5%89%AF%E6%9C%AC-raft-%E4%B8%BB%E4%BB%8E%E5%88%87%E6%8D%A2/" style="font-size: 10px;">rocketmq 多副本 raft 主从切换</a> <a href="/tags/rocketmq-%E5%A4%9A%E5%89%AF%E6%9C%AC-raft-%E9%80%89%E4%B8%BB/" style="font-size: 10px;">rocketmq 多副本 raft 选主</a> <a href="/tags/sentinel/" style="font-size: 15px;">sentinel</a> <a href="/tags/%E7%A8%8B%E5%BA%8F%E4%BA%BA%E7%94%9F/" style="font-size: 10px;">程序人生</a>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">归档</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/12/">十二月 2020</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">最新文章</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2020/12/08/%E7%BB%93%E5%90%88%20Sentinel%20%E4%B8%93%E6%A0%8F%E8%B0%88%E8%B0%88%E6%88%91%E7%9A%84%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB%E6%8A%80%E5%B7%A7/">结合 Sentinel 专栏谈谈我的源码阅读技巧</a>
+          </li>
+        
+          <li>
+            <a href="/2020/12/08/Sentinel%20%E7%B3%BB%E7%BB%9F%E8%87%AA%E9%80%82%E5%BA%94%E9%99%90%E6%B5%81%E5%8E%9F%E7%90%86%E5%89%96%E6%9E%90%E4%B8%8E%E5%AE%9E%E6%88%98%E6%8C%87%E5%AF%BC/">Sentinel 系统自适应限流原理剖析与实战指导</a>
+          </li>
+        
+          <li>
+            <a href="/2020/12/08/Sentinel%20Dubbo%20%E9%80%82%E9%85%8D%E5%99%A8%E7%9C%8B%E9%99%90%E6%B5%81%E4%B8%8E%E7%86%94%E6%96%AD(%E5%AE%9E%E6%88%98%E6%80%9D%E8%80%83%E7%AF%87)/">Sentinel Dubbo 适配器看限流与熔断(实战思考篇)</a>
+          </li>
+        
+          <li>
+            <a href="/2020/12/08/Sentinel%20%E9%9B%86%E7%BE%A4%E9%99%90%E6%B5%81%E8%AE%BE%E8%AE%A1%E5%8E%9F%E7%90%86/">Sentinel 集群限流设计原理</a>
+          </li>
+        
+          <li>
+            <a href="/2020/12/08/Sentienl%20%E5%8A%A8%E6%80%81%E6%95%B0%E6%8D%AE%E6%BA%90%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1%E7%90%86%E5%BF%B5%E4%B8%8E%E6%94%B9%E9%80%A0%E5%AE%9E%E8%B7%B5/">Sentienl 动态数据源架构设计理念与改造实践</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2020 中间件兴趣圈<br>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+</nav>
+    
+
+<script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+
+
+  
+<link rel="stylesheet" href="/fancybox/jquery.fancybox.css">
+
+  
+<script src="/fancybox/jquery.fancybox.pack.js"></script>
+
+
+
+
+<script src="/js/script.js"></script>
+
+
+
+
+  </div>
+</body>
+</html>

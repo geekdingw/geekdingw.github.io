@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+
+  
+  <title>Sentinel 系统自适应限流原理剖析与实战指导 | 中间件兴趣圈</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="看到标题中的几个关键字系统自适应限流是不是觉得高大上，这个自适应又是如何实现的呢？ 1、Sentinel 系统自适应概述从官方了解到 Sentienl 系统自适应限流是一个全局的概念，对应用入口流量统一进行统一控制，结合应用的机器负载、CPU 使用率，总体平均响应时间、入口 QPS 和并发线程数等几个维度的监控指标从而决定是否调用进行限流操作。为了有一个直观的感受，我们可以从官方的运维平台看看其系">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Sentinel 系统自适应限流原理剖析与实战指导">
+<meta property="og:url" content="http://example.com/2020/12/08/Sentinel%20%E7%B3%BB%E7%BB%9F%E8%87%AA%E9%80%82%E5%BA%94%E9%99%90%E6%B5%81%E5%8E%9F%E7%90%86%E5%89%96%E6%9E%90%E4%B8%8E%E5%AE%9E%E6%88%98%E6%8C%87%E5%AF%BC/index.html">
+<meta property="og:site_name" content="中间件兴趣圈">
+<meta property="og:description" content="看到标题中的几个关键字系统自适应限流是不是觉得高大上，这个自适应又是如何实现的呢？ 1、Sentinel 系统自适应概述从官方了解到 Sentienl 系统自适应限流是一个全局的概念，对应用入口流量统一进行统一控制，结合应用的机器负载、CPU 使用率，总体平均响应时间、入口 QPS 和并发线程数等几个维度的监控指标从而决定是否调用进行限流操作。为了有一个直观的感受，我们可以从官方的运维平台看看其系">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/2020052413411896.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/20200524134158678.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/2020052413421556.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/20200524134428924.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/20200524134513299.png#pic_center">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/20200524134545735.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/20200524134621142.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/20200524134709868.png#pic_center">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/2020052413473576.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/20200524134821496.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/20200524134839941.png#pic_center">
+<meta property="article:published_time" content="2020-12-08T15:03:35.000Z">
+<meta property="article:modified_time" content="2020-12-08T15:04:27.121Z">
+<meta property="article:author" content="中间件兴趣圈">
+<meta property="article:tag" content="sentinel">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://img-blog.csdnimg.cn/2020052413411896.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center">
+  
+    <link rel="alternate" href="/atom.xml" title="中间件兴趣圈" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  
+    <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css">
+  
+  
+<link rel="stylesheet" href="/css/style.css">
+
+<meta name="generator" content="Hexo 5.2.0"></head>
+
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">中间件兴趣圈</a>
+      </h1>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="搜索"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://example.com"></form>
+      </div>
+    </div>
+  </div>
+</header>
+      <div class="outer">
+        <section id="main"><article id="post-Sentinel 系统自适应限流原理剖析与实战指导" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2020/12/08/Sentinel%20%E7%B3%BB%E7%BB%9F%E8%87%AA%E9%80%82%E5%BA%94%E9%99%90%E6%B5%81%E5%8E%9F%E7%90%86%E5%89%96%E6%9E%90%E4%B8%8E%E5%AE%9E%E6%88%98%E6%8C%87%E5%AF%BC/" class="article-date">
+  <time datetime="2020-12-08T15:03:35.000Z" itemprop="datePublished">2020-12-08</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/sentinel/">sentinel</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      Sentinel 系统自适应限流原理剖析与实战指导
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <div id="vip-container"><p>看到标题中的几个关键字<strong>系统自适应</strong>限流是不是觉得高大上，这个自适应又是如何实现的呢？</p>
+<h2 id="1、Sentinel-系统自适应概述"><a href="#1、Sentinel-系统自适应概述" class="headerlink" title="1、Sentinel 系统自适应概述"></a>1、Sentinel 系统自适应概述</h2><p>从官方了解到 Sentienl 系统自适应限流是一个全局的概念，对应用入口流量统一进行统一控制，结合应用的机器负载、CPU 使用率，总体平均响应时间、入口 QPS 和并发线程数等几个维度的监控指标从而决定是否调用进行限流操作。为了有一个直观的感受，我们可以从官方的运维平台看看其系统自适应限流的操作界面：<br><img src="https://img-blog.csdnimg.cn/2020052413411896.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br>RT、线程数、入口QPS这三个指标是可以通过采集调用信息进行统计计算的，那系统LOAD、CPU使用率是如何获取的呢？大家可以带着这个问题进入本文的学习中来。</p>
+<p>在详细分析系统自适应实现原理之前我们先来思考一下 Sentinel 引入该机制的目的。</p>
+<p>官方文档针对这个问题有过仔细阐述，我们先来看看官方文档对其阐述。</p>
+<p>引入系统自适应限流的主要的目的有如下两个：</p>
+<ul>
+<li>保证系统不被拖垮</li>
+<li>在系统稳定的前提下保证系统的吞吐量。</li>
+</ul>
+<p>目前我们接触的限流的防护思路都是设定一个指标（阔值），例如系统的负载 load 超过某个阔值后就阻止或减少流量的继续进入，当系统负载降低到某一水平后则恢复流量的进入。通常都是被动的，其实际效果取决与阔值设置是否合理，但往往设置合理不是一件容易的事情。</p>
+<p>那 Sentinel 提供的系统自适应是可以将设定的规则作为一个保护因子，而允许通过的流量由处理请求的能力来决定，即根据请求的响应时间、当前系统正在处理的请求速率来决定。</p>
+<p>那 Sentinel 是如何实现的呢？接下来用源码的手段来揭晓其实现原理。</p>
+<h2 id="2、系统自适应限流原理"><a href="#2、系统自适应限流原理" class="headerlink" title="2、系统自适应限流原理"></a>2、系统自适应限流原理</h2><p>Sentinel 执行系统限流的核心入口类为 SystemSlot，该类实现简单，如下图所示：<br><img src="https://img-blog.csdnimg.cn/20200524134158678.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="SystemRuleManager#checkSystem"><br>从这里可以看出实现的关键在于SystemRuleManager，这里是直接调用 checkSystem 进行是否触发其限流，那我们接下来重点跟踪一下该方法的实现。</p>
+<h4 id="2-1-自适应限流检测流程"><a href="#2-1-自适应限流检测流程" class="headerlink" title="2.1 自适应限流检测流程"></a>2.1 自适应限流检测流程</h4><p>系统自适应限流检测具体由 SystemRuleManager 的 checkSystem 方法实现，接下来详细剖析其实现细节。<br><img src="https://img-blog.csdnimg.cn/2020052413421556.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br>Step1：验证相关资源，主要包含三层验证：</p>
+<ul>
+<li>如果资源名称为空，则直接跳过，这个是容错机制。</li>
+<li>如果系统自适应开关为打开，直接放行，该开关初始化时为 false，在加载到一条系统自适应配置规则时该状态会设置为 true，具体在 loadSystemConf 中。</li>
+<li>如果资源的类型不是入口流量(EntryType.IN),则直接放行。<br><img src="https://img-blog.csdnimg.cn/20200524134428924.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br>Step2：从QPS为维度验证是否需要被限流，其实现关键点如下：</li>
+<li>当前的qps，如果 ENTRY_NODE 为空则返回0，否则返回该统计节点的成功 qps，那 ENTRY_NODE 统计节点是“何许人也”，原来是 Sentinel 特定定义了一个资源，其名称为__total_inbound_traffic__，用来采集所有入口调用的信息，当资源进入类型为 ENTRY_TYPE_IN 时，会自动采集信息，其具体统计信息在 StatisticSlot 的 entry 方法中被调用，其截图如下：<br><img src="https://img-blog.csdnimg.cn/20200524134513299.png#pic_center" alt="在这里插入图片描述"></li>
+<li>如果当前调用的 QPS 大于设定的QPS，即触发限流，那这个 qps 又是在什么时候被设置的呢？也是在加载系统限流规则时被设置，如果一个应用同一个限流点（LOAD、QPS)设置了多条规则，最小值生效。<br><img src="https://img-blog.csdnimg.cn/20200524134545735.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br>Step3：关于线程数、响应时间限流模式与QPS类似，就不再重复介绍。<br><img src="https://img-blog.csdnimg.cn/20200524134621142.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br>Step4：如果当前系统的负载超过了设定的阔值的处理逻辑，这里就是自适应的核心所在，并不是超过负载就限流，而是需要根据当前系统的请求处理能力进行综合判断，具体逻辑在 checkBbr 方法中实现。关于如何获得系统负载与 checkBbr 方法稍后会详细介绍。<br><img src="https://img-blog.csdnimg.cn/20200524134709868.png#pic_center" alt="在这里插入图片描述"><br>Step5：如果当前CPU的负载超过了设置的阔值，触发限流，那在JAVA中是如何获取CPU的使用率的呢？稍后详细介绍。</li>
+</ul>
+<a id="more"></a>
+
+<h4 id="2-2-根据系统负载自适应算法详解"><a href="#2-2-根据系统负载自适应算法详解" class="headerlink" title="2.2 根据系统负载自适应算法详解"></a>2.2 根据系统负载自适应算法详解</h4><p>正如上面的第4步骤，根据系统 Load 的会采用 TCP BBR 算法来评估是否限流，具体实现代码如下：<br>SystemRuleManager#checkSystem<br><img src="https://img-blog.csdnimg.cn/2020052413473576.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br>在 Sentinel 中估算系统的容量是以 1s 为度量长度，用该秒内通过的最大 qps 与 最小响应时间的乘积来表示，具体的计算细节：</p>
+<ul>
+<li>maxSuccessQps 的计算取当前采样窗口的最大值乘以1s内滑动窗口的个数，这里其实并不是十分准确。</li>
+<li>minRt 最小响应时间取自当前采样窗口中的最小响应时间。<br>故得出了上述计算公式，除以1000是因为 minRt 的时间单位是毫秒，统一为秒。从这里可以看出根据系统负载做限流，最终的判断依据是线程数量。</li>
+</ul>
+<h4 id="2-3-JAVA如何获得操作系统负载情况"><a href="#2-3-JAVA如何获得操作系统负载情况" class="headerlink" title="2.3 JAVA如何获得操作系统负载情况"></a>2.3 JAVA如何获得操作系统负载情况</h4><p>在 Sentinel 中获取操作系统负载情况的类是：SystemStatusListener，每秒采集一次。<br>SystemStatusListener#run<br><img src="https://img-blog.csdnimg.cn/20200524134821496.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br>原来可以通过JDK中的 com.sun.management.OperatingSystemMXBean 获取操作系统相关的信息。<br>温馨提示：上述只对 Linux/Unix 操作系统有效，对 windows 无效。</p>
+<h2 id="3、实践思考"><a href="#3、实践思考" class="headerlink" title="3、实践思考"></a>3、实践思考</h2><p>经过上面的分析，Sentinel 中的系统自适应其实指的是按照应用所在机器的操作系统负载，再结合应用本身的请求处理能力进行的自适应，操作系统的负载情况可以通过 top 命令输出，其示例如下：<br><img src="https://img-blog.csdnimg.cn/20200524134839941.png#pic_center" alt="在这里插入图片描述"><br>尽管 Sentienl 的系统规则配置类型分为 LOAD、CPU、RT、线程数、入口QPS等维度进行限流，但自适应主要是针对 LOAD 这种情况的。<br>Sentinel 系统级别的限流规则并不是针对某一个资源，而是针对应用所有定义EntryType.IN的资源，在使用时尤其需要注意，特别是如果一个机器上部署了多个应用，可能会造成应用本身负载不高，但所在的机器由于其他应用程序导致资源负载偏高，从而触发限流。</p>
+</div>
+
+			<script src="https://my.openwrite.cn/js/readmore.js" type="text/javascript"></script>
+			<script>
+			var isMobile = navigator.userAgent.match(/(phone|pad|pod|iPhone|iPod|ios|iPad|Android|Mobile|BlackBerry|IEMobile|MQQBrowser|JUC|Fennec|wOSBrowser|BrowserNG|WebOS|Symbian|Windows Phone)/i);
+			if (!isMobile) {
+			    var btw = new BTWPlugin();
+			    btw.init({
+			        "id": "vip-container",
+			        "blogId": "18019-1573088808868-542",
+			        "name": "中间件兴趣圈",
+			        "qrcode": "https://img-blog.csdnimg.cn/20190314214003962.jpg",
+			        "keyword": "more"
+			    });
+			}
+			</script>
+		
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://example.com/2020/12/08/Sentinel%20%E7%B3%BB%E7%BB%9F%E8%87%AA%E9%80%82%E5%BA%94%E9%99%90%E6%B5%81%E5%8E%9F%E7%90%86%E5%89%96%E6%9E%90%E4%B8%8E%E5%AE%9E%E6%88%98%E6%8C%87%E5%AF%BC/" data-id="ckig4lieu001mm4rg6hqge5jj" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/sentinel/" rel="tag">sentinel</a></li></ul>
+
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+    <a href="/2020/12/08/%E7%BB%93%E5%90%88%20Sentinel%20%E4%B8%93%E6%A0%8F%E8%B0%88%E8%B0%88%E6%88%91%E7%9A%84%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB%E6%8A%80%E5%B7%A7/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Newer</strong>
+      <div class="article-nav-title">
+        
+          结合 Sentinel 专栏谈谈我的源码阅读技巧
+        
+      </div>
+    </a>
+  
+  
+    <a href="/2020/12/08/Sentinel%20Dubbo%20%E9%80%82%E9%85%8D%E5%99%A8%E7%9C%8B%E9%99%90%E6%B5%81%E4%B8%8E%E7%86%94%E6%96%AD(%E5%AE%9E%E6%88%98%E6%80%9D%E8%80%83%E7%AF%87)/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">Sentinel Dubbo 适配器看限流与熔断(实战思考篇)</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+</section>
+        
+          <aside id="sidebar">
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">分类</h3>
+    <div class="widget">
+      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/kafka-rocketmq/">kafka rocketmq</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/rocketmq/">rocketmq</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/sentinel/">sentinel</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/%E7%A8%8B%E5%BA%8F%E4%BA%BA%E7%94%9F-%E9%80%86%E8%A2%AD-%E8%81%8C%E5%9C%BA%E5%8F%91%E5%B1%95/">程序人生 逆袭 职场发展</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">标签</h3>
+    <div class="widget">
+      <ul class="tag-list" itemprop="keywords"><li class="tag-list-item"><a class="tag-list-link" href="/tags/kafka-rocketmq/" rel="tag">kafka rocketmq</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rocketmq/" rel="tag">rocketmq</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rocketmq-broker-busy-TIMEOUT-CLEAN-QUEUE-PCBUSY-CLEAN-QUEUE/" rel="tag">rocketmq broker busy TIMEOUT_CLEAN_QUEUE PCBUSY_CLEAN_QUEUE</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rocketmq-%E4%B8%BB%E9%A2%98%E6%89%A9%E5%AE%B9-%E5%AE%9E%E6%88%98-%E5%9D%91/" rel="tag">rocketmq 主题扩容 实战 坑</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rocketmq-%E5%A4%9A%E5%89%AF%E6%9C%AC-raft-%E4%B8%BB%E4%BB%8E%E5%88%87%E6%8D%A2/" rel="tag">rocketmq 多副本 raft 主从切换</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rocketmq-%E5%A4%9A%E5%89%AF%E6%9C%AC-raft-%E9%80%89%E4%B8%BB/" rel="tag">rocketmq 多副本 raft 选主</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/sentinel/" rel="tag">sentinel</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E7%A8%8B%E5%BA%8F%E4%BA%BA%E7%94%9F/" rel="tag">程序人生</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">标签云</h3>
+    <div class="widget tagcloud">
+      <a href="/tags/kafka-rocketmq/" style="font-size: 10px;">kafka rocketmq</a> <a href="/tags/rocketmq/" style="font-size: 20px;">rocketmq</a> <a href="/tags/rocketmq-broker-busy-TIMEOUT-CLEAN-QUEUE-PCBUSY-CLEAN-QUEUE/" style="font-size: 10px;">rocketmq broker busy TIMEOUT_CLEAN_QUEUE PCBUSY_CLEAN_QUEUE</a> <a href="/tags/rocketmq-%E4%B8%BB%E9%A2%98%E6%89%A9%E5%AE%B9-%E5%AE%9E%E6%88%98-%E5%9D%91/" style="font-size: 10px;">rocketmq 主题扩容 实战 坑</a> <a href="/tags/rocketmq-%E5%A4%9A%E5%89%AF%E6%9C%AC-raft-%E4%B8%BB%E4%BB%8E%E5%88%87%E6%8D%A2/" style="font-size: 10px;">rocketmq 多副本 raft 主从切换</a> <a href="/tags/rocketmq-%E5%A4%9A%E5%89%AF%E6%9C%AC-raft-%E9%80%89%E4%B8%BB/" style="font-size: 10px;">rocketmq 多副本 raft 选主</a> <a href="/tags/sentinel/" style="font-size: 15px;">sentinel</a> <a href="/tags/%E7%A8%8B%E5%BA%8F%E4%BA%BA%E7%94%9F/" style="font-size: 10px;">程序人生</a>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">归档</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/12/">十二月 2020</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">最新文章</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2020/12/08/%E7%BB%93%E5%90%88%20Sentinel%20%E4%B8%93%E6%A0%8F%E8%B0%88%E8%B0%88%E6%88%91%E7%9A%84%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB%E6%8A%80%E5%B7%A7/">结合 Sentinel 专栏谈谈我的源码阅读技巧</a>
+          </li>
+        
+          <li>
+            <a href="/2020/12/08/Sentinel%20%E7%B3%BB%E7%BB%9F%E8%87%AA%E9%80%82%E5%BA%94%E9%99%90%E6%B5%81%E5%8E%9F%E7%90%86%E5%89%96%E6%9E%90%E4%B8%8E%E5%AE%9E%E6%88%98%E6%8C%87%E5%AF%BC/">Sentinel 系统自适应限流原理剖析与实战指导</a>
+          </li>
+        
+          <li>
+            <a href="/2020/12/08/Sentinel%20Dubbo%20%E9%80%82%E9%85%8D%E5%99%A8%E7%9C%8B%E9%99%90%E6%B5%81%E4%B8%8E%E7%86%94%E6%96%AD(%E5%AE%9E%E6%88%98%E6%80%9D%E8%80%83%E7%AF%87)/">Sentinel Dubbo 适配器看限流与熔断(实战思考篇)</a>
+          </li>
+        
+          <li>
+            <a href="/2020/12/08/Sentinel%20%E9%9B%86%E7%BE%A4%E9%99%90%E6%B5%81%E8%AE%BE%E8%AE%A1%E5%8E%9F%E7%90%86/">Sentinel 集群限流设计原理</a>
+          </li>
+        
+          <li>
+            <a href="/2020/12/08/Sentienl%20%E5%8A%A8%E6%80%81%E6%95%B0%E6%8D%AE%E6%BA%90%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1%E7%90%86%E5%BF%B5%E4%B8%8E%E6%94%B9%E9%80%A0%E5%AE%9E%E8%B7%B5/">Sentienl 动态数据源架构设计理念与改造实践</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2020 中间件兴趣圈<br>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+</nav>
+    
+
+<script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+
+
+  
+<link rel="stylesheet" href="/fancybox/jquery.fancybox.css">
+
+  
+<script src="/fancybox/jquery.fancybox.pack.js"></script>
+
+
+
+
+<script src="/js/script.js"></script>
+
+
+
+
+  </div>
+</body>
+</html>

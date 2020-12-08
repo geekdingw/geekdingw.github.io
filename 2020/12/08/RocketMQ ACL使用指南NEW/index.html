@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+
+  
+  <title>RocketMQ ACL 使用指南 | 中间件兴趣圈</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="1、什么是ACL?ACL是access control list的简称，俗称访问控制列表。访问控制，基本上会涉及到用户、资源、权限、角色等概念，那在RocketMQ中上述会对应哪些对象呢？  用户用户是访问控制的基础要素，也不难理解，RocketMQ ACL必然也会引入用户的概念，即支持用户名、密码。 资源资源，需要保护的对象，在RocketMQ中，消息发送涉及的Topic、消息消费涉及的消费组，">
+<meta property="og:type" content="article">
+<meta property="og:title" content="RocketMQ ACL 使用指南">
+<meta property="og:url" content="http://example.com/2020/12/08/RocketMQ%20ACL%E4%BD%BF%E7%94%A8%E6%8C%87%E5%8D%97NEW/index.html">
+<meta property="og:site_name" content="中间件兴趣圈">
+<meta property="og:description" content="1、什么是ACL?ACL是access control list的简称，俗称访问控制列表。访问控制，基本上会涉及到用户、资源、权限、角色等概念，那在RocketMQ中上述会对应哪些对象呢？  用户用户是访问控制的基础要素，也不难理解，RocketMQ ACL必然也会引入用户的概念，即支持用户名、密码。 资源资源，需要保护的对象，在RocketMQ中，消息发送涉及的Topic、消息消费涉及的消费组，">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/2019063014185470.jpg?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/20190630142301617.jpg?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/20190630142551897.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70">
+<meta property="article:published_time" content="2020-12-08T14:08:35.000Z">
+<meta property="article:modified_time" content="2020-12-08T14:14:05.247Z">
+<meta property="article:author" content="中间件兴趣圈">
+<meta property="article:tag" content="rocketmq">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://img-blog.csdnimg.cn/2019063014185470.jpg?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70">
+  
+    <link rel="alternate" href="/atom.xml" title="中间件兴趣圈" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  
+    <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css">
+  
+  
+<link rel="stylesheet" href="/css/style.css">
+
+<meta name="generator" content="Hexo 5.2.0"></head>
+
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">中间件兴趣圈</a>
+      </h1>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="搜索"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://example.com"></form>
+      </div>
+    </div>
+  </div>
+</header>
+      <div class="outer">
+        <section id="main"><article id="post-RocketMQ ACL使用指南NEW" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2020/12/08/RocketMQ%20ACL%E4%BD%BF%E7%94%A8%E6%8C%87%E5%8D%97NEW/" class="article-date">
+  <time datetime="2020-12-08T14:08:35.000Z" itemprop="datePublished">2020-12-08</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/rocketmq/">rocketmq</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      RocketMQ ACL 使用指南
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <div id="vip-container"><h2 id="1、什么是ACL"><a href="#1、什么是ACL" class="headerlink" title="1、什么是ACL?"></a>1、什么是ACL?</h2><p>ACL是access control list的简称，俗称访问控制列表。访问控制，基本上会涉及到用户、资源、权限、角色等概念，那在RocketMQ中上述会对应哪些对象呢？</p>
+<ul>
+<li>用户<br>用户是访问控制的基础要素，也不难理解，RocketMQ ACL必然也会引入用户的概念，即支持用户名、密码。</li>
+<li>资源<br>资源，需要保护的对象，在RocketMQ中，消息发送涉及的Topic、消息消费涉及的消费组，应该进行保护，故可以抽象成资源。</li>
+<li>权限<br>针对资源，能进行的操作，</li>
+<li>角色<br>RocketMQ中，只定义两种角色：是否是管理员。</li>
+</ul>
+<p>另外，RocketMQ还支持按照客户端IP进行白名单设置。</p>
+<h2 id="2、ACL基本流程图"><a href="#2、ACL基本流程图" class="headerlink" title="2、ACL基本流程图"></a>2、ACL基本流程图</h2><p>在讲解如何使用ACL之前，我们先简单看一下RocketMQ ACL的请求流程：<br><img src="https://img-blog.csdnimg.cn/2019063014185470.jpg?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>对于上述具体的实现，将在后续文章中重点讲解，本文的目的只是希望给读者一个大概的了解。</p>
+<h2 id="3、如何配置ACL"><a href="#3、如何配置ACL" class="headerlink" title="3、如何配置ACL"></a>3、如何配置ACL</h2><h3 id="3-1-acl配置文件"><a href="#3-1-acl配置文件" class="headerlink" title="3.1 acl配置文件"></a>3.1 acl配置文件</h3><p>acl默认的配置文件名：plain_acl.yml,需要放在${ROCKETMQ_HOME}/store/config目录下。下面对其配置项一一介绍。</p>
+<a id="more"></a>
+
+<h4 id="3-1-1-globalWhiteRemoteAddresses"><a href="#3-1-1-globalWhiteRemoteAddresses" class="headerlink" title="3.1.1 globalWhiteRemoteAddresses"></a>3.1.1 globalWhiteRemoteAddresses</h4><p>全局白名单，其类型为数组，即支持多个配置。其支持的配置格式如下：</p>
+<ul>
+<li>空<br>表示不设置白名单，该条规则默认返回false。</li>
+<li>“*”<br>表示全部匹配，该条规则直接返回true，将会阻断其他规则的判断，请慎重使用。</li>
+<li>192.168.0.{100,101}<br>多地址配置模式，ip地址的最后一组，使用{}，大括号中多个ip地址，用英文逗号(,)隔开。</li>
+<li>192.168.1.100,192.168.2.100<br>直接使用,分隔，配置多个ip地址。</li>
+<li>192.168.*.<em>或192.168.100-200.10-20<br>每个IP段使用 “</em>“ 或”-“表示范围。</li>
+</ul>
+<h4 id="3-1-2-accounts"><a href="#3-1-2-accounts" class="headerlink" title="3.1.2 accounts"></a>3.1.2 accounts</h4><p>配置用户信息，该类型为数组类型。拥有accessKey、secretKey、whiteRemoteAddress、admin、defaultTopicPerm、defaultGroupPerm、topicPerms、groupPerms子元素。</p>
+<h5 id="3-1-2-1-accessKey"><a href="#3-1-2-1-accessKey" class="headerlink" title="3.1.2.1 accessKey"></a>3.1.2.1 accessKey</h5><p>登录用户名，长度必须大于6个字符。</p>
+<h5 id="3-1-2-2-secretKey"><a href="#3-1-2-2-secretKey" class="headerlink" title="3.1.2.2 secretKey"></a>3.1.2.2 secretKey</h5><p>登录密码。长度必须大于6个字符。</p>
+<h5 id="3-1-2-3-whiteRemoteAddress"><a href="#3-1-2-3-whiteRemoteAddress" class="headerlink" title="3.1.2.3 whiteRemoteAddress"></a>3.1.2.3 whiteRemoteAddress</h5><p>用户级别的IP地址白名单。其类型为一个字符串，其配置规则与globalWhiteRemoteAddresses，但只能配置一条规则。</p>
+<h5 id="3-1-2-4-admin"><a href="#3-1-2-4-admin" class="headerlink" title="3.1.2.4 admin"></a>3.1.2.4 admin</h5><p>boolean类型，设置是否是admin。如下权限只有admin=true时才有权限执行。</p>
+<ul>
+<li>UPDATE_AND_CREATE_TOPIC<br>更新或创建主题。</li>
+<li>UPDATE_BROKER_CONFIG<br>更新Broker配置。</li>
+<li>DELETE_TOPIC_IN_BROKER<br>删除主题。</li>
+<li>UPDATE_AND_CREATE_SUBSCRIPTIONGROUP<br>更新或创建订阅组信息。</li>
+<li>DELETE_SUBSCRIPTIONGROUP<br>删除订阅组信息。</li>
+</ul>
+<h5 id="3-1-2-5-defaultTopicPerm"><a href="#3-1-2-5-defaultTopicPerm" class="headerlink" title="3.1.2.5 defaultTopicPerm"></a>3.1.2.5 defaultTopicPerm</h5><p>默认topic权限。该值默认为DENY(拒绝)。</p>
+<h5 id="3-1-2-6-defaultGroupPerm"><a href="#3-1-2-6-defaultGroupPerm" class="headerlink" title="3.1.2.6 defaultGroupPerm"></a>3.1.2.6 defaultGroupPerm</h5><p>默认消费组权限，该值默认为DENY(拒绝)，建议值为SUB。</p>
+<h5 id="3-1-2-7-topicPerms"><a href="#3-1-2-7-topicPerms" class="headerlink" title="3.1.2.7 topicPerms"></a>3.1.2.7 topicPerms</h5><p>设置topic的权限。其类型为数组，其可选择值在下节介绍。</p>
+<h5 id="3-1-2-8-groupPerms"><a href="#3-1-2-8-groupPerms" class="headerlink" title="3.1.2.8 groupPerms"></a>3.1.2.8 groupPerms</h5><p>设置消费组的权限。其类型为数组，其可选择值在下节介绍。可以为每一消费组配置不一样的权限。</p>
+<h3 id="3-2-RocketMQ-ACL权限可选值"><a href="#3-2-RocketMQ-ACL权限可选值" class="headerlink" title="3.2 RocketMQ ACL权限可选值"></a>3.2 RocketMQ ACL权限可选值</h3><ul>
+<li>DENY<br>拒绝。</li>
+<li>PUB<br>拥有发送权限。</li>
+<li>SUB<br>拥有订阅权限。</li>
+</ul>
+<h3 id="3-3、权限验证流程"><a href="#3-3、权限验证流程" class="headerlink" title="3.3、权限验证流程"></a>3.3、权限验证流程</h3><p>上面定义了全局白名单、用户级别的白名单，用户级别的权限，为了更好的配置ACL权限规则，下面给出权限匹配逻辑。<br><img src="https://img-blog.csdnimg.cn/20190630142301617.jpg?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"></p>
+<h2 id="4、使用示例"><a href="#4、使用示例" class="headerlink" title="4、使用示例"></a>4、使用示例</h2><h3 id="4-1-Broker端安装"><a href="#4-1-Broker端安装" class="headerlink" title="4.1 Broker端安装"></a>4.1 Broker端安装</h3><p>首先，需要在broker.conf文件中，增加参数aclEnable=true。并拷贝distribution/conf/plain_acl.yml文件到${ROCKETMQ_HOME}/conf目录。</p>
+<p>broker.conf的配置文件如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">brokerClusterName &#x3D; DefaultCluster</span><br><span class="line">brokerName &#x3D; broker-b</span><br><span class="line">brokerId &#x3D; 0</span><br><span class="line">deleteWhen &#x3D; 04</span><br><span class="line">fileReservedTime &#x3D; 48</span><br><span class="line">brokerRole &#x3D; ASYNC_MASTER</span><br><span class="line">flushDiskType &#x3D; ASYNC_FLUSH</span><br><span class="line">listenPort&#x3D;10915</span><br><span class="line">storePathRootDir&#x3D;E:&#x2F;SH2019&#x2F;tmp&#x2F;rocketmq_home&#x2F;rocketmq4.5MB&#x2F;store</span><br><span class="line">storePathCommitLog&#x3D;E:&#x2F;SH2019&#x2F;tmp&#x2F;rocketmq_home&#x2F;rocketmq4.5MB&#x2F;store&#x2F;commitlog</span><br><span class="line">namesrvAddr&#x3D;127.0.0.1:9876</span><br><span class="line">autoCreateTopicEnable&#x3D;false</span><br><span class="line">aclEnable&#x3D;true</span><br></pre></td></tr></table></figure>
+<p>plain_acl.yml文件内容如下：</p>
+<figure class="highlight yml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">globalWhiteRemoteAddresses:</span></span><br><span class="line"></span><br><span class="line"><span class="attr">accounts:</span></span><br><span class="line"><span class="bullet">-</span> <span class="attr">accessKey:</span> <span class="string">RocketMQ</span></span><br><span class="line">  <span class="attr">secretKey:</span> <span class="number">12345678</span></span><br><span class="line">  <span class="attr">whiteRemoteAddress:</span></span><br><span class="line">  <span class="attr">admin:</span> <span class="literal">false</span></span><br><span class="line">  <span class="attr">defaultTopicPerm:</span> <span class="string">DENY</span></span><br><span class="line">  <span class="attr">defaultGroupPerm:</span> <span class="string">SUB</span></span><br><span class="line">  <span class="attr">topicPerms:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="string">TopicTest=PUB</span></span><br><span class="line">  <span class="attr">groupPerms:</span></span><br><span class="line">  <span class="comment"># the group should convert to retry topic</span></span><br><span class="line">  <span class="bullet">-</span> <span class="string">oms_consumer_group=DENY</span></span><br><span class="line"></span><br><span class="line"><span class="bullet">-</span> <span class="attr">accessKey:</span> <span class="string">admin</span></span><br><span class="line">  <span class="attr">secretKey:</span> <span class="number">12345678</span></span><br><span class="line">  <span class="attr">whiteRemoteAddress:</span></span><br><span class="line">  <span class="comment"># if it is admin, it could access all resources</span></span><br><span class="line">  <span class="attr">admin:</span> <span class="literal">true</span></span><br></pre></td></tr></table></figure>
+<p>从上面的配置可知，用户RocketMQ只能发送TopicTest的消息，其他topic无权限发送；拒绝oms_consumer_group消费组的消息消费，其他消费组默认可消费。</p>
+<h3 id="4-2-消息发送端示例"><a href="#4-2-消息发送端示例" class="headerlink" title="4.2 消息发送端示例"></a>4.2 消息发送端示例</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">AclProducer</span> </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> MQClientException, InterruptedException </span>&#123;</span><br><span class="line">        DefaultMQProducer producer = <span class="keyword">new</span> DefaultMQProducer(<span class="string">&quot;please_rename_unique_group_name&quot;</span>, getAclRPCHook());</span><br><span class="line">        producer.setNamesrvAddr(<span class="string">&quot;127.0.0.1:9876&quot;</span>);</span><br><span class="line">        producer.start();</span><br><span class="line">        <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; <span class="number">1</span>; i++) &#123;</span><br><span class="line">            <span class="keyword">try</span> &#123;</span><br><span class="line">                Message msg = <span class="keyword">new</span> Message(<span class="string">&quot;TopicTest3&quot;</span> ,<span class="string">&quot;TagA&quot;</span> , (<span class="string">&quot;Hello RocketMQ &quot;</span> + i).getBytes(RemotingHelper.DEFAULT_CHARSET));</span><br><span class="line">                SendResult sendResult = producer.send(msg);</span><br><span class="line">                System.out.printf(<span class="string">&quot;%s%n&quot;</span>, sendResult);</span><br><span class="line">            &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">                e.printStackTrace();</span><br><span class="line">                Thread.sleep(<span class="number">1000</span>);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        producer.shutdown();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">static</span> RPCHook <span class="title">getAclRPCHook</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">new</span> AclClientRPCHook(<span class="keyword">new</span> SessionCredentials(<span class="string">&quot;rocketmq&quot;</span>,<span class="string">&quot;12345678&quot;</span>));</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>运行效果如图所示：<br><img src="https://img-blog.csdnimg.cn/20190630142551897.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"></p>
+<h3 id="4-3-消息消费端示例"><a href="#4-3-消息消费端示例" class="headerlink" title="4.3 消息消费端示例"></a>4.3 消息消费端示例</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">AclConsumer</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> InterruptedException, MQClientException </span>&#123;</span><br><span class="line">        DefaultMQPushConsumer consumer = <span class="keyword">new</span> DefaultMQPushConsumer(<span class="string">&quot;please_rename_unique_group_name_4&quot;</span>, getAclRPCHook(),<span class="keyword">new</span> AllocateMessageQueueAveragely());</span><br><span class="line">        consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET);</span><br><span class="line">        consumer.subscribe(<span class="string">&quot;TopicTest&quot;</span>, <span class="string">&quot;*&quot;</span>);</span><br><span class="line">        consumer.setNamesrvAddr(<span class="string">&quot;127.0.0.1:9876&quot;</span>);</span><br><span class="line">        consumer.registerMessageListener(<span class="keyword">new</span> MessageListenerConcurrently() &#123;</span><br><span class="line">            <span class="meta">@Override</span></span><br><span class="line">            <span class="function"><span class="keyword">public</span> ConsumeConcurrentlyStatus <span class="title">consumeMessage</span><span class="params">(List&lt;MessageExt&gt; msgs,</span></span></span><br><span class="line"><span class="function"><span class="params">                ConsumeConcurrentlyContext context)</span> </span>&#123;</span><br><span class="line">                System.out.printf(<span class="string">&quot;%s Receive New Messages: %s %n&quot;</span>, Thread.currentThread().getName(), msgs);</span><br><span class="line">                <span class="keyword">return</span> ConsumeConcurrentlyStatus.CONSUME_SUCCESS;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;);</span><br><span class="line">        consumer.start();</span><br><span class="line">        System.out.printf(<span class="string">&quot;Consumer Started.%n&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">static</span> RPCHook <span class="title">getAclRPCHook</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">new</span> AclClientRPCHook(<span class="keyword">new</span> SessionCredentials(<span class="string">&quot;rocketmq&quot;</span>,<span class="string">&quot;12345678&quot;</span>));</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>发现并不没有消费消息，符合预期。</p>
+<p>关于RocketMQ ACL的使用就介绍到这里了，下一篇将介绍RocketMQ ACL实现原理。，下一篇，我们将进入到多副本的学习中。</p>
+</div>
+
+			<script src="https://my.openwrite.cn/js/readmore.js" type="text/javascript"></script>
+			<script>
+			var isMobile = navigator.userAgent.match(/(phone|pad|pod|iPhone|iPod|ios|iPad|Android|Mobile|BlackBerry|IEMobile|MQQBrowser|JUC|Fennec|wOSBrowser|BrowserNG|WebOS|Symbian|Windows Phone)/i);
+			if (!isMobile) {
+			    var btw = new BTWPlugin();
+			    btw.init({
+			        "id": "vip-container",
+			        "blogId": "18019-1573088808868-542",
+			        "name": "中间件兴趣圈",
+			        "qrcode": "https://img-blog.csdnimg.cn/20190314214003962.jpg",
+			        "keyword": "more"
+			    });
+			}
+			</script>
+		
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://example.com/2020/12/08/RocketMQ%20ACL%E4%BD%BF%E7%94%A8%E6%8C%87%E5%8D%97NEW/" data-id="ckig4lie70005m4rg4fuibzu7" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/rocketmq/" rel="tag">rocketmq</a></li></ul>
+
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+    <a href="/2020/12/08/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90RocketMQ%20ACL%E5%AE%9E%E7%8E%B0%E6%9C%BA%E5%88%B6/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Newer</strong>
+      <div class="article-nav-title">
+        
+          源码分析RocketMQ ACL实现机制
+        
+      </div>
+    </a>
+  
+  
+    <a href="/2020/12/08/RocketMQ%20ACL%20%E4%BD%BF%E7%94%A8%E6%8C%87%E5%8D%97/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title"></div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+</section>
+        
+          <aside id="sidebar">
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">分类</h3>
+    <div class="widget">
+      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/kafka-rocketmq/">kafka rocketmq</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/rocketmq/">rocketmq</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/sentinel/">sentinel</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/%E7%A8%8B%E5%BA%8F%E4%BA%BA%E7%94%9F-%E9%80%86%E8%A2%AD-%E8%81%8C%E5%9C%BA%E5%8F%91%E5%B1%95/">程序人生 逆袭 职场发展</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">标签</h3>
+    <div class="widget">
+      <ul class="tag-list" itemprop="keywords"><li class="tag-list-item"><a class="tag-list-link" href="/tags/kafka-rocketmq/" rel="tag">kafka rocketmq</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rocketmq/" rel="tag">rocketmq</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rocketmq-broker-busy-TIMEOUT-CLEAN-QUEUE-PCBUSY-CLEAN-QUEUE/" rel="tag">rocketmq broker busy TIMEOUT_CLEAN_QUEUE PCBUSY_CLEAN_QUEUE</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rocketmq-%E4%B8%BB%E9%A2%98%E6%89%A9%E5%AE%B9-%E5%AE%9E%E6%88%98-%E5%9D%91/" rel="tag">rocketmq 主题扩容 实战 坑</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rocketmq-%E5%A4%9A%E5%89%AF%E6%9C%AC-raft-%E4%B8%BB%E4%BB%8E%E5%88%87%E6%8D%A2/" rel="tag">rocketmq 多副本 raft 主从切换</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rocketmq-%E5%A4%9A%E5%89%AF%E6%9C%AC-raft-%E9%80%89%E4%B8%BB/" rel="tag">rocketmq 多副本 raft 选主</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/sentinel/" rel="tag">sentinel</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E7%A8%8B%E5%BA%8F%E4%BA%BA%E7%94%9F/" rel="tag">程序人生</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">标签云</h3>
+    <div class="widget tagcloud">
+      <a href="/tags/kafka-rocketmq/" style="font-size: 10px;">kafka rocketmq</a> <a href="/tags/rocketmq/" style="font-size: 20px;">rocketmq</a> <a href="/tags/rocketmq-broker-busy-TIMEOUT-CLEAN-QUEUE-PCBUSY-CLEAN-QUEUE/" style="font-size: 10px;">rocketmq broker busy TIMEOUT_CLEAN_QUEUE PCBUSY_CLEAN_QUEUE</a> <a href="/tags/rocketmq-%E4%B8%BB%E9%A2%98%E6%89%A9%E5%AE%B9-%E5%AE%9E%E6%88%98-%E5%9D%91/" style="font-size: 10px;">rocketmq 主题扩容 实战 坑</a> <a href="/tags/rocketmq-%E5%A4%9A%E5%89%AF%E6%9C%AC-raft-%E4%B8%BB%E4%BB%8E%E5%88%87%E6%8D%A2/" style="font-size: 10px;">rocketmq 多副本 raft 主从切换</a> <a href="/tags/rocketmq-%E5%A4%9A%E5%89%AF%E6%9C%AC-raft-%E9%80%89%E4%B8%BB/" style="font-size: 10px;">rocketmq 多副本 raft 选主</a> <a href="/tags/sentinel/" style="font-size: 15px;">sentinel</a> <a href="/tags/%E7%A8%8B%E5%BA%8F%E4%BA%BA%E7%94%9F/" style="font-size: 10px;">程序人生</a>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">归档</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/12/">十二月 2020</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">最新文章</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2020/12/08/%E7%BB%93%E5%90%88%20Sentinel%20%E4%B8%93%E6%A0%8F%E8%B0%88%E8%B0%88%E6%88%91%E7%9A%84%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB%E6%8A%80%E5%B7%A7/">结合 Sentinel 专栏谈谈我的源码阅读技巧</a>
+          </li>
+        
+          <li>
+            <a href="/2020/12/08/Sentinel%20%E7%B3%BB%E7%BB%9F%E8%87%AA%E9%80%82%E5%BA%94%E9%99%90%E6%B5%81%E5%8E%9F%E7%90%86%E5%89%96%E6%9E%90%E4%B8%8E%E5%AE%9E%E6%88%98%E6%8C%87%E5%AF%BC/">Sentinel 系统自适应限流原理剖析与实战指导</a>
+          </li>
+        
+          <li>
+            <a href="/2020/12/08/Sentinel%20Dubbo%20%E9%80%82%E9%85%8D%E5%99%A8%E7%9C%8B%E9%99%90%E6%B5%81%E4%B8%8E%E7%86%94%E6%96%AD(%E5%AE%9E%E6%88%98%E6%80%9D%E8%80%83%E7%AF%87)/">Sentinel Dubbo 适配器看限流与熔断(实战思考篇)</a>
+          </li>
+        
+          <li>
+            <a href="/2020/12/08/Sentinel%20%E9%9B%86%E7%BE%A4%E9%99%90%E6%B5%81%E8%AE%BE%E8%AE%A1%E5%8E%9F%E7%90%86/">Sentinel 集群限流设计原理</a>
+          </li>
+        
+          <li>
+            <a href="/2020/12/08/Sentienl%20%E5%8A%A8%E6%80%81%E6%95%B0%E6%8D%AE%E6%BA%90%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1%E7%90%86%E5%BF%B5%E4%B8%8E%E6%94%B9%E9%80%A0%E5%AE%9E%E8%B7%B5/">Sentienl 动态数据源架构设计理念与改造实践</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2020 中间件兴趣圈<br>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+</nav>
+    
+
+<script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+
+
+  
+<link rel="stylesheet" href="/fancybox/jquery.fancybox.css">
+
+  
+<script src="/fancybox/jquery.fancybox.pack.js"></script>
+
+
+
+
+<script src="/js/script.js"></script>
+
+
+
+
+  </div>
+</body>
+</html>

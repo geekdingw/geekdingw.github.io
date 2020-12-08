@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+
+  
+  <title>结合 Sentinel 专栏谈谈我的源码阅读技巧 | 中间件兴趣圈</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="本文行文思路：先抛出源码阅读方法，然后结合Sentinel创作过程谈谈具体是如何运用这些技巧，最后解答几个源码阅读的误区。  Sentinel 系列共包含15篇文章，主要以源码分析为手段，图文并茂的方式对 Sentinel 的架构设计理念、核心实现要点进行了一一剖析，并加以实战分析与思考。 很多朋友都在询我是如何阅读源码的。对此可归纳为如下几个要点，然后结合 Sentienl 源码分析专栏对各个">
+<meta property="og:type" content="article">
+<meta property="og:title" content="结合 Sentinel 专栏谈谈我的源码阅读技巧">
+<meta property="og:url" content="http://example.com/2020/12/08/%E7%BB%93%E5%90%88%20Sentinel%20%E4%B8%93%E6%A0%8F%E8%B0%88%E8%B0%88%E6%88%91%E7%9A%84%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB%E6%8A%80%E5%B7%A7/index.html">
+<meta property="og:site_name" content="中间件兴趣圈">
+<meta property="og:description" content="本文行文思路：先抛出源码阅读方法，然后结合Sentinel创作过程谈谈具体是如何运用这些技巧，最后解答几个源码阅读的误区。  Sentinel 系列共包含15篇文章，主要以源码分析为手段，图文并茂的方式对 Sentinel 的架构设计理念、核心实现要点进行了一一剖析，并加以实战分析与思考。 很多朋友都在询我是如何阅读源码的。对此可归纳为如下几个要点，然后结合 Sentienl 源码分析专栏对各个">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/2020053015083815.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/20200530151308395.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/2020053015244341.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center">
+<meta property="article:published_time" content="2020-12-08T15:05:35.000Z">
+<meta property="article:modified_time" content="2020-12-08T15:05:41.760Z">
+<meta property="article:author" content="中间件兴趣圈">
+<meta property="article:tag" content="sentinel">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://img-blog.csdnimg.cn/2020053015083815.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center">
+  
+    <link rel="alternate" href="/atom.xml" title="中间件兴趣圈" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  
+    <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css">
+  
+  
+<link rel="stylesheet" href="/css/style.css">
+
+<meta name="generator" content="Hexo 5.2.0"></head>
+
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">中间件兴趣圈</a>
+      </h1>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="搜索"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://example.com"></form>
+      </div>
+    </div>
+  </div>
+</header>
+      <div class="outer">
+        <section id="main"><article id="post-结合 Sentinel 专栏谈谈我的源码阅读技巧" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2020/12/08/%E7%BB%93%E5%90%88%20Sentinel%20%E4%B8%93%E6%A0%8F%E8%B0%88%E8%B0%88%E6%88%91%E7%9A%84%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB%E6%8A%80%E5%B7%A7/" class="article-date">
+  <time datetime="2020-12-08T15:05:35.000Z" itemprop="datePublished">2020-12-08</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/sentinel/">sentinel</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      结合 Sentinel 专栏谈谈我的源码阅读技巧
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <div id="vip-container"><blockquote>
+<p>本文行文思路：先抛出源码阅读方法，然后结合Sentinel创作过程谈谈具体是如何运用这些技巧，最后解答几个源码阅读的误区。</p>
+</blockquote>
+<p>Sentinel 系列共包含15篇文章，主要以源码分析为手段，图文并茂的方式对 Sentinel 的架构设计理念、核心实现要点进行了一一剖析，并加以实战分析与思考。</p>
+<p><strong>很多朋友都在询我是如何阅读源码的。对此可归纳为如下几个要点，然后结合 Sentienl 源码分析专栏对各个要点进行拆解，对源码阅读方法进行一次“实战”。</strong></p>
+<ul>
+<li>阅读官方文档，从全局了解待学习框架能解决什么样的问题，整体架构设计与思想是什么，主要包含哪些要点。</li>
+<li>从官方提供的 Demo 程序开始，学习基本的使用方法，进一步加深其理解，并伺机寻找入口（突破口）。</li>
+<li>寻找突破口，逐一突破，先主干再旁支，适度分解，各个击破。</li>
+</ul>
+<p>接下来将展示我是如何使用这套方法论来学习 Sentinel 的。</p>
+<p>在准备深入学习 Sentinel 之前，首先认真看了一遍 Sentinel 的官方文档，从而形成了对 Sentinel 的基本认识，我们可以从官方文档了解到 Sentinel 主要涉及的核心内容，正如下图所示：<br><img src="https://img-blog.csdnimg.cn/2020053015083815.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述">这些内容可以简单的当成一个学习的提纲，可以从里面挑选自己感兴趣的进行重点学习。</p>
+<p>在看完官方文档后，我就踏上创作 Sentinel 系列的征途。</p>
+<blockquote>
+<p>本文不会再详细介绍每一个知识点的细节，有关各个知识点的具体讲解，大家可以点击感兴趣的链接中进行深入研究，本文主要是点到为止，重在介绍笔者是如何学习源码的。</p>
+</blockquote>
+<p>1、<a target="_blank" rel="noopener" href="https://blog.csdn.net/prestigeding/article/details/103544443">Alibaba Sentinel 限流与熔断初探</a><br>该文章主要从如下几个点进行展开：</p>
+<ul>
+<li>Sentinel 是什么 ？主要能解决什么问题？</li>
+<li>限流与熔断的使用场景</li>
+<li>Sentinel 源码结构</li>
+<li>在 IntelliJ IDEA 中运行 Sentine Demo</li>
+</ul>
+<p>其实第三点并不是特别必须，不过要得出这些结论也并不难，因为对 Sentinel 有了全局的认识后并根据各个模块的命名很容易能得出该模块的作用。这里第四点非常关键，通常一个优秀的开源框架都会提供完备的演示 Demo，大家可以看到 Sentinel 的演示 demo 非常丰富，在本文中我特意选择了 Dubbo 来做示例，主要是我们公司大量使用 dubbo 来实现公司的微服务，这样会更加贴近实战，更有利于寻找突破口。</p>
+<p>通过跑通 Demo 的主要目的有三个：</p>
+<ul>
+<li>通过运行 Demo，了解框架的基本使用方法。</li>
+<li>搭建一个可 Debug 的环境，为后续看不懂代码的情况下进行调试，根据运行时数据，可加快代码的理解速度，但千万不要一开始就 debug。</li>
+<li>寻找源码阅读的入口。</li>
+</ul>
+<p>2、<a target="_blank" rel="noopener" href="https://blog.csdn.net/prestigeding/article/details/103654590">源码分析 Sentinel 之 Dubbo 适配原理</a><br>紧跟第一篇文章，既然使用的是 Dubbo 作为其示例代码，自然而然的思考 Sentinel 是如何做到对 Dubbo 的适配并对业务无侵入性。</p>
+<p>通过该篇文章的学习我们了解到可以通过 Dubbo 的扩展机制实现对 Dubbo 的适配，在 Dubbo Filter 中我们能看到了与 Sentinel 相关的核心 API SphU.entry，从而找到深入学习 Sentinel 的核心入口，也就是后续文章会通过对该方法的研究，从而打开进入 Sentinel 内核世界的大门。</p>
+<blockquote>
+<p>备注：在阅读这篇文章的时候，我觉得 Dubbo 的适配感觉非常简单，但随着我对这个系列的深入学习，发现了该方法没有那么简单，当时很多点都没有理解到位，这个在后续会有重点阐述，这也是不断学习、不断思考带来的好处。</p>
+</blockquote>
+<a id="more"></a>
+
+<p>3、<a target="_blank" rel="noopener" href="https://blog.csdn.net/prestigeding/article/details/103842382">寻找一把进入 Alibaba Sentinel 的钥匙</a><br>本文主要是详细跟踪 SphU.entry 方法的执行流程，从而揭晓其实现的关键点，果不其然，通过跟踪该方法的流程，找到了 Sentinel 的核心运作机制：Slot 处理链。<br><img src="https://img-blog.csdnimg.cn/20200530151308395.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br>就问大家激不激动，开不开心，从这些 Slot 的名字基本就能得出其含义，后续的研究重点就是逐一解开这些 Slot 的实现原理即可。</p>
+<p>4、<a target="_blank" rel="noopener" href="https://blog.csdn.net/prestigeding/article/details/103943070">Sentinel 调用上下文环境实现原理</a><br>按照上述 Slot 的链，开始了 NodeSelectorSlot 的研究，通过学习了解到该 NodeSelectorSlot 主要是构建 Sentinel 的调用链，即调用上下文环境管理,准确的说是构建调用链的入口节点。在 Sentinel 中每进入一个资源都会有对应的节点实时存储该资源的调用信息。</p>
+<p>5、Sentinel 实时数据采集原理<br>这个议题共两篇文章，其相关链接如下：</p>
+<ul>
+<li><a target="_blank" rel="noopener" href="https://blog.csdn.net/prestigeding/article/details/104045216">实时采集数据详解</a></li>
+<li><a target="_blank" rel="noopener" href="https://blog.csdn.net/prestigeding/article/details/103753595">Sentinel 滑动窗口实现原理</a></li>
+</ul>
+<p>如果按照 Slot 链的执行顺序，下一个执行的 ClusterBuilderSlot，从名字就可以看出与集群限流相关的，但秉承着先简后难的学习策略，在当前先跳过该类的学习，先重点突破单机版限流，后续再回过头来学习集群限流相关的知识。</p>
+<p>要实现限流、熔断等功能，首先要解决的问题是如何实时采集服务(资源)调用信息。例如将某一个接口设置的限流阔值 1W/tps，那首先如何判断当前的 TPS 是多少？Alibaba Sentinel 采用滑动窗口来实现实时数据的统计，实现类：StatisticSlot。</p>
+<p>6、Sentinel 限流实现原理<br>在弄懂了 Sentinel 的实时数据采集原理后，限流实现就非常简单了，就是基于采集的调用信息，然后与限流规则进行比较，判断是否需要限流，Sentinel 在触发限流后还提供了多种处理策略，例如快速失败、匀速排队、预热等机制。</p>
+<p>但我在学习限流的时候，我将限流核心逻辑与触发限流后的处理策略进行了分解，在学习限流的时候挑选了最简单处理策略(匀速排队)，将比较难的预热机制分解，再单起一篇文章进行学习，这样的拆解有利于保证学习单篇文章的用时，并提高自己的“产量”，提高自己的成就感。</p>
+<p>这块主要包含如下4篇文章：</p>
+<ul>
+<li><a target="_blank" rel="noopener" href="https://blog.csdn.net/prestigeding/article/details/104884255">Sentinel FlowSlot 限流实现原理</a></li>
+<li><a target="_blank" rel="noopener" href="https://blog.csdn.net/prestigeding/article/details/105027563"> RateLimiter SmoothBursty 实现原理</a></li>
+<li><a target="_blank" rel="noopener" href="https://blog.csdn.net/prestigeding/article/details/105180419">RateLimiter SmoothWarmingUp 实现原理</a></li>
+<li><a target="_blank" rel="noopener" href="https://blog.csdn.net/prestigeding/article/details/105341098">Sentinel 匀速排队与预热实现原理与实战建议</a></li>
+</ul>
+<p>这里还要重点阐述一下限流领域最核心的算法：漏桶算法、漏斗算法等，并且 Sentinel 的预热机制主要是参考 Guava 的实现，故这里花了点精力认真学习了 Guava 的 RateLimite 的实现原理。</p>
+<p>7、<a target="_blank" rel="noopener" href="https://blog.csdn.net/prestigeding/article/details/105470516">Sentinel DegradeSlot 熔断实现原理</a><br>限流部分学习完后，我就迫不及待的去探究熔断的实现，其实熔断本身并不复杂，和限流一样，无非就是根据当前的实时调用信息与熔断规则进行对比即可，如果满足熔断规则就抛出异常。如果只是熔断自身的实现本质确实简单，但要结合实际，其实有更多的问题需要思考，这个在后面的实战篇又是反复思考，从而发现 Sentinel 在熔断的实现上其实比较粗糙。</p>
+<p>8、<a target="_blank" rel="noopener" href="https://blog.csdn.net/prestigeding/article/details/105756877">Sentienl 动态数据源架构设计理念与改造实践</a><br>经过前面的文章，Sentinel 的单机限流与熔断已经基本学习了，这个时候就要开始思考如何使用 Sentinel 了，但 Sentinel 官方提供的后台运维管理系统的熔断、限流规则只能存储在内存，显然不能直接用于生产环境，故需要提出解决方案，本篇文章详细介绍了笔者是如何根据官方资料进行动态数据源配置的方法调研的，完成是按照工作中架构设计方案的标准来思考的，强烈推荐。</p>
+<p>9、<a target="_blank" rel="noopener" href="https://blog.csdn.net/prestigeding/article/details/106041456">Sentinel Dubbo 适配器看限流与熔断(实战思考篇)</a><br>支持了动态数据源，就继续进行思考，在微服务领域是如何思考引入熔断机制的，进行一番思考后发现官方提供的 Dubbo 适配器的粒度是服务级别的，无法控制机器级别，例如下图所示：<br><img src="https://img-blog.csdnimg.cn/2020053015244341.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br>例如当前的 Sentinel Dubbo 适配器目前不支持一个服务其中一台服务提供者变慢，发往这台机器上的请求被熔断，当前的实现版本会调用该服务的所有请求都会被熔断，故官方的 Dubbo 适配器还需要更加完善，有了自己的思考才会对知识理解更多，故通过学习源码，一定不能“尽信书”，要有自己的思考与怀疑能力，这样才能对开源社区做出一定的贡献，共同进步与成长。</p>
+<p>以上就是我学习源码的方法，希望对大家真正有所帮助与感触。</p>
+<p><strong>最后我再来谈一下回答关于源码阅读方面误区的几个问题。</strong></p>
+<p><strong>1、看源码会忘记吗？为什么我们看源码的时候感觉看懂了，但很容易就忘记？</strong></p>
+<p>我们要始终明白看<strong>源码只是手段</strong>，目的是要思考框架的设计原理、并通过源码了解实现细节并指导实践。重在思考。当然实现细节看过后容易忘记，但只要理解了思想，在需要使用时可以看自己写过的文章，一下子就能拾起来。</p>
+<p><strong>2、看源码的时候是不是可以直接使用 Debug 进行调试学习</strong></p>
+<p>我是<strong>强烈不建议</strong>这样做，这样会迷失在细节中无可自拔。正确的姿势是寻找入口，带上自己的思考去梳理，当遇到看不懂源码或是无法理解其思想时，这个时候可以借助 Debug，可以通过运行时可视化的数据，帮助我们更快的了解。</p>
+</div>
+
+			<script src="https://my.openwrite.cn/js/readmore.js" type="text/javascript"></script>
+			<script>
+			var isMobile = navigator.userAgent.match(/(phone|pad|pod|iPhone|iPod|ios|iPad|Android|Mobile|BlackBerry|IEMobile|MQQBrowser|JUC|Fennec|wOSBrowser|BrowserNG|WebOS|Symbian|Windows Phone)/i);
+			if (!isMobile) {
+			    var btw = new BTWPlugin();
+			    btw.init({
+			        "id": "vip-container",
+			        "blogId": "18019-1573088808868-542",
+			        "name": "中间件兴趣圈",
+			        "qrcode": "https://img-blog.csdnimg.cn/20190314214003962.jpg",
+			        "keyword": "more"
+			    });
+			}
+			</script>
+		
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://example.com/2020/12/08/%E7%BB%93%E5%90%88%20Sentinel%20%E4%B8%93%E6%A0%8F%E8%B0%88%E8%B0%88%E6%88%91%E7%9A%84%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB%E6%8A%80%E5%B7%A7/" data-id="ckig4liff0030m4rggehzcd7v" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/sentinel/" rel="tag">sentinel</a></li></ul>
+
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+  
+    <a href="/2020/12/08/Sentinel%20%E7%B3%BB%E7%BB%9F%E8%87%AA%E9%80%82%E5%BA%94%E9%99%90%E6%B5%81%E5%8E%9F%E7%90%86%E5%89%96%E6%9E%90%E4%B8%8E%E5%AE%9E%E6%88%98%E6%8C%87%E5%AF%BC/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">Sentinel 系统自适应限流原理剖析与实战指导</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+</section>
+        
+          <aside id="sidebar">
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">分类</h3>
+    <div class="widget">
+      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/kafka-rocketmq/">kafka rocketmq</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/rocketmq/">rocketmq</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/sentinel/">sentinel</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/%E7%A8%8B%E5%BA%8F%E4%BA%BA%E7%94%9F-%E9%80%86%E8%A2%AD-%E8%81%8C%E5%9C%BA%E5%8F%91%E5%B1%95/">程序人生 逆袭 职场发展</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">标签</h3>
+    <div class="widget">
+      <ul class="tag-list" itemprop="keywords"><li class="tag-list-item"><a class="tag-list-link" href="/tags/kafka-rocketmq/" rel="tag">kafka rocketmq</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rocketmq/" rel="tag">rocketmq</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rocketmq-broker-busy-TIMEOUT-CLEAN-QUEUE-PCBUSY-CLEAN-QUEUE/" rel="tag">rocketmq broker busy TIMEOUT_CLEAN_QUEUE PCBUSY_CLEAN_QUEUE</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rocketmq-%E4%B8%BB%E9%A2%98%E6%89%A9%E5%AE%B9-%E5%AE%9E%E6%88%98-%E5%9D%91/" rel="tag">rocketmq 主题扩容 实战 坑</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rocketmq-%E5%A4%9A%E5%89%AF%E6%9C%AC-raft-%E4%B8%BB%E4%BB%8E%E5%88%87%E6%8D%A2/" rel="tag">rocketmq 多副本 raft 主从切换</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rocketmq-%E5%A4%9A%E5%89%AF%E6%9C%AC-raft-%E9%80%89%E4%B8%BB/" rel="tag">rocketmq 多副本 raft 选主</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/sentinel/" rel="tag">sentinel</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E7%A8%8B%E5%BA%8F%E4%BA%BA%E7%94%9F/" rel="tag">程序人生</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">标签云</h3>
+    <div class="widget tagcloud">
+      <a href="/tags/kafka-rocketmq/" style="font-size: 10px;">kafka rocketmq</a> <a href="/tags/rocketmq/" style="font-size: 20px;">rocketmq</a> <a href="/tags/rocketmq-broker-busy-TIMEOUT-CLEAN-QUEUE-PCBUSY-CLEAN-QUEUE/" style="font-size: 10px;">rocketmq broker busy TIMEOUT_CLEAN_QUEUE PCBUSY_CLEAN_QUEUE</a> <a href="/tags/rocketmq-%E4%B8%BB%E9%A2%98%E6%89%A9%E5%AE%B9-%E5%AE%9E%E6%88%98-%E5%9D%91/" style="font-size: 10px;">rocketmq 主题扩容 实战 坑</a> <a href="/tags/rocketmq-%E5%A4%9A%E5%89%AF%E6%9C%AC-raft-%E4%B8%BB%E4%BB%8E%E5%88%87%E6%8D%A2/" style="font-size: 10px;">rocketmq 多副本 raft 主从切换</a> <a href="/tags/rocketmq-%E5%A4%9A%E5%89%AF%E6%9C%AC-raft-%E9%80%89%E4%B8%BB/" style="font-size: 10px;">rocketmq 多副本 raft 选主</a> <a href="/tags/sentinel/" style="font-size: 15px;">sentinel</a> <a href="/tags/%E7%A8%8B%E5%BA%8F%E4%BA%BA%E7%94%9F/" style="font-size: 10px;">程序人生</a>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">归档</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/12/">十二月 2020</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">最新文章</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2020/12/08/%E7%BB%93%E5%90%88%20Sentinel%20%E4%B8%93%E6%A0%8F%E8%B0%88%E8%B0%88%E6%88%91%E7%9A%84%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB%E6%8A%80%E5%B7%A7/">结合 Sentinel 专栏谈谈我的源码阅读技巧</a>
+          </li>
+        
+          <li>
+            <a href="/2020/12/08/Sentinel%20%E7%B3%BB%E7%BB%9F%E8%87%AA%E9%80%82%E5%BA%94%E9%99%90%E6%B5%81%E5%8E%9F%E7%90%86%E5%89%96%E6%9E%90%E4%B8%8E%E5%AE%9E%E6%88%98%E6%8C%87%E5%AF%BC/">Sentinel 系统自适应限流原理剖析与实战指导</a>
+          </li>
+        
+          <li>
+            <a href="/2020/12/08/Sentinel%20Dubbo%20%E9%80%82%E9%85%8D%E5%99%A8%E7%9C%8B%E9%99%90%E6%B5%81%E4%B8%8E%E7%86%94%E6%96%AD(%E5%AE%9E%E6%88%98%E6%80%9D%E8%80%83%E7%AF%87)/">Sentinel Dubbo 适配器看限流与熔断(实战思考篇)</a>
+          </li>
+        
+          <li>
+            <a href="/2020/12/08/Sentinel%20%E9%9B%86%E7%BE%A4%E9%99%90%E6%B5%81%E8%AE%BE%E8%AE%A1%E5%8E%9F%E7%90%86/">Sentinel 集群限流设计原理</a>
+          </li>
+        
+          <li>
+            <a href="/2020/12/08/Sentienl%20%E5%8A%A8%E6%80%81%E6%95%B0%E6%8D%AE%E6%BA%90%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1%E7%90%86%E5%BF%B5%E4%B8%8E%E6%94%B9%E9%80%A0%E5%AE%9E%E8%B7%B5/">Sentienl 动态数据源架构设计理念与改造实践</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2020 中间件兴趣圈<br>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+</nav>
+    
+
+<script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+
+
+  
+<link rel="stylesheet" href="/fancybox/jquery.fancybox.css">
+
+  
+<script src="/fancybox/jquery.fancybox.pack.js"></script>
+
+
+
+
+<script src="/js/script.js"></script>
+
+
+
+
+  </div>
+</body>
+</html>

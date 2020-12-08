@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+
+  
+  <title>RocketMQ事务消息实战 | 中间件兴趣圈</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="我们以一个订单流转流程来举例，例如订单子系统创建订单，需要将订单数据下发到其他子系统（与第三方系统对接）这个场景，我们通常会将两个系统进行解耦，不直接使用服务调用的方式进行交互。其业务实现步骤通常为：  A系统创建订单并入库 发送消息到MQ MQ消费者消费消息，发送远程RPC服务调用，完成订单数据的同步。  1、方案一 &amp;ensp; &amp;ensp;方案弊端：&amp;ensp; &amp;ensp;1、如果消息发送">
+<meta property="og:type" content="article">
+<meta property="og:title" content="RocketMQ事务消息实战">
+<meta property="og:url" content="http://example.com/2020/12/08/RocketMQ%E4%BA%8B%E5%8A%A1%E6%B6%88%E6%81%AF%E5%AE%9E%E6%88%98/index.html">
+<meta property="og:site_name" content="中间件兴趣圈">
+<meta property="og:description" content="我们以一个订单流转流程来举例，例如订单子系统创建订单，需要将订单数据下发到其他子系统（与第三方系统对接）这个场景，我们通常会将两个系统进行解耦，不直接使用服务调用的方式进行交互。其业务实现步骤通常为：  A系统创建订单并入库 发送消息到MQ MQ消费者消费消息，发送远程RPC服务调用，完成订单数据的同步。  1、方案一 &amp;ensp; &amp;ensp;方案弊端：&amp;ensp; &amp;ensp;1、如果消息发送">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://img-blog.csdn.net/20180731191040691?watermark/2/text/aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70">
+<meta property="og:image" content="https://img-blog.csdn.net/20180802105157536?watermark/2/text/aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70">
+<meta property="og:image" content="https://img-blog.csdn.net/201807311912029?watermark/2/text/aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70">
+<meta property="article:published_time" content="2020-12-08T14:26:35.000Z">
+<meta property="article:modified_time" content="2020-12-08T14:30:22.776Z">
+<meta property="article:author" content="中间件兴趣圈">
+<meta property="article:tag" content="rocketmq">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://img-blog.csdn.net/20180731191040691?watermark/2/text/aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70">
+  
+    <link rel="alternate" href="/atom.xml" title="中间件兴趣圈" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  
+    <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css">
+  
+  
+<link rel="stylesheet" href="/css/style.css">
+
+<meta name="generator" content="Hexo 5.2.0"></head>
+
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">中间件兴趣圈</a>
+      </h1>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="搜索"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://example.com"></form>
+      </div>
+    </div>
+  </div>
+</header>
+      <div class="outer">
+        <section id="main"><article id="post-RocketMQ事务消息实战" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2020/12/08/RocketMQ%E4%BA%8B%E5%8A%A1%E6%B6%88%E6%81%AF%E5%AE%9E%E6%88%98/" class="article-date">
+  <time datetime="2020-12-08T14:26:35.000Z" itemprop="datePublished">2020-12-08</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/rocketmq/">rocketmq</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      RocketMQ事务消息实战
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <div id="vip-container"><p>我们以一个订单流转流程来举例，例如订单子系统创建订单，需要将订单数据下发到其他子系统（与第三方系统对接）这个场景，我们通常会将两个系统进行解耦，不直接使用服务调用的方式进行交互。其业务实现步骤通常为：</p>
+<ol>
+<li>A系统创建订单并入库</li>
+<li>发送消息到MQ</li>
+<li>MQ消费者消费消息，发送远程RPC服务调用，完成订单数据的同步。</li>
+</ol>
+<h2 id="1、方案一"><a href="#1、方案一" class="headerlink" title="1、方案一"></a>1、方案一</h2><ol>
+<li><img src="https://img-blog.csdn.net/20180731191040691?watermark/2/text/aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70" alt="这里写图片描述"><br>&ensp; &ensp;方案弊端：<br>&ensp; &ensp;1、如果消息发送成功，在提交事务的时候JVM突然挂掉，事务没有成功提交，导致两个系统之间数据不一致。<br>&ensp; &ensp;2、由于消息是在事务提交之前提交，发送的消息内容是订单实体的内容，会造成在消费端进行消费时如果需要去验证订单是否存在时可能出现订单不存在。<br>&ensp; &ensp;3、消息发送可以考虑异步发送。</li>
+</ol>
+<a id="more"></a>
+
+<h2 id="2、方案二："><a href="#2、方案二：" class="headerlink" title="2、方案二："></a>2、方案二：</h2><p>&ensp; &ensp;由于存在上述问题，在MQ不支持事务消息的前提条件下，可以采用下面的方式进行优化。<br><img src="https://img-blog.csdn.net/20180802105157536?watermark/2/text/aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70" alt="这里写图片描述"><br>&ensp; &ensp;然后在控制器层，使用异步发送，将消息发送，并在消息发送成功后，更新待发送状态为已发送。<br>&ensp; &ensp;然后通过定时任务，扫描待发送，结合创建时间的记录（小于当前时间5分钟的消息待发送记录），进行消息发送。<br>&ensp; &ensp;方案弊端：<br>&ensp; &ensp;1、消息有可能重复发送，但在消费端可以通过唯一业务编号来进行去重设计。<br>&ensp; &ensp;2、实现过于复杂，为了避免 极端情况下的消息丢失，需要使用定时任务。</p>
+<h2 id="3、方案三：基于RocketMQ4-3版本事务消息"><a href="#3、方案三：基于RocketMQ4-3版本事务消息" class="headerlink" title="3、方案三：基于RocketMQ4.3版本事务消息"></a>3、方案三：基于RocketMQ4.3版本事务消息</h2><p><img src="https://img-blog.csdn.net/201807311912029?watermark/2/text/aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70" alt="这里写图片描述"><br>&ensp; &ensp;额外需要实现事务会查监听器：TransactionListener，其实例代码：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br></pre></td><td class="code"><pre><span class="line">import org.apache.rocketmq.client.producer.LocalTransactionState;</span><br><span class="line">import org.apache.rocketmq.client.producer.TransactionListener;</span><br><span class="line">import org.apache.rocketmq.common.message.Message;</span><br><span class="line">import org.apache.rocketmq.common.message.MessageExt;</span><br><span class="line"></span><br><span class="line">import java.util.concurrent.ConcurrentHashMap;</span><br><span class="line"></span><br><span class="line">@SuppressWarnings(&quot;unused&quot;)</span><br><span class="line">public class OrderTransactionListenerImpl implements TransactionListener &#123;</span><br><span class="line">	</span><br><span class="line">	private ConcurrentHashMap&lt;String, Integer&gt; countHashMap &#x3D; new ConcurrentHashMap&lt;&gt;();</span><br><span class="line">	</span><br><span class="line">	private final static int MAX_COUNT &#x3D; 5;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">	@Override</span><br><span class="line">    public LocalTransactionState executeLocalTransaction(Message msg, Object arg) &#123;</span><br><span class="line">        &#x2F;&#x2F; </span><br><span class="line">    	String bizUniNo &#x3D; msg.getUserProperty(&quot;bizUniNo&quot;); &#x2F;&#x2F; 从消息中获取业务唯一ID。</span><br><span class="line">    	&#x2F;&#x2F; 将bizUniNo入库，表名：t_message_transaction,表结构  bizUniNo(主键),业务类型。</span><br><span class="line">        return LocalTransactionState.UNKNOW;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    @Override</span><br><span class="line">    public LocalTransactionState checkLocalTransaction(MessageExt msg) &#123;</span><br><span class="line">        Integer status &#x3D; 0;</span><br><span class="line">        &#x2F;&#x2F; 从数据库查查询t_message_transaction表，如果该表中存在记录，则提交，</span><br><span class="line">        String bizUniNo &#x3D; msg.getUserProperty(&quot;bizUniNo&quot;); &#x2F;&#x2F; 从消息中获取业务唯一ID。</span><br><span class="line">        &#x2F;&#x2F; 然后t_message_transaction 表，是否存在bizUniNo，如果存在，则返回COMMIT_MESSAGE，</span><br><span class="line">        &#x2F;&#x2F; 不存在，则记录查询次数，未超过次数，返回UNKNOW，超过次数，返回ROLLBACK_MESSAGE</span><br><span class="line">        </span><br><span class="line">        if(query(bizUniNo) &gt; 0 ) &#123;</span><br><span class="line">        	return LocalTransactionState.COMMIT_MESSAGE;</span><br><span class="line">        &#125;</span><br><span class="line">        </span><br><span class="line">        return rollBackOrUnown(bizUniNo);</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    public int query(String bizUniNo) &#123;</span><br><span class="line">    	return 1; &#x2F;&#x2F;select count(1) from t_message_transaction a where a.biz_uni_no&#x3D;#&#123;bizUniNo&#125;</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    public LocalTransactionState rollBackOrUnown(String bizUniNo) &#123;</span><br><span class="line">    	Integer num &#x3D; countHashMap.get(bizUniNo);</span><br><span class="line">    	</span><br><span class="line">    	if(num !&#x3D; null &amp;&amp;  ++num &gt; MAX_COUNT) &#123;</span><br><span class="line">    		countHashMap.remove(bizUniNo);</span><br><span class="line">    		return LocalTransactionState.ROLLBACK_MESSAGE;</span><br><span class="line">    	&#125;</span><br><span class="line">    	</span><br><span class="line">    	if(num &#x3D;&#x3D; null) &#123;</span><br><span class="line">    		num &#x3D; new Integer(1);</span><br><span class="line">    	&#125;</span><br><span class="line">    	</span><br><span class="line">    	countHashMap.put(bizUniNo, num);</span><br><span class="line">    	return LocalTransactionState.UNKNOW;</span><br><span class="line">    	</span><br><span class="line">    &#125;</span><br><span class="line">  </span><br><span class="line">&#125; </span><br></pre></td></tr></table></figure>
+<p>&ensp; &ensp;TransactionListener 实现要点：<br>&ensp; &ensp;executeLocalTransaction：<br>&ensp; &ensp;该方法，主要是设置本地事务状态，该方法与业务方代码在一个事务中，例如OrderServer#createMap中，只要本地事务提交成功，该方法也会提交成功。<br>&ensp; &ensp;故在这里，主要是t_message_transaction添加一条记录，在事务会查时，如果存在记录，就认为是该消息需要提交。<br>&ensp; &ensp;checkLocalTransaction：<br>&ensp; &ensp;该方法主要是告知RocketMQ消息是否需要提交还是回滚，如果本地事务表（t_message_transaction）存在记录，则认为提交，如果不存在，可以设置会查次数，如果指定次数内还是未查到消息，则回滚，否则返回未知，rocketmq会按一定的频率回查事务，当然回查次数也有限制，默认为5次，可配置。</p>
+</div>
+
+			<script src="https://my.openwrite.cn/js/readmore.js" type="text/javascript"></script>
+			<script>
+			var isMobile = navigator.userAgent.match(/(phone|pad|pod|iPhone|iPod|ios|iPad|Android|Mobile|BlackBerry|IEMobile|MQQBrowser|JUC|Fennec|wOSBrowser|BrowserNG|WebOS|Symbian|Windows Phone)/i);
+			if (!isMobile) {
+			    var btw = new BTWPlugin();
+			    btw.init({
+			        "id": "vip-container",
+			        "blogId": "18019-1573088808868-542",
+			        "name": "中间件兴趣圈",
+			        "qrcode": "https://img-blog.csdnimg.cn/20190314214003962.jpg",
+			        "keyword": "more"
+			    });
+			}
+			</script>
+		
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://example.com/2020/12/08/RocketMQ%E4%BA%8B%E5%8A%A1%E6%B6%88%E6%81%AF%E5%AE%9E%E6%88%98/" data-id="ckig4lief000nm4rg01ev5509" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/rocketmq/" rel="tag">rocketmq</a></li></ul>
+
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+    <a href="/2020/12/08/%E5%9F%BA%E4%BA%8E%20Flink%20%E5%AE%9E%E7%8E%B0%E8%A7%A3%E5%86%B3%E6%95%B0%E6%8D%AE%E5%BA%93%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8%E4%BB%BB%E5%8A%A1%E6%8B%86%E5%88%86/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Newer</strong>
+      <div class="article-nav-title">
+        
+          基于 Flink 实现解决数据库分库分表任务拆分
+        
+      </div>
+    </a>
+  
+  
+    <a href="/2020/12/08/RocketMQ%E5%AE%9E%E6%88%98%EF%BC%9A%E7%94%9F%E4%BA%A7%E7%8E%AF%E5%A2%83%E4%B8%AD%EF%BC%8CautoCreateTopicEnable%E4%B8%BA%E4%BB%80%E4%B9%88%E4%B8%8D%E8%83%BD%E8%AE%BE%E7%BD%AE%E4%B8%BAtrue/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">RocketMQ实战：生产环境中，autoCreateTopicEnable为什么不能设置为true</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+</section>
+        
+          <aside id="sidebar">
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">分类</h3>
+    <div class="widget">
+      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/kafka-rocketmq/">kafka rocketmq</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/rocketmq/">rocketmq</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/sentinel/">sentinel</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/%E7%A8%8B%E5%BA%8F%E4%BA%BA%E7%94%9F-%E9%80%86%E8%A2%AD-%E8%81%8C%E5%9C%BA%E5%8F%91%E5%B1%95/">程序人生 逆袭 职场发展</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">标签</h3>
+    <div class="widget">
+      <ul class="tag-list" itemprop="keywords"><li class="tag-list-item"><a class="tag-list-link" href="/tags/kafka-rocketmq/" rel="tag">kafka rocketmq</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rocketmq/" rel="tag">rocketmq</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rocketmq-broker-busy-TIMEOUT-CLEAN-QUEUE-PCBUSY-CLEAN-QUEUE/" rel="tag">rocketmq broker busy TIMEOUT_CLEAN_QUEUE PCBUSY_CLEAN_QUEUE</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rocketmq-%E4%B8%BB%E9%A2%98%E6%89%A9%E5%AE%B9-%E5%AE%9E%E6%88%98-%E5%9D%91/" rel="tag">rocketmq 主题扩容 实战 坑</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rocketmq-%E5%A4%9A%E5%89%AF%E6%9C%AC-raft-%E4%B8%BB%E4%BB%8E%E5%88%87%E6%8D%A2/" rel="tag">rocketmq 多副本 raft 主从切换</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rocketmq-%E5%A4%9A%E5%89%AF%E6%9C%AC-raft-%E9%80%89%E4%B8%BB/" rel="tag">rocketmq 多副本 raft 选主</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/sentinel/" rel="tag">sentinel</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E7%A8%8B%E5%BA%8F%E4%BA%BA%E7%94%9F/" rel="tag">程序人生</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">标签云</h3>
+    <div class="widget tagcloud">
+      <a href="/tags/kafka-rocketmq/" style="font-size: 10px;">kafka rocketmq</a> <a href="/tags/rocketmq/" style="font-size: 20px;">rocketmq</a> <a href="/tags/rocketmq-broker-busy-TIMEOUT-CLEAN-QUEUE-PCBUSY-CLEAN-QUEUE/" style="font-size: 10px;">rocketmq broker busy TIMEOUT_CLEAN_QUEUE PCBUSY_CLEAN_QUEUE</a> <a href="/tags/rocketmq-%E4%B8%BB%E9%A2%98%E6%89%A9%E5%AE%B9-%E5%AE%9E%E6%88%98-%E5%9D%91/" style="font-size: 10px;">rocketmq 主题扩容 实战 坑</a> <a href="/tags/rocketmq-%E5%A4%9A%E5%89%AF%E6%9C%AC-raft-%E4%B8%BB%E4%BB%8E%E5%88%87%E6%8D%A2/" style="font-size: 10px;">rocketmq 多副本 raft 主从切换</a> <a href="/tags/rocketmq-%E5%A4%9A%E5%89%AF%E6%9C%AC-raft-%E9%80%89%E4%B8%BB/" style="font-size: 10px;">rocketmq 多副本 raft 选主</a> <a href="/tags/sentinel/" style="font-size: 15px;">sentinel</a> <a href="/tags/%E7%A8%8B%E5%BA%8F%E4%BA%BA%E7%94%9F/" style="font-size: 10px;">程序人生</a>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">归档</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/12/">十二月 2020</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">最新文章</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2020/12/08/%E7%BB%93%E5%90%88%20Sentinel%20%E4%B8%93%E6%A0%8F%E8%B0%88%E8%B0%88%E6%88%91%E7%9A%84%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB%E6%8A%80%E5%B7%A7/">结合 Sentinel 专栏谈谈我的源码阅读技巧</a>
+          </li>
+        
+          <li>
+            <a href="/2020/12/08/Sentinel%20%E7%B3%BB%E7%BB%9F%E8%87%AA%E9%80%82%E5%BA%94%E9%99%90%E6%B5%81%E5%8E%9F%E7%90%86%E5%89%96%E6%9E%90%E4%B8%8E%E5%AE%9E%E6%88%98%E6%8C%87%E5%AF%BC/">Sentinel 系统自适应限流原理剖析与实战指导</a>
+          </li>
+        
+          <li>
+            <a href="/2020/12/08/Sentinel%20Dubbo%20%E9%80%82%E9%85%8D%E5%99%A8%E7%9C%8B%E9%99%90%E6%B5%81%E4%B8%8E%E7%86%94%E6%96%AD(%E5%AE%9E%E6%88%98%E6%80%9D%E8%80%83%E7%AF%87)/">Sentinel Dubbo 适配器看限流与熔断(实战思考篇)</a>
+          </li>
+        
+          <li>
+            <a href="/2020/12/08/Sentinel%20%E9%9B%86%E7%BE%A4%E9%99%90%E6%B5%81%E8%AE%BE%E8%AE%A1%E5%8E%9F%E7%90%86/">Sentinel 集群限流设计原理</a>
+          </li>
+        
+          <li>
+            <a href="/2020/12/08/Sentienl%20%E5%8A%A8%E6%80%81%E6%95%B0%E6%8D%AE%E6%BA%90%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1%E7%90%86%E5%BF%B5%E4%B8%8E%E6%94%B9%E9%80%A0%E5%AE%9E%E8%B7%B5/">Sentienl 动态数据源架构设计理念与改造实践</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2020 中间件兴趣圈<br>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+</nav>
+    
+
+<script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+
+
+  
+<link rel="stylesheet" href="/fancybox/jquery.fancybox.css">
+
+  
+<script src="/fancybox/jquery.fancybox.pack.js"></script>
+
+
+
+
+<script src="/js/script.js"></script>
+
+
+
+
+  </div>
+</body>
+</html>

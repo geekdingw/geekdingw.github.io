@@ -66,14 +66,14 @@
       <div class="outer">
         <section id="main">
   
-    <article id="post-RocketMQ 主题扩分片后遇到的坑" class="article article-type-post" itemscope itemprop="blogPost">
+    <article id="post-结合 Sentinel 专栏谈谈我的源码阅读技巧" class="article article-type-post" itemscope itemprop="blogPost">
   <div class="article-meta">
-    <a href="/2020/12/07/RocketMQ%20%E4%B8%BB%E9%A2%98%E6%89%A9%E5%88%86%E7%89%87%E5%90%8E%E9%81%87%E5%88%B0%E7%9A%84%E5%9D%91/" class="article-date">
-  <time datetime="2020-12-07T15:49:01.000Z" itemprop="datePublished">2020-12-07</time>
+    <a href="/2020/12/08/%E7%BB%93%E5%90%88%20Sentinel%20%E4%B8%93%E6%A0%8F%E8%B0%88%E8%B0%88%E6%88%91%E7%9A%84%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB%E6%8A%80%E5%B7%A7/" class="article-date">
+  <time datetime="2020-12-08T15:05:35.000Z" itemprop="datePublished">2020-12-08</time>
 </a>
     
   <div class="article-category">
-    <a class="article-category-link" href="/categories/rocketmq/">rocketmq</a>
+    <a class="article-category-link" href="/categories/sentinel/">sentinel</a>
   </div>
 
   </div>
@@ -84,7 +84,7 @@
         
   
     <h1 itemprop="name">
-      <a class="article-title" href="/2020/12/07/RocketMQ%20%E4%B8%BB%E9%A2%98%E6%89%A9%E5%88%86%E7%89%87%E5%90%8E%E9%81%87%E5%88%B0%E7%9A%84%E5%9D%91/">RocketMQ 主题扩分片后遇到的坑</a>
+      <a class="article-title" href="/2020/12/08/%E7%BB%93%E5%90%88%20Sentinel%20%E4%B8%93%E6%A0%8F%E8%B0%88%E8%B0%88%E6%88%91%E7%9A%84%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB%E6%8A%80%E5%B7%A7/">结合 Sentinel 专栏谈谈我的源码阅读技巧</a>
     </h1>
   
 
@@ -92,27 +92,53 @@
     
     <div class="article-entry" itemprop="articleBody">
       
-        <p>消息组接到某项目组反馈，topic 在扩容后出现部分队列无法被消费者，导致消息积压，影响线上业务？</p>
-<p>考虑到该问题是发送在真实的线上环境，为了避免泄密，本文先在笔者的虚拟机中来重现问题。<br>@<a href="%E6%9C%AC%E8%8A%82%E7%9B%AE%E5%BD%95">TOC</a></p>
-<h2 id="1、案情回顾"><a href="#1、案情回顾" class="headerlink" title="1、案情回顾"></a>1、案情回顾</h2><h3 id="1-1-集群现状"><a href="#1-1-集群现状" class="headerlink" title="1.1 集群现状"></a>1.1 集群现状</h3><p>集群信息如下：<br><img src="https://img-blog.csdnimg.cn/20190906232935331.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>例如业务主体名 topic_dw_test_by_order_01 的路由信息如图所示：<br><img src="https://img-blog.csdnimg.cn/20190906233008367.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>当前的消费者信息：<br><img src="https://img-blog.csdnimg.cn/20190906233034814.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>broker 的配置信息如下：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">brokerClusterName &#x3D; DefaultCluster</span><br><span class="line">brokerName &#x3D; broker-a</span><br><span class="line">brokerId &#x3D; 0</span><br><span class="line">deleteWhen &#x3D; 04</span><br><span class="line">fileReservedTime &#x3D; 48</span><br><span class="line">brokerRole &#x3D; ASYNC_MASTER</span><br><span class="line">flushDiskType &#x3D; ASYNC_FLUSH</span><br><span class="line">brokerIP1&#x3D;192.168.0.220</span><br><span class="line">brokerIP2-192.168.0.220</span><br><span class="line">namesrvAddr&#x3D;192.168.0.221:9876;192.168.0.220:9876</span><br><span class="line">storePathRootDir&#x3D;&#x2F;opt&#x2F;application&#x2F;rocketmq-all-4.5.2-bin-release&#x2F;store</span><br><span class="line">storePathCommitLog&#x3D;&#x2F;opt&#x2F;application&#x2F;rocketmq-all-4.5.2-bin-release&#x2F;store&#x2F;commitlog</span><br><span class="line">autoCreateTopicEnable&#x3D;false</span><br><span class="line">autoCreateSubscriptionGroup&#x3D;false</span><br></pre></td></tr></table></figure>
-<blockquote>
-<p>备注：公司对 topic、消费组进行了严格的管控，项目组需要使用时需要向运维人员申请，故 broker 集群不允许自动创建主题与自动创建消费组。</p>
+        <blockquote>
+<p>本文行文思路：先抛出源码阅读方法，然后结合Sentinel创作过程谈谈具体是如何运用这些技巧，最后解答几个源码阅读的误区。</p>
 </blockquote>
-<p>由于该业务量稳步提升，项目组觉得该主题的队列数太少，不利于增加消费者来提高其消费能力，故向运维人员提出增加队列的需求。</p>
-<h3 id="1-2、RocketMQ-在线扩容队列"><a href="#1-2、RocketMQ-在线扩容队列" class="headerlink" title="1.2、RocketMQ 在线扩容队列"></a>1.2、RocketMQ 在线扩容队列</h3><p>运维通过公司自研的消息运维平台，直接以指定集群的方式为 topic 扩容，该运维平台底层其实使用了RocketMQ 提供的 updateTopic 命令，其命令说明如下：</p>
+<p>Sentinel 系列共包含15篇文章，主要以源码分析为手段，图文并茂的方式对 Sentinel 的架构设计理念、核心实现要点进行了一一剖析，并加以实战分析与思考。</p>
+<p><strong>很多朋友都在询我是如何阅读源码的。对此可归纳为如下几个要点，然后结合 Sentienl 源码分析专栏对各个要点进行拆解，对源码阅读方法进行一次“实战”。</strong></p>
+<ul>
+<li>阅读官方文档，从全局了解待学习框架能解决什么样的问题，整体架构设计与思想是什么，主要包含哪些要点。</li>
+<li>从官方提供的 Demo 程序开始，学习基本的使用方法，进一步加深其理解，并伺机寻找入口（突破口）。</li>
+<li>寻找突破口，逐一突破，先主干再旁支，适度分解，各个击破。</li>
+</ul>
+<p>接下来将展示我是如何使用这套方法论来学习 Sentinel 的。</p>
+<p>在准备深入学习 Sentinel 之前，首先认真看了一遍 Sentinel 的官方文档，从而形成了对 Sentinel 的基本认识，我们可以从官方文档了解到 Sentinel 主要涉及的核心内容，正如下图所示：<br><img src="https://img-blog.csdnimg.cn/2020053015083815.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述">这些内容可以简单的当成一个学习的提纲，可以从里面挑选自己感兴趣的进行重点学习。</p>
+<p>在看完官方文档后，我就踏上创作 Sentinel 系列的征途。</p>
+<blockquote>
+<p>本文不会再详细介绍每一个知识点的细节，有关各个知识点的具体讲解，大家可以点击感兴趣的链接中进行深入研究，本文主要是点到为止，重在介绍笔者是如何学习源码的。</p>
+</blockquote>
+<p>1、<a target="_blank" rel="noopener" href="https://blog.csdn.net/prestigeding/article/details/103544443">Alibaba Sentinel 限流与熔断初探</a><br>该文章主要从如下几个点进行展开：</p>
+<ul>
+<li>Sentinel 是什么 ？主要能解决什么问题？</li>
+<li>限流与熔断的使用场景</li>
+<li>Sentinel 源码结构</li>
+<li>在 IntelliJ IDEA 中运行 Sentine Demo</li>
+</ul>
+<p>其实第三点并不是特别必须，不过要得出这些结论也并不难，因为对 Sentinel 有了全局的认识后并根据各个模块的命名很容易能得出该模块的作用。这里第四点非常关键，通常一个优秀的开源框架都会提供完备的演示 Demo，大家可以看到 Sentinel 的演示 demo 非常丰富，在本文中我特意选择了 Dubbo 来做示例，主要是我们公司大量使用 dubbo 来实现公司的微服务，这样会更加贴近实战，更有利于寻找突破口。</p>
+<p>通过跑通 Demo 的主要目的有三个：</p>
+<ul>
+<li>通过运行 Demo，了解框架的基本使用方法。</li>
+<li>搭建一个可 Debug 的环境，为后续看不懂代码的情况下进行调试，根据运行时数据，可加快代码的理解速度，但千万不要一开始就 debug。</li>
+<li>寻找源码阅读的入口。</li>
+</ul>
+<p>2、<a target="_blank" rel="noopener" href="https://blog.csdn.net/prestigeding/article/details/103654590">源码分析 Sentinel 之 Dubbo 适配原理</a><br>紧跟第一篇文章，既然使用的是 Dubbo 作为其示例代码，自然而然的思考 Sentinel 是如何做到对 Dubbo 的适配并对业务无侵入性。</p>
+<p>通过该篇文章的学习我们了解到可以通过 Dubbo 的扩展机制实现对 Dubbo 的适配，在 Dubbo Filter 中我们能看到了与 Sentinel 相关的核心 API SphU.entry，从而找到深入学习 Sentinel 的核心入口，也就是后续文章会通过对该方法的研究，从而打开进入 Sentinel 内核世界的大门。</p>
+<blockquote>
+<p>备注：在阅读这篇文章的时候，我觉得 Dubbo 的适配感觉非常简单，但随着我对这个系列的深入学习，发现了该方法没有那么简单，当时很多点都没有理解到位，这个在后续会有重点阐述，这也是不断学习、不断思考带来的好处。</p>
+</blockquote>
         
           <p class="article-more-link">
-            <a href="/2020/12/07/RocketMQ%20%E4%B8%BB%E9%A2%98%E6%89%A9%E5%88%86%E7%89%87%E5%90%8E%E9%81%87%E5%88%B0%E7%9A%84%E5%9D%91/#more">Read More</a>
+            <a href="/2020/12/08/%E7%BB%93%E5%90%88%20Sentinel%20%E4%B8%93%E6%A0%8F%E8%B0%88%E8%B0%88%E6%88%91%E7%9A%84%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB%E6%8A%80%E5%B7%A7/#more">Read More</a>
           </p>
         
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://example.com/2020/12/07/RocketMQ%20%E4%B8%BB%E9%A2%98%E6%89%A9%E5%88%86%E7%89%87%E5%90%8E%E9%81%87%E5%88%B0%E7%9A%84%E5%9D%91/" data-id="ckieqedx4000aukrg4atudota" class="article-share-link">Share</a>
+      <a data-url="http://example.com/2020/12/08/%E7%BB%93%E5%90%88%20Sentinel%20%E4%B8%93%E6%A0%8F%E8%B0%88%E8%B0%88%E6%88%91%E7%9A%84%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB%E6%8A%80%E5%B7%A7/" data-id="ckig4liff0030m4rggehzcd7v" class="article-share-link">Share</a>
       
       
-  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/rocketmq-%E4%B8%BB%E9%A2%98%E6%89%A9%E5%AE%B9-%E5%AE%9E%E6%88%98-%E5%9D%91/" rel="tag">rocketmq 主题扩容 实战 坑</a></li></ul>
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/sentinel/" rel="tag">sentinel</a></li></ul>
 
     </footer>
   </div>
@@ -121,14 +147,14 @@
 
 
   
-    <article id="post-源码分析 RocketMQ DLedger 多副本存储实现" class="article article-type-post" itemscope itemprop="blogPost">
+    <article id="post-Sentinel 系统自适应限流原理剖析与实战指导" class="article article-type-post" itemscope itemprop="blogPost">
   <div class="article-meta">
-    <a href="/2020/12/07/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90%20RocketMQ%20DLedger%20%E5%A4%9A%E5%89%AF%E6%9C%AC%E5%AD%98%E5%82%A8%E5%AE%9E%E7%8E%B0/" class="article-date">
-  <time datetime="2020-12-07T15:47:01.000Z" itemprop="datePublished">2020-12-07</time>
+    <a href="/2020/12/08/Sentinel%20%E7%B3%BB%E7%BB%9F%E8%87%AA%E9%80%82%E5%BA%94%E9%99%90%E6%B5%81%E5%8E%9F%E7%90%86%E5%89%96%E6%9E%90%E4%B8%8E%E5%AE%9E%E6%88%98%E6%8C%87%E5%AF%BC/" class="article-date">
+  <time datetime="2020-12-08T15:03:35.000Z" itemprop="datePublished">2020-12-08</time>
 </a>
     
   <div class="article-category">
-    <a class="article-category-link" href="/categories/rocketmq/">rocketmq</a>
+    <a class="article-category-link" href="/categories/sentinel/">sentinel</a>
   </div>
 
   </div>
@@ -139,7 +165,7 @@
         
   
     <h1 itemprop="name">
-      <a class="article-title" href="/2020/12/07/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90%20RocketMQ%20DLedger%20%E5%A4%9A%E5%89%AF%E6%9C%AC%E5%AD%98%E5%82%A8%E5%AE%9E%E7%8E%B0/">源码分析 RocketMQ DLedger 多副本存储实现</a>
+      <a class="article-title" href="/2020/12/08/Sentinel%20%E7%B3%BB%E7%BB%9F%E8%87%AA%E9%80%82%E5%BA%94%E9%99%90%E6%B5%81%E5%8E%9F%E7%90%86%E5%89%96%E6%9E%90%E4%B8%8E%E5%AE%9E%E6%88%98%E6%8C%87%E5%AF%BC/">Sentinel 系统自适应限流原理剖析与实战指导</a>
     </h1>
   
 
@@ -147,59 +173,39 @@
     
     <div class="article-entry" itemprop="articleBody">
       
-        <p>RocketMQ DLedger 的存储实现思路与 RocketMQ 的存储实现思路相似，本文就不再从源码角度详细剖析其实现，只是点出其实现关键点。我们不妨简单回顾一下 CommitLog 文件、ConsumeQueue 文件设计思想。</p>
-<p>其文件组成形式如下：<br><img src="https://img-blog.csdnimg.cn/20190831215052708.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>正如上图所示，多个 commitlog 文件组成一个逻辑上的连续文件，使用 MappedFileQueue 表示，单个 commitlog 文件使用 MappedFile 表示。</p>
-<blockquote>
-<p>温馨提示：如果想详细了解 RocketMQ 关于存储部分的讲解，可以关注笔者的《RocketMQ 技术内幕》一书。</p>
-</blockquote>
-<h2 id="1、DLedger-存储相关类图"><a href="#1、DLedger-存储相关类图" class="headerlink" title="1、DLedger 存储相关类图"></a>1、DLedger 存储相关类图</h2><p><img src="https://img-blog.csdnimg.cn/20190831215151796.jpg?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"></p>
-<h3 id="1-1-DLedgerStore"><a href="#1-1-DLedgerStore" class="headerlink" title="1.1 DLedgerStore"></a>1.1 DLedgerStore</h3><p>存储抽象类，定义如下核心方法：</p>
+        <p>看到标题中的几个关键字<strong>系统自适应</strong>限流是不是觉得高大上，这个自适应又是如何实现的呢？</p>
+<h2 id="1、Sentinel-系统自适应概述"><a href="#1、Sentinel-系统自适应概述" class="headerlink" title="1、Sentinel 系统自适应概述"></a>1、Sentinel 系统自适应概述</h2><p>从官方了解到 Sentienl 系统自适应限流是一个全局的概念，对应用入口流量统一进行统一控制，结合应用的机器负载、CPU 使用率，总体平均响应时间、入口 QPS 和并发线程数等几个维度的监控指标从而决定是否调用进行限流操作。为了有一个直观的感受，我们可以从官方的运维平台看看其系统自适应限流的操作界面：<br><img src="https://img-blog.csdnimg.cn/2020052413411896.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br>RT、线程数、入口QPS这三个指标是可以通过采集调用信息进行统计计算的，那系统LOAD、CPU使用率是如何获取的呢？大家可以带着这个问题进入本文的学习中来。</p>
+<p>在详细分析系统自适应实现原理之前我们先来思考一下 Sentinel 引入该机制的目的。</p>
+<p>官方文档针对这个问题有过仔细阐述，我们先来看看官方文档对其阐述。</p>
+<p>引入系统自适应限流的主要的目的有如下两个：</p>
 <ul>
-<li>public abstract DLedgerEntry appendAsLeader(DLedgerEntry entry)<br>向主节点追加日志(数据)。</li>
-<li>public abstract DLedgerEntry appendAsFollower(DLedgerEntry entry, long leaderTerm, String leaderId)<br>向从节点同步日志。</li>
-<li>public abstract DLedgerEntry get(Long index)<br>根据日志下标查找日志。</li>
-<li>public abstract long getCommittedIndex()<br>获取已提交的下标。</li>
-<li>public abstract long getLedgerEndTerm()<br>获取 Leader 当前最大的投票轮次。</li>
-<li>public abstract long getLedgerEndIndex()<br>获取 Leader 下一条日志写入的下标（最新日志的下标）。</li>
-<li>public abstract long getLedgerBeginIndex()<br>获取 Leader 第一条消息的下标。</li>
-<li>public void updateCommittedIndex(long term, long committedIndex)<br>更新commitedIndex的值，为空实现，由具体的存储子类实现。</li>
-<li>protected void updateLedgerEndIndexAndTerm()<br>更新 Leader 维护的 ledgerEndIndex 和 ledgerEndTerm 。</li>
-<li>public void flush()<br>刷写，空方法，由具体子类实现。</li>
-<li>public long truncate(DLedgerEntry entry, long leaderTerm, String leaderId)<br>删除日志，空方法，由具体子类实现。</li>
-<li>public void startup()<br>启动存储管理器，空方法，由具体子类实现。</li>
-<li>public void shutdown()<br>关闭存储管理器，空方法，由具体子类实现。</li>
+<li>保证系统不被拖垮</li>
+<li>在系统稳定的前提下保证系统的吞吐量。</li>
 </ul>
-<h3 id="1-2-DLedgerMemoryStore"><a href="#1-2-DLedgerMemoryStore" class="headerlink" title="1.2 DLedgerMemoryStore"></a>1.2 DLedgerMemoryStore</h3><p>Dledger 基于内存实现的日志存储。</p>
-<h3 id="1-3-DLedgerMmapFileStore"><a href="#1-3-DLedgerMmapFileStore" class="headerlink" title="1.3  DLedgerMmapFileStore"></a>1.3  DLedgerMmapFileStore</h3><p>基于文件内存映射机制的存储实现。其核心属性如下：</p>
+<p>目前我们接触的限流的防护思路都是设定一个指标（阔值），例如系统的负载 load 超过某个阔值后就阻止或减少流量的继续进入，当系统负载降低到某一水平后则恢复流量的进入。通常都是被动的，其实际效果取决与阔值设置是否合理，但往往设置合理不是一件容易的事情。</p>
+<p>那 Sentinel 提供的系统自适应是可以将设定的规则作为一个保护因子，而允许通过的流量由处理请求的能力来决定，即根据请求的响应时间、当前系统正在处理的请求速率来决定。</p>
+<p>那 Sentinel 是如何实现的呢？接下来用源码的手段来揭晓其实现原理。</p>
+<h2 id="2、系统自适应限流原理"><a href="#2、系统自适应限流原理" class="headerlink" title="2、系统自适应限流原理"></a>2、系统自适应限流原理</h2><p>Sentinel 执行系统限流的核心入口类为 SystemSlot，该类实现简单，如下图所示：<br><img src="https://img-blog.csdnimg.cn/20200524134158678.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="SystemRuleManager#checkSystem"><br>从这里可以看出实现的关键在于SystemRuleManager，这里是直接调用 checkSystem 进行是否触发其限流，那我们接下来重点跟踪一下该方法的实现。</p>
+<h4 id="2-1-自适应限流检测流程"><a href="#2-1-自适应限流检测流程" class="headerlink" title="2.1 自适应限流检测流程"></a>2.1 自适应限流检测流程</h4><p>系统自适应限流检测具体由 SystemRuleManager 的 checkSystem 方法实现，接下来详细剖析其实现细节。<br><img src="https://img-blog.csdnimg.cn/2020052413421556.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br>Step1：验证相关资源，主要包含三层验证：</p>
 <ul>
-<li>long ledgerBeginIndex =  -1<br>日志的起始索引，默认为 -1。<br>l- ong ledgerEndIndex = -1<br>下一条日志下标，默认为 -1。</li>
-<li>long committedIndex = -1<br>已提交的日志索引。</li>
-<li>long ledgerEndTerm<br>当前最大的投票轮次。</li>
-<li>DLedgerConfig dLedgerConfig<br>DLedger 的配置信息。</li>
-<li>MemberState memberState<br>状态机。</li>
-<li>MmapFileList dataFileList<br>日志文件(数据文件)的内存映射Queue。</li>
-<li>MmapFileList indexFileList<br>索引文件的内存映射文件集合。（可对标 RocketMQ MappedFIleQueue )。</li>
-<li>ThreadLocal&lt; ByteBuffer&gt; localIndexBuffer<br>本地线程变量，用来缓存索引ByteBuffer。</li>
-<li>ThreadLocal&lt; ByteBuffer&gt; localEntryBuffer<br>本地线程变量，用来缓存数据索引ByteBuffer。</li>
-<li>FlushDataService flushDataService<br>数据文件刷盘线程。</li>
-<li>CleanSpaceService cleanSpaceService<br>清除过期日志文件线程。</li>
-<li>boolean isDiskFull = false<br>磁盘是否已满。</li>
-<li>long lastCheckPointTimeMs<br>上一次检测点（时间戳）。</li>
-<li>AtomicBoolean hasLoaded<br>是否已经加载，主要用来避免重复加载(初始化)日志文件。</li>
-<li>AtomicBoolean hasRecovered<br> ​    是否已恢复。</li>
+<li>如果资源名称为空，则直接跳过，这个是容错机制。</li>
+<li>如果系统自适应开关为打开，直接放行，该开关初始化时为 false，在加载到一条系统自适应配置规则时该状态会设置为 true，具体在 loadSystemConf 中。</li>
+<li>如果资源的类型不是入口流量(EntryType.IN),则直接放行。<br><img src="https://img-blog.csdnimg.cn/20200524134428924.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br>Step2：从QPS为维度验证是否需要被限流，其实现关键点如下：</li>
+<li>当前的qps，如果 ENTRY_NODE 为空则返回0，否则返回该统计节点的成功 qps，那 ENTRY_NODE 统计节点是“何许人也”，原来是 Sentinel 特定定义了一个资源，其名称为__total_inbound_traffic__，用来采集所有入口调用的信息，当资源进入类型为 ENTRY_TYPE_IN 时，会自动采集信息，其具体统计信息在 StatisticSlot 的 entry 方法中被调用，其截图如下：<br><img src="https://img-blog.csdnimg.cn/20200524134513299.png#pic_center" alt="在这里插入图片描述"></li>
+<li>如果当前调用的 QPS 大于设定的QPS，即触发限流，那这个 qps 又是在什么时候被设置的呢？也是在加载系统限流规则时被设置，如果一个应用同一个限流点（LOAD、QPS)设置了多条规则，最小值生效。<br><img src="https://img-blog.csdnimg.cn/20200524134545735.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br>Step3：关于线程数、响应时间限流模式与QPS类似，就不再重复介绍。<br><img src="https://img-blog.csdnimg.cn/20200524134621142.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br>Step4：如果当前系统的负载超过了设定的阔值的处理逻辑，这里就是自适应的核心所在，并不是超过负载就限流，而是需要根据当前系统的请求处理能力进行综合判断，具体逻辑在 checkBbr 方法中实现。关于如何获得系统负载与 checkBbr 方法稍后会详细介绍。<br><img src="https://img-blog.csdnimg.cn/20200524134709868.png#pic_center" alt="在这里插入图片描述"><br>Step5：如果当前CPU的负载超过了设置的阔值，触发限流，那在JAVA中是如何获取CPU的使用率的呢？稍后详细介绍。</li>
 </ul>
         
           <p class="article-more-link">
-            <a href="/2020/12/07/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90%20RocketMQ%20DLedger%20%E5%A4%9A%E5%89%AF%E6%9C%AC%E5%AD%98%E5%82%A8%E5%AE%9E%E7%8E%B0/#more">Read More</a>
+            <a href="/2020/12/08/Sentinel%20%E7%B3%BB%E7%BB%9F%E8%87%AA%E9%80%82%E5%BA%94%E9%99%90%E6%B5%81%E5%8E%9F%E7%90%86%E5%89%96%E6%9E%90%E4%B8%8E%E5%AE%9E%E6%88%98%E6%8C%87%E5%AF%BC/#more">Read More</a>
           </p>
         
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://example.com/2020/12/07/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90%20RocketMQ%20DLedger%20%E5%A4%9A%E5%89%AF%E6%9C%AC%E5%AD%98%E5%82%A8%E5%AE%9E%E7%8E%B0/" data-id="ckieqedxf000vukrg5343ca85" class="article-share-link">Share</a>
+      <a data-url="http://example.com/2020/12/08/Sentinel%20%E7%B3%BB%E7%BB%9F%E8%87%AA%E9%80%82%E5%BA%94%E9%99%90%E6%B5%81%E5%8E%9F%E7%90%86%E5%89%96%E6%9E%90%E4%B8%8E%E5%AE%9E%E6%88%98%E6%8C%87%E5%AF%BC/" data-id="ckig4lieu001mm4rg6hqge5jj" class="article-share-link">Share</a>
       
       
-  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/rocketmq/" rel="tag">rocketmq</a></li></ul>
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/sentinel/" rel="tag">sentinel</a></li></ul>
 
     </footer>
   </div>
@@ -208,14 +214,14 @@
 
 
   
-    <article id="post-源码分析 RocketMQ DLedger 多副本之 Leader 选主" class="article article-type-post" itemscope itemprop="blogPost">
+    <article id="post-Sentinel Dubbo 适配器看限流与熔断(实战思考篇)" class="article article-type-post" itemscope itemprop="blogPost">
   <div class="article-meta">
-    <a href="/2020/12/07/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90%20RocketMQ%20DLedger%20%E5%A4%9A%E5%89%AF%E6%9C%AC%E4%B9%8B%20Leader%20%E9%80%89%E4%B8%BB/" class="article-date">
-  <time datetime="2020-12-07T15:43:01.000Z" itemprop="datePublished">2020-12-07</time>
+    <a href="/2020/12/08/Sentinel%20Dubbo%20%E9%80%82%E9%85%8D%E5%99%A8%E7%9C%8B%E9%99%90%E6%B5%81%E4%B8%8E%E7%86%94%E6%96%AD(%E5%AE%9E%E6%88%98%E6%80%9D%E8%80%83%E7%AF%87)/" class="article-date">
+  <time datetime="2020-12-08T15:01:35.000Z" itemprop="datePublished">2020-12-08</time>
 </a>
     
   <div class="article-category">
-    <a class="article-category-link" href="/categories/rocketmq/">rocketmq</a>
+    <a class="article-category-link" href="/categories/sentinel/">sentinel</a>
   </div>
 
   </div>
@@ -226,7 +232,7 @@
         
   
     <h1 itemprop="name">
-      <a class="article-title" href="/2020/12/07/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90%20RocketMQ%20DLedger%20%E5%A4%9A%E5%89%AF%E6%9C%AC%E4%B9%8B%20Leader%20%E9%80%89%E4%B8%BB/">源码分析 RocketMQ DLedger 多副本之 Leader 选主</a>
+      <a class="article-title" href="/2020/12/08/Sentinel%20Dubbo%20%E9%80%82%E9%85%8D%E5%99%A8%E7%9C%8B%E9%99%90%E6%B5%81%E4%B8%8E%E7%86%94%E6%96%AD(%E5%AE%9E%E6%88%98%E6%80%9D%E8%80%83%E7%AF%87)/">Sentinel Dubbo 适配器看限流与熔断(实战思考篇)</a>
     </h1>
   
 
@@ -234,51 +240,358 @@
     
     <div class="article-entry" itemprop="articleBody">
       
-        <p>本文将按照<a target="_blank" rel="noopener" href="https://blog.csdn.net/prestigeding/article/details/99101912">《RocketMQ 多副本前置篇：初探raft协议》</a>的思路来学习RocketMQ选主逻辑。首先先回顾一下关于Leader的一些思考：</p>
-<ol>
-<li>节点状态<br>需要引入3种节点状态：Follower(跟随者)、Candidate(候选者)，该状态下的节点会发起投票请求，Leader(主节点)。</li>
-<li>选举计时器<br>Follower、Candidate两个状态时，需要维护一个定时器，每次定时时间从150ms-300ms直接进行随机，即每个节点的定时过期不一样，Follower状态时，定时器到点后，触发一轮投票。节点在收到投票请求、Leader的心跳请求并作出响应后，需要重置定时器。</li>
-<li>投票轮次Team<br>Candidate状态的节点，每发起一轮投票，Team加一。</li>
-<li>投票机制<br>每一轮一个节点只能为一个节点投赞成票，例如节点A中维护的轮次为3，并且已经为节点B投了赞成票，如果收到其他节点，投票轮次为3，则会投反对票，如果收到轮次为4的节点，是又可以投赞成票的。</li>
-<li>成为Leader的条件<br>必须得到集群中初始数量的大多数，例如如果集群中有3台，则必须得到两票，如果其中一台服务器宕机，剩下的两个节点，还能进行选主吗？答案是可以的，因为可以得到2票，超过初始集群中3的一半，所以通常集群中的机器各位尽量为奇数，因为4台的可用性与3台的一样。</li>
-</ol>
+        <p>本文是源码分析 Sentinel 系列的第十三篇，已经非常详细的介绍了 Sentinel 的架构体系、滑动窗口、调用链上下文、限流、熔断的实现原理，相信各位读者朋友们对Sentinel有一个较为体系化的认知了，这个时候是该开始如何在生产环境进行运用了。</p>
 <blockquote>
-<p>温馨提示：本文是从源码的角度分析 DLedger 选主实现原理，可能比较鼓噪，文末给出了选主流程图。</p>
+<p>本文将以 Dubbo 服务调用为案例剖析场景，尝试对官方提供的 Dubbo 适配器做一个研究学习并对此做出自己的评价，抛出我的观点，期待与大家共同探讨，交流。</p>
 </blockquote>
+<p>一个 Dubbo RPC 的简易调用过程如下图所示：<br><img src="https://img-blog.csdnimg.cn/20200510202405377.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br>消费者会维护一个服务提供者列表，然后再发一起一个服务调用的时候会首先根据负载均衡算法从中选择一个服务提供者，然后发起 RPC 调用，在请求真实发送之前会依次通过客户端设置的过滤器链(Filter)，然后经过网络传输到到达服务提供者，并执行完服务提供者端的 Filter，最后进入到业务逻辑执行并返回结果。</p>
+<p>Sentinel 与 Dubbo 的整合就是利用了 Dubbo 的 Filter 机制，为 Dubbo 提供对应的 过滤器，无缝实现限流、熔断等功能，做到业务无感知，即业务代码无需使用 Sentinel 相关的 API。</p>
+<p>接下来请大家带着在 Dubbo 中如何使用限流、熔断方面来看官方给出的解决方案。</p>
+<blockquote>
+<p>思考题：在看接下来的内容之前，建议大家稍作停顿，思考一下，在服务调用模型中，限流、熔断通常在哪个端做比较合适。</p>
+</blockquote>
+<h2 id="1、从消费端来看限流与熔断"><a href="#1、从消费端来看限流与熔断" class="headerlink" title="1、从消费端来看限流与熔断"></a>1、从消费端来看限流与熔断</h2><p><img src="https://img-blog.csdnimg.cn/20200510202451273.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述">从消费端的视角，虽然提供了服务端的负载均衡，但从客户端不管是向192.168.1.3还是向192.168.1.4发送RPC调用，都会经过同一个 Sentinel Dubbo Filter。这个看似简单明了，但这是我们接下来思考的最基本最核心的点。</p>
+<p>我们先来看看官方提供的 Dubbo 适配器的核心实现：<br>SentinelDubboConsumerFilter#invoke<br><img src="https://img-blog.csdnimg.cn/20200510202524603.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br>消费端这边使用到了两个资源名称，一个是接口级别，例如 com.demo.service.UserService，另外一是方法级别，例如 com.demo.servcie.UserServce#findUser(Ljava.lang.String)。<br>定义了两个资源后，Sentinel 会使用滑动窗口机制，为上述两个资源收集实时的调用信息，为后续的限流、熔断提供数据依据。</p>
+        
+          <p class="article-more-link">
+            <a href="/2020/12/08/Sentinel%20Dubbo%20%E9%80%82%E9%85%8D%E5%99%A8%E7%9C%8B%E9%99%90%E6%B5%81%E4%B8%8E%E7%86%94%E6%96%AD(%E5%AE%9E%E6%88%98%E6%80%9D%E8%80%83%E7%AF%87)/#more">Read More</a>
+          </p>
+        
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://example.com/2020/12/08/Sentinel%20Dubbo%20%E9%80%82%E9%85%8D%E5%99%A8%E7%9C%8B%E9%99%90%E6%B5%81%E4%B8%8E%E7%86%94%E6%96%AD(%E5%AE%9E%E6%88%98%E6%80%9D%E8%80%83%E7%AF%87)/" data-id="ckig4liet001im4rg9arabpax" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/sentinel/" rel="tag">sentinel</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-Sentinel 集群限流设计原理" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2020/12/08/Sentinel%20%E9%9B%86%E7%BE%A4%E9%99%90%E6%B5%81%E8%AE%BE%E8%AE%A1%E5%8E%9F%E7%90%86/" class="article-date">
+  <time datetime="2020-12-08T15:00:35.000Z" itemprop="datePublished">2020-12-08</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/sentinel/">sentinel</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/2020/12/08/Sentinel%20%E9%9B%86%E7%BE%A4%E9%99%90%E6%B5%81%E8%AE%BE%E8%AE%A1%E5%8E%9F%E7%90%86/">Sentinel 集群限流设计原理</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h2 id="1、集群限流使用场景"><a href="#1、集群限流使用场景" class="headerlink" title="1、集群限流使用场景"></a>1、集群限流使用场景</h2><p>首先一个服务有三个服务提供者，但这三台集群的硬件配置不一样，如图所示：<br><img src="https://img-blog.csdnimg.cn/20200503232733111.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br>为了充分利用硬件的资源，诸如 Dubbo 都提供了基于权重的负载均衡机制，例如可以将8C16G的机器设置的权重是4C8G的两倍，这样充分利用硬件资源，假如现在需要引入 Sentinel 的限流机制，例如为一个 Dubbo 服务设置限流规则，这样由于三台集群分担的流量不均匀，会导致无法重复利用高配机器的资源。</p>
+<p>假设经过压测，机器配置为C48G最高能承受的TPS为 1500，而机器配置为8C16G能承受的TPS为2800，那如果采取单机限流，其阔值只能设置为1500，因为如果超过1500，会将4C8G的机器压垮。</p>
+<p>解决这种办法的方式就是针对整个集群进行限流，即为整个集群设置一个阔值，例如设置限流TPS为6000。</p>
+<h2 id="2、集群限流与单机限流的异同思考"><a href="#2、集群限流与单机限流的异同思考" class="headerlink" title="2、集群限流与单机限流的异同思考"></a>2、集群限流与单机限流的异同思考</h2><p>限流的一个基本作用就是按照限流规则生成访问许可(Token)，然后根据当前实时的调用信息进行判断是否可以获得许可而决定是否放行。</p>
+<p>集群与单机限流在实时调用信息收集方面应该差别不大，都可以基于滑动窗口进行统计信息的收集。</p>
+<p>集群与单机限流的最主要区别在与许可的生成，单机模式的许可直接在本地生成，但集群限流必须有一个统一的 Token 发放机制，以此来协调当前集群内多机调用，从而基于当前“调用总数”进行限流。</p>
+        
+          <p class="article-more-link">
+            <a href="/2020/12/08/Sentinel%20%E9%9B%86%E7%BE%A4%E9%99%90%E6%B5%81%E8%AE%BE%E8%AE%A1%E5%8E%9F%E7%90%86/#more">Read More</a>
+          </p>
+        
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://example.com/2020/12/08/Sentinel%20%E9%9B%86%E7%BE%A4%E9%99%90%E6%B5%81%E8%AE%BE%E8%AE%A1%E5%8E%9F%E7%90%86/" data-id="ckig4liew001tm4rgaf3m3qkp" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/sentinel/" rel="tag">sentinel</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-Sentienl 动态数据源架构设计理念与改造实践" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2020/12/08/Sentienl%20%E5%8A%A8%E6%80%81%E6%95%B0%E6%8D%AE%E6%BA%90%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1%E7%90%86%E5%BF%B5%E4%B8%8E%E6%94%B9%E9%80%A0%E5%AE%9E%E8%B7%B5/" class="article-date">
+  <time datetime="2020-12-08T14:59:35.000Z" itemprop="datePublished">2020-12-08</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/sentinel/">sentinel</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/2020/12/08/Sentienl%20%E5%8A%A8%E6%80%81%E6%95%B0%E6%8D%AE%E6%BA%90%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1%E7%90%86%E5%BF%B5%E4%B8%8E%E6%94%B9%E9%80%A0%E5%AE%9E%E8%B7%B5/">Sentienl 动态数据源架构设计理念与改造实践</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>在介绍集群限流之前需要首先掌握动态数据源的配置方式，本文将根据 Sentinel 官方提供的代码提出整体架构思路，并最终给出实践指导。</p>
+<blockquote>
+<p>温馨提示：本文主要分为动态数据源架构设计理念、从官方示例寻找改造思路、基于SpringBoot改造方案三个部分来详细剖析 Sentienl 动态数据源的改造方案，循序渐进，不仅解决问题本身，更是反映了作者研究一个问题的思路与方法。</p>
+</blockquote>
+<h2 id="1、架构设计理念"><a href="#1、架构设计理念" class="headerlink" title="1、架构设计理念"></a>1、架构设计理念</h2><p>在 Sentinel 中主要有如下几个角色：管理后台、限流熔断规则数据源、应用程序。</p>
+<p>1）管理后台</p>
+<p>管理后台主要用于可视化配置限流规则、熔断规则，其操作界面截图如下：<br><img src="https://img-blog.csdnimg.cn/20200425210307130.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br>2）限流熔断规则数据源</p>
+<p>用于存储限流熔断规则的数据容器，在 Sentinel 中对应动态数据源这个概念，动态数据源包含两层含义：</p>
+<ul>
+<li>数据容器<br>数据容器指的就是存储熔断、限流等规则配置的数据库，例如关系型数据库、Zookeeper等等，在实际生产过程中需要选用支持持久化功能的数据库，否则程序一重启，配置规则就会丢失，显然是不能接受的。</li>
+<li>动态<br>动态二字主要强调的是配置规则的更改能动态及时生效，引入 Sentinel 限流 SDK 的应用程序在不需要重启的情况下动态感知配置规则发生变化并立即生效。Sentinel 目前对 apollo、consul、etcd、nacos、redis、spring-clould-config、zookeeper 等进行了适配支持。</li>
+</ul>
+<p>3）应用程序</p>
+<p>希望通过 Sentinel 提供的限流、熔断功能对应用程序加以保护，需要引用 Sentinel 相关的 SDK，根据采集的调用信息判断当前是否符合限流规则。</p>
+<p>后台管理系统、动态数据源、应用程序的关系如图所示：<br><img src="https://img-blog.csdnimg.cn/20200425210401161.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"></p>
+<h2 id="2、从官方示例寻找改造思路"><a href="#2、从官方示例寻找改造思路" class="headerlink" title="2、从官方示例寻找改造思路"></a>2、从官方示例寻找改造思路</h2><p>从官方的文档中可以明确获悉 sentinel-dashboard 即官方自带的后台管理系统只支持将限流、熔断等限流配置规则存储在内存中，一旦后台管理系统重启，配置的熔断规则将全部丢失，所以在生产实践过程中需要对 sentinel-dashboard 进行一定的改造，引入动态数据源，例如 Zookeeper，对限流等配置进行持久化存储。</p>
+<p>有了上面的架构设计理念为我们的改造提供了方向，那如何具体改造呢？首先我们来看一下官方提供的 Demo 程序。官方提供的示例代码如下图所示：<br><img src="https://img-blog.csdnimg.cn/20200425210450996.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br>接下来我们将以 zookeeper 动态数据源来介绍基于 zookeeper 如何构建 Sentinel 动态数据源。</p>
+        
+          <p class="article-more-link">
+            <a href="/2020/12/08/Sentienl%20%E5%8A%A8%E6%80%81%E6%95%B0%E6%8D%AE%E6%BA%90%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1%E7%90%86%E5%BF%B5%E4%B8%8E%E6%94%B9%E9%80%A0%E5%AE%9E%E8%B7%B5/#more">Read More</a>
+          </p>
+        
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://example.com/2020/12/08/Sentienl%20%E5%8A%A8%E6%80%81%E6%95%B0%E6%8D%AE%E6%BA%90%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1%E7%90%86%E5%BF%B5%E4%B8%8E%E6%94%B9%E9%80%A0%E5%AE%9E%E8%B7%B5/" data-id="ckig4liep001am4rg43ykhh57" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/sentinel/" rel="tag">sentinel</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-源码分析 Sentinel DegradeSlot 熔断实现原理" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2020/12/08/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90%20Sentinel%20DegradeSlot%20%E7%86%94%E6%96%AD%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86/" class="article-date">
+  <time datetime="2020-12-08T14:58:35.000Z" itemprop="datePublished">2020-12-08</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/sentinel/">sentinel</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/2020/12/08/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90%20Sentinel%20DegradeSlot%20%E7%86%94%E6%96%AD%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86/">源码分析 Sentinel DegradeSlot 熔断实现原理</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h2 id="1、DegradeSlot-概述"><a href="#1、DegradeSlot-概述" class="headerlink" title="1、DegradeSlot 概述"></a>1、DegradeSlot 概述</h2><p>Sentinel 中的熔断实现类为 DegradeSlot。DegradeSlot 的类定义如下图所示：<br><img src="https://img-blog.csdnimg.cn/20200412153916327.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br>由此可见，熔断主要实现逻辑定义在 DegradeRuleManager 的 checkDegrade 方法中。<br>DegradeRuleManager#checkDegrade<br><img src="https://img-blog.csdnimg.cn/20200412153949610.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述">代码@1：首先从 degradeRules 熔断规则缓存中获取资源的熔断规则。</p>
+<p>代码@2：遍历熔断规则列表。</p>
+<p>代码@3：调用熔断规则 DegradeRule 的  passCheck，如果该方法返回 false，则表示需要熔断，则抛出 DegradeException 异常。</p>
+<p>即实现熔断的核心逻辑在 DegradeRule 中。</p>
+        
+          <p class="article-more-link">
+            <a href="/2020/12/08/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90%20Sentinel%20DegradeSlot%20%E7%86%94%E6%96%AD%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86/#more">Read More</a>
+          </p>
+        
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://example.com/2020/12/08/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90%20Sentinel%20DegradeSlot%20%E7%86%94%E6%96%AD%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86/" data-id="ckig4lifb002om4rg15h7boq2" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/sentinel/" rel="tag">sentinel</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-Sentienl 流控效果之匀速排队与预热实现原理与实战建议" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2020/12/08/Sentienl%20%E6%B5%81%E6%8E%A7%E6%95%88%E6%9E%9C%E4%B9%8B%E5%8C%80%E9%80%9F%E6%8E%92%E9%98%9F%E4%B8%8E%E9%A2%84%E7%83%AD%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86%E4%B8%8E%E5%AE%9E%E6%88%98%E5%BB%BA%E8%AE%AE/" class="article-date">
+  <time datetime="2020-12-08T14:55:35.000Z" itemprop="datePublished">2020-12-08</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/sentinel/">sentinel</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/2020/12/08/Sentienl%20%E6%B5%81%E6%8E%A7%E6%95%88%E6%9E%9C%E4%B9%8B%E5%8C%80%E9%80%9F%E6%8E%92%E9%98%9F%E4%B8%8E%E9%A2%84%E7%83%AD%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86%E4%B8%8E%E5%AE%9E%E6%88%98%E5%BB%BA%E8%AE%AE/">Sentienl 流控效果之匀速排队与预热实现原理与实战建议</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <blockquote>
+<p>温馨提示，如果大家对源码不感兴趣，可以直接跳到本文的总结部分，了解一下预热实现原理的一些实战建议。</p>
+<p>首先先回顾一下 Sentinel 流控效果相关的类图：<br><img src="https://img-blog.csdnimg.cn/20200406112941248.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br>DefaultController 快速失败已经在上文详细介绍过，本文将详细介绍其他两种策略的实现原理。</p>
+</blockquote>
+<p>首先我们应该知道，一条流控规则(FlowRule)对应一个 TrafficShapingController 对象。</p>
+<h2 id="1、RateLimiterController"><a href="#1、RateLimiterController" class="headerlink" title="1、RateLimiterController"></a>1、RateLimiterController</h2><p>匀速排队策略实现类，首先我们先来介绍一下该类的几个成员变量的含义：</p>
+<ul>
+<li>int maxQueueingTimeMs<br>排队等待的最大超时时间，如果等待超过该时间，将会抛出 FlowException。</li>
+<li>double count<br>流控规则中的阔值，即令牌的总个数，以QPS为例，如果该值设置为1000，则表示1s可并发的请求数量。</li>
+<li>AtomicLong latestPassedTime<br>上一次成功通过的时间戳。</li>
+</ul>
+<p>接下来我们详细来看一下其算法的实现：<br>RateLimiterController#canPass</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">boolean</span> <span class="title">canPass</span><span class="params">(Node node, <span class="keyword">int</span> acquireCount, <span class="keyword">boolean</span> prioritized)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (acquireCount &lt;= <span class="number">0</span>) &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">true</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (count &lt;= <span class="number">0</span>) &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">false</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">long</span> currentTime = TimeUtil.currentTimeMillis();</span><br><span class="line">    <span class="keyword">long</span> costTime = Math.round(<span class="number">1.0</span> * (acquireCount) / count * <span class="number">1000</span>);    <span class="comment">// @1</span></span><br><span class="line">    <span class="keyword">long</span> expectedTime = costTime + latestPassedTime.get();                <span class="comment">// @2</span></span><br><span class="line">    <span class="keyword">if</span> (expectedTime &lt;= currentTime) &#123;                                                    <span class="comment">// @3</span></span><br><span class="line">        latestPassedTime.set(currentTime);</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">true</span>;</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="keyword">long</span> waitTime = costTime + latestPassedTime.get() - TimeUtil.currentTimeMillis();   <span class="comment">// @4</span></span><br><span class="line">        <span class="keyword">if</span> (waitTime &gt; maxQueueingTimeMs) &#123;                                                                        <span class="comment">// @5</span></span><br><span class="line">            <span class="keyword">return</span> <span class="keyword">false</span>;</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            <span class="keyword">long</span> oldTime = latestPassedTime.addAndGet(costTime);                                     <span class="comment">// @6</span></span><br><span class="line">            <span class="keyword">try</span> &#123;</span><br><span class="line">                waitTime = oldTime - TimeUtil.currentTimeMillis();                                            </span><br><span class="line">                <span class="keyword">if</span> (waitTime &gt; maxQueueingTimeMs) &#123;</span><br><span class="line">                    latestPassedTime.addAndGet(-costTime);</span><br><span class="line">                    <span class="keyword">return</span> <span class="keyword">false</span>;</span><br><span class="line">                &#125;</span><br><span class="line">		<span class="keyword">if</span> (waitTime &gt; <span class="number">0</span>) &#123;                                                     <span class="comment">// @7</span></span><br><span class="line">                    Thread.sleep(waitTime);</span><br><span class="line">                &#125;</span><br><span class="line">                <span class="keyword">return</span> <span class="keyword">true</span>;</span><br><span class="line">            &#125; <span class="keyword">catch</span> (InterruptedException e) &#123;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">false</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>代码@1：首先算出每一个请求之间最小的间隔，时间单位为毫秒。例如 cout 设置为 1000,表示一秒可以通过 1000个请求，匀速排队，那每个请求的间隔为 1 / 1000(s)，乘以1000将时间单位转换为毫秒，如果一次需要2个令牌，则其间隔时间为2ms，用 costTime 表示。</p>
+<p>代码@2：计算下一个请求的期望达到时间，等于上一次通过的时间戳 + costTime ，用 expectedTime 表示。</p>
+<p>代码@3：如果 expectedTime 小于等于当前时间，说明在期望的时间没有请求到达，说明没有按照期望消耗令牌，故本次请求直接通过，并更新上次通过的时间为当前时间。</p>
+<p>代码@4：如果 expectedTime 大于当前时间，说明还没到令牌发放时间，当前请求需要等待。首先先计算需要等待是时间，用 waitTime 表示。</p>
+<p>代码@5：如果计算的需要等待的时间大于允许排队的时间，则返回 false，即本次请求将被限流，返回 FlowException。</p>
+<p>代码@6：进入排队，默认是本次请求通过，故先将上一次通过流量的时间戳增加 costTime，然后直接调用 Thread 的 sleep 方法，将当前请求先阻塞一会，然后返回 true 表示请求通过。</p>
+<blockquote>
+<p>匀速排队模式的实现的关键：主要是记录上一次请求通过的时间戳，然后根据流控规则，判断两次请求之间最小的间隔，并加入一个排队时间。</p>
+</blockquote>
+<h2 id="2、WarmUpController"><a href="#2、WarmUpController" class="headerlink" title="2、WarmUpController"></a>2、WarmUpController</h2><p>预热策略的实现，首先我们先来介绍一下该类的几个成员变量的含义：</p>
+<ul>
+<li>double count<br>流控规则设定的阔值。</li>
+<li>int coldFactor<br>冷却因子。</li>
+<li>int warningToken<br>告警token，对应 Guava 中的 RateLimiter 中的 </li>
+<li>int maxToken<br>double slope<br>AtomicLong storedTokens<br>AtomicLong lastFilledTime</li>
+</ul>
+<h4 id="2-1-WarmUpController-构造函数"><a href="#2-1-WarmUpController-构造函数" class="headerlink" title="2.1 WarmUpController 构造函数"></a>2.1 WarmUpController 构造函数</h4><p>内部的构造函数，最终将调用 construct 方法。<br>WarmUpController#construct</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">construct</span><span class="params">(<span class="keyword">double</span> count, <span class="keyword">int</span> warmUpPeriodInSec, <span class="keyword">int</span> coldFactor)</span> </span>&#123; <span class="comment">// @1</span></span><br><span class="line">	<span class="keyword">if</span> (coldFactor &lt;= <span class="number">1</span>) &#123;</span><br><span class="line">		<span class="keyword">throw</span> <span class="keyword">new</span> IllegalArgumentException(<span class="string">&quot;Cold factor should be larger than 1&quot;</span>);</span><br><span class="line">         &#125;</span><br><span class="line">	<span class="keyword">this</span>.count = count;  </span><br><span class="line">	<span class="keyword">this</span>.coldFactor = coldFactor;   </span><br><span class="line">	warningToken = (<span class="keyword">int</span>)(warmUpPeriodInSec * count) / (coldFactor - <span class="number">1</span>);   <span class="comment">// @2</span></span><br><span class="line">	maxToken = warningToken + (<span class="keyword">int</span>)(<span class="number">2</span> * warmUpPeriodInSec * count / (<span class="number">1.0</span> + coldFactor));  <span class="comment">// @3</span></span><br><span class="line">	slope = (coldFactor - <span class="number">1.0</span>) / count / (maxToken - warningToken);  </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>要理解该方法，就需要理解 Guava 框架的 SmoothWarmingUp 相关的预热算法，其算法原理如图所示：<br><img src="https://img-blog.csdnimg.cn/20200406114151249.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br>关于该图的详细介绍，请参考笔者的另外一篇博文：<a target="_blank" rel="noopener" href="https://blog.csdn.net/prestigeding/article/details/105262127">源码分析RateLimiter SmoothWarmingUp 实现原理</a>，对该图进行了详细解读。</p>
+<p>代码@1：首先介绍该方法的参数列表：</p>
+<ul>
+<li>double count<br>限流规则配置的阔值，例如是按 TPS 类型来限流，如果限制为100tps，则该值为100。</li>
+<li>int warmUpPeriodInSec<br>预热时间，单位为秒，通用在限流规则页面可配置。</li>
+<li>int coldFactor<br>冷却因子，这里默认为3，与 RateLimiter 中的冷却因子保持一致，表示的含义为 coldIntervalMicros 与  stableIntervalMicros 的比值。</li>
+</ul>
+<p>代码@2：计算 warningToken 的值，与 Guava 中的 RateLimiter 中的 thresholdPermits 的计算算法公式相同，thresholdPermits = 0.5 * warmupPeriod / stableInterval，在Sentienl 中，而 stableInteral = 1 / count，thresholdPermits  表达式中的 0.5 就是因为 codeFactor 为3，因为 warm up period与 stable   面积之比等于 (coldIntervalMicros - stableIntervalMicros ) 与 stableIntervalMicros 的比值，这个比值又等于 coldIntervalMicros / stableIntervalMicros  - stableIntervalMicros / stableIntervalMicros 等于 coldFactor - 1。</p>
+<p>代码@3：同样根据 Guava 中的 RateLimiter 关于 maxToken 也能理解。</p>
+        
+          <p class="article-more-link">
+            <a href="/2020/12/08/Sentienl%20%E6%B5%81%E6%8E%A7%E6%95%88%E6%9E%9C%E4%B9%8B%E5%8C%80%E9%80%9F%E6%8E%92%E9%98%9F%E4%B8%8E%E9%A2%84%E7%83%AD%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86%E4%B8%8E%E5%AE%9E%E6%88%98%E5%BB%BA%E8%AE%AE/#more">Read More</a>
+          </p>
+        
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://example.com/2020/12/08/Sentienl%20%E6%B5%81%E6%8E%A7%E6%95%88%E6%9E%9C%E4%B9%8B%E5%8C%80%E9%80%9F%E6%8E%92%E9%98%9F%E4%B8%8E%E9%A2%84%E7%83%AD%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86%E4%B8%8E%E5%AE%9E%E6%88%98%E5%BB%BA%E8%AE%AE/" data-id="ckig4lier001fm4rga1wvaok6" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/sentinel/" rel="tag">sentinel</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-源码分析RateLimiter SmoothWarmingUp 实现原理(文末附流程图)" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2020/12/08/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90RateLimiter%20SmoothWarmingUp%20%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86(%E6%96%87%E6%9C%AB%E9%99%84%E6%B5%81%E7%A8%8B%E5%9B%BE)/" class="article-date">
+  <time datetime="2020-12-08T14:53:35.000Z" itemprop="datePublished">2020-12-08</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/sentinel/">sentinel</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/2020/12/08/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90RateLimiter%20SmoothWarmingUp%20%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86(%E6%96%87%E6%9C%AB%E9%99%84%E6%B5%81%E7%A8%8B%E5%9B%BE)/">源码分析RateLimiter SmoothWarmingUp 实现原理(文末附流程图)</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>上一篇详细介绍了 <a target="_blank" rel="noopener" href="https://blog.csdn.net/prestigeding/article/details/105027563">SmoothBursty</a> 的实现原理，本文将介绍带有预热机制的限速器实现原理。</p>
 <p>@<a href="%E6%9C%AC%E8%8A%82%E7%9B%AE%E5%BD%95">TOC</a></p>
-<h2 id="1、DLedger关于选主的核心类图"><a href="#1、DLedger关于选主的核心类图" class="headerlink" title="1、DLedger关于选主的核心类图"></a>1、DLedger关于选主的核心类图</h2><p><img src="https://img-blog.csdnimg.cn/20190817201207350.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"></p>
-<h3 id="1-1-DLedgerConfig"><a href="#1-1-DLedgerConfig" class="headerlink" title="1.1 DLedgerConfig"></a>1.1 DLedgerConfig</h3><p>多副本模块相关的配置信息，例如集群节点信息。</p>
-<h3 id="1-2-MemberState"><a href="#1-2-MemberState" class="headerlink" title="1.2 MemberState"></a>1.2 MemberState</h3><p>节点状态机，即raft协议中的follower、candidate、leader三种状态的状态机实现。</p>
-<h3 id="1-3-raft协议相关"><a href="#1-3-raft协议相关" class="headerlink" title="1.3 raft协议相关"></a>1.3 raft协议相关</h3><h4 id="1-3-1-DLedgerClientProtocol"><a href="#1-3-1-DLedgerClientProtocol" class="headerlink" title="1.3.1 DLedgerClientProtocol"></a>1.3.1 DLedgerClientProtocol</h4><p>DLedger客户端协议，主要定义如下三个方法，在后面的日志复制部分会重点阐述。</p>
+<h2 id="1、类图"><a href="#1、类图" class="headerlink" title="1、类图"></a>1、类图</h2><p><img src="https://img-blog.csdnimg.cn/20200329155128855.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br>从上文也详细介绍了 RateLimiter 相关的类图，本文就不详细介绍。</p>
+<h2 id="2、SmoothWarmingUp-创建流程"><a href="#2、SmoothWarmingUp-创建流程" class="headerlink" title="2、SmoothWarmingUp 创建流程"></a>2、SmoothWarmingUp 创建流程</h2><p>创建 SmoothWarmingUp 限速器的入口为 RateLimiter 的 create 方法，其代码如下：<br>RateLimiter#create</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> RateLimiter <span class="title">create</span><span class="params">(<span class="keyword">double</span> permitsPerSecond, <span class="keyword">long</span> warmupPeriod, TimeUnit unit)</span> </span>&#123;  <span class="comment">// @1</span></span><br><span class="line">    checkArgument(warmupPeriod &gt;= <span class="number">0</span>, <span class="string">&quot;warmupPeriod must not be negative: %s&quot;</span>, warmupPeriod);</span><br><span class="line">    <span class="keyword">return</span> create(</span><br><span class="line">        SleepingStopwatch.createFromSystemTimer(), permitsPerSecond, warmupPeriod, unit, <span class="number">3.0</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>代码@1：首先先来看一下参数列表：</p>
 <ul>
-<li>CompletableFuture&lt; GetEntriesResponse&gt; get(GetEntriesRequest request)<br>客户端从服务器获取日志条目（获取数据）</li>
-<li>CompletableFuture&lt; AppendEntryResponse&gt; append(AppendEntryRequest request)<br>客户端向服务器追加日志（存储数据）</li>
-<li>CompletableFuture&lt; MetadataResponse&gt; metadata(MetadataRequest request)<br>获取元数据。</li>
+<li>double permitsPerSecond<br>每秒发放许可数量，即所谓的QPS。</li>
+<li>long warmupPeriod<br>设置预热时间。</li>
+<li>TimeUnit unit<br>warmupPeriod 的时间单位。</li>
 </ul>
-<h4 id="1-3-2-DLedgerProtocol"><a href="#1-3-2-DLedgerProtocol" class="headerlink" title="1.3.2 DLedgerProtocol"></a>1.3.2 DLedgerProtocol</h4><p>DLedger服务端协议，主要定义如下三个方法。</p>
-<ul>
-<li>CompletableFuture&lt; VoteResponse&gt; vote(VoteRequest request)<br>发起投票请求。</li>
-<li>CompletableFuture&lt; HeartBeatResponse&gt; heartBeat(HeartBeatRequest request)<br>Leader向从节点发送心跳包。</li>
-<li>CompletableFuture&lt; PullEntriesResponse&gt; pull(PullEntriesRequest request)<br>拉取日志条目，在日志复制部分会详细介绍。</li>
-<li>CompletableFuture&lt; PushEntryResponse&gt; push(PushEntryRequest request)<br>推送日志条件，在日志复制部分会详细介绍。</li>
-</ul>
-<h4 id="1-3-3-协议处理Handler"><a href="#1-3-3-协议处理Handler" class="headerlink" title="1.3.3 协议处理Handler"></a>1.3.3 协议处理Handler</h4><p>DLedgerClientProtocolHandler、DLedgerProtocolHander协议处理器。</p>
-<h3 id="1-4-DLedgerRpcService"><a href="#1-4-DLedgerRpcService" class="headerlink" title="1.4 DLedgerRpcService"></a>1.4 DLedgerRpcService</h3><p>DLedger Server(节点)之间的网络通信，默认基于Netty实现，其实现类为：DLedgerRpcNettyService。</p>
-<h3 id="1-5-DLedgerLeaderElector"><a href="#1-5-DLedgerLeaderElector" class="headerlink" title="1.5 DLedgerLeaderElector"></a>1.5 DLedgerLeaderElector</h3><p>Leader选举实现器。</p>
-<h3 id="1-6-DLedgerServer"><a href="#1-6-DLedgerServer" class="headerlink" title="1.6 DLedgerServer"></a>1.6 DLedgerServer</h3><p>Dledger Server，Dledger节点的封装类。</p>
-<p>接下来将从DLedgerLeaderElector开始剖析DLedger是如何实现Leader选举的。（基于raft协议）。</p>
+<p>代码@2：调用内部的重载方法创建 SmoothWarmingUp 。</p>
+<p>RateLimiter#create</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> RateLimiter <span class="title">create</span><span class="params">( SleepingStopwatch stopwatch, <span class="keyword">double</span> permitsPerSecond, <span class="keyword">long</span> warmupPeriod, TimeUnit unit, <span class="keyword">double</span> coldFactor)</span> </span>&#123;</span><br><span class="line">    RateLimiter rateLimiter = <span class="keyword">new</span> SmoothWarmingUp(stopwatch, warmupPeriod, unit, coldFactor);  <span class="comment">// @1</span></span><br><span class="line">    rateLimiter.setRate(permitsPerSecond); <span class="comment">// @2</span></span><br><span class="line">    <span class="keyword">return</span> rateLimiter;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>创建 SmoothWarmingUp 两个主要步骤分别是调用其构造方法首先创建 SmoothWarmingUp 实例，然后调用其 setRate 方法进行初始化速率。这里先突出 coldFactor，默认为 3.0，该属性的作用将在下文详细介绍。</p>
+<p>我们先来重点探讨一下 setRate 方法的实现。最终会调用其父类 SmoothRateLimiter 的doSetRate 方法。</p>
+<p>SmoothRateLimiter#doSetRate</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">final</span> <span class="keyword">void</span> <span class="title">doSetRate</span><span class="params">(<span class="keyword">double</span> permitsPerSecond, <span class="keyword">long</span> nowMicros)</span> </span>&#123;</span><br><span class="line">    resync(nowMicros);   <span class="comment">// @1 </span></span><br><span class="line">    <span class="keyword">double</span> stableIntervalMicros = SECONDS.toMicros(<span class="number">1L</span>) / permitsPerSecond;   </span><br><span class="line">    <span class="keyword">this</span>.stableIntervalMicros = stableIntervalMicros;   <span class="comment">// @2</span></span><br><span class="line">    doSetRate(permitsPerSecond, stableIntervalMicros);  <span class="comment">// @3</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>代码@1：基于当前时间重置 SmoothRateLimiter 内部的 storedPermits(已存储的许可数量) 与 nextFreeTicketMicros(下一次可以免费获取许可的时间) 值，所谓的免费指的是无需等待就可以获取设定速率的许可，该方法对理解限流许可的产生非常关键，稍后详细介绍。</p>
+<p>代码@2：根据QPS算出一个稳定的获取1个许可的时间。以一秒发放5个许可，即限速为5QPS，那发放一个许可的世界间隔为 200ms，stableIntervalMicros 变量是以微妙为单位。</p>
+<p>代码@4：调用 SmoothRateLimiter 的抽象方法 doSetRate 设置速率，这里会调用 SmoothWarmingUp 的 doSetRate 方法。</p>
+<p>在介绍 SmoothWarmingUp 的 doSetRate 方法之前，我们先来看一下 resync 方法的实现。</p>
+<p>SmoothRateLimiter#resync</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">resync</span><span class="params">(<span class="keyword">long</span> nowMicros)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (nowMicros &gt; nextFreeTicketMicros) &#123;  <span class="comment">// @1 </span></span><br><span class="line">      <span class="keyword">double</span> newPermits = (nowMicros - nextFreeTicketMicros) / coolDownIntervalMicros();  <span class="comment">// @2</span></span><br><span class="line">      storedPermits = min(maxPermits, storedPermits + newPermits);    <span class="comment">// @3</span></span><br><span class="line">      nextFreeTicketMicros = nowMicros;   <span class="comment">// @4</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>代码@1：如果当前已启动时间大于nextFreeTicketMicros（下一次可以免费获取许可的时间），则需要重新计算许可，即又可以向许可池中添加许可。</p>
+<p>代码@2：根据当前时间可增加的许可数量，由于 SmoothWarmingUp 实现了预热机制，平均生成一个许可的时间并不是固定不变的。具体由 coolDownIntervalMicros 方法实现，稍候详细介绍。</p>
+<p>代码@3：计算当前可用的许可，将新增的这些许可添加到许可池，但不会超过其最大值。</p>
+<p>代码@4：更新下一次可增加计算许可的时间。 </p>
+<p>SmoothWarmingUp#coolDownIntervalMicros</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">double</span> <span class="title">coolDownIntervalMicros</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> warmupPeriodMicros / maxPermits;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这个方法的实现其实简单，用生成这些许可的总时间除以现在已经生成的许可数，即可得到当前时间点平均一个许可的生成时间。</p>
         
           <p class="article-more-link">
-            <a href="/2020/12/07/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90%20RocketMQ%20DLedger%20%E5%A4%9A%E5%89%AF%E6%9C%AC%E4%B9%8B%20Leader%20%E9%80%89%E4%B8%BB/#more">Read More</a>
+            <a href="/2020/12/08/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90RateLimiter%20SmoothWarmingUp%20%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86(%E6%96%87%E6%9C%AB%E9%99%84%E6%B5%81%E7%A8%8B%E5%9B%BE)/#more">Read More</a>
           </p>
         
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://example.com/2020/12/07/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90%20RocketMQ%20DLedger%20%E5%A4%9A%E5%89%AF%E6%9C%AC%E4%B9%8B%20Leader%20%E9%80%89%E4%B8%BB/" data-id="ckieqedxv001nukrg3rbj0bns" class="article-share-link">Share</a>
+      <a data-url="http://example.com/2020/12/08/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90RateLimiter%20SmoothWarmingUp%20%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86(%E6%96%87%E6%9C%AB%E9%99%84%E6%B5%81%E7%A8%8B%E5%9B%BE)/" data-id="ckig4lifd002um4rgeou829d0" class="article-share-link">Share</a>
       
       
-  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/rocketmq-%E5%A4%9A%E5%89%AF%E6%9C%AC-raft-%E9%80%89%E4%B8%BB/" rel="tag">rocketmq 多副本 raft 选主</a></li></ul>
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/sentinel/" rel="tag">sentinel</a></li></ul>
 
     </footer>
   </div>
@@ -287,14 +600,14 @@
 
 
   
-    <article id="post-RocketMQ 多副本前置篇：初探raft协议" class="article article-type-post" itemscope itemprop="blogPost">
+    <article id="post-源码分析 RateLimiter SmoothBursty 实现原理(文末附流程图)" class="article article-type-post" itemscope itemprop="blogPost">
   <div class="article-meta">
-    <a href="/2020/12/07/RocketMQ%20%E5%A4%9A%E5%89%AF%E6%9C%AC%E5%89%8D%E7%BD%AE%E7%AF%87%EF%BC%9A%E5%88%9D%E6%8E%A2raft%E5%8D%8F%E8%AE%AE/" class="article-date">
-  <time datetime="2020-12-07T15:40:01.000Z" itemprop="datePublished">2020-12-07</time>
+    <a href="/2020/12/08/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90%20RateLimiter%20SmoothBursty%20%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86(%E6%96%87%E6%9C%AB%E9%99%84%E6%B5%81%E7%A8%8B%E5%9B%BE)/" class="article-date">
+  <time datetime="2020-12-08T14:51:35.000Z" itemprop="datePublished">2020-12-08</time>
 </a>
     
   <div class="article-category">
-    <a class="article-category-link" href="/categories/rocketmq/">rocketmq</a>
+    <a class="article-category-link" href="/categories/sentinel/">sentinel</a>
   </div>
 
   </div>
@@ -305,7 +618,7 @@
         
   
     <h1 itemprop="name">
-      <a class="article-title" href="/2020/12/07/RocketMQ%20%E5%A4%9A%E5%89%AF%E6%9C%AC%E5%89%8D%E7%BD%AE%E7%AF%87%EF%BC%9A%E5%88%9D%E6%8E%A2raft%E5%8D%8F%E8%AE%AE/">RocketMQ 多副本前置篇：初探raft协议</a>
+      <a class="article-title" href="/2020/12/08/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90%20RateLimiter%20SmoothBursty%20%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86(%E6%96%87%E6%9C%AB%E9%99%84%E6%B5%81%E7%A8%8B%E5%9B%BE)/">源码分析 RateLimiter SmoothBursty 实现原理(文末附流程图)</a>
     </h1>
   
 
@@ -313,306 +626,61 @@
     
     <div class="article-entry" itemprop="articleBody">
       
-        <p>Raft协议是分布式领域解决一致性的又一著名协议，主要包含Leader选举、日志复制两个部分。</p>
+        <p>上篇详细介绍了<a target="_blank" rel="noopener" href="https://blog.csdn.net/prestigeding/article/details/104884255">Sentinel FlowSlot 限流实现原理(文末附流程图与总结)</a>的限流实现机制，但主要介绍的策略限流的快速失败机制，在Sentinel 中除了快速失败，还提供了匀速排队，预热等限流策略，但我发现 Sentinel 的匀速排队、预热机制是基于 guava 的 RateLimiter，为了更加彻底的理解 Sentienl 限流相关的内容，从本文开始先来学习一下 RateLimiter 的相关实现原理。</p>
 <blockquote>
-<p>温馨提示：<br>本文根据raft官方给出的raft动画进行学习，其动画展示地址：<a target="_blank" rel="noopener" href="http://thesecretlivesofdata.com/raft/">http://thesecretlivesofdata.com/raft/</a></p>
-</blockquote>
+<p>温馨提示：文章的末尾会总结 SmoothBursty 的核心流程图与实现原理，本文将展示笔者是如何一步一步揭晓其实现原理的方法。</p>
 <p>@<a href="%E6%9C%AC%E8%8A%82%E7%9B%AE%E5%BD%95">TOC</a></p>
-<h2 id="1、Leader选举"><a href="#1、Leader选举" class="headerlink" title="1、Leader选举"></a>1、Leader选举</h2><h3 id="1-1-一轮投票中，只有一个节点发起投票的情况"><a href="#1-1-一轮投票中，只有一个节点发起投票的情况" class="headerlink" title="1.1  一轮投票中，只有一个节点发起投票的情况"></a>1.1  一轮投票中，只有一个节点发起投票的情况</h3><p><img src="https://img-blog.csdnimg.cn/20190810192221312.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>Raft协议中节点有3种状态（角色）：</p>
-<ul>
-<li>Follower<br>跟随者。</li>
-<li>Candidate<br>候选者。</li>
-<li>Leader<br>领导者(Leader)，通常我们所说的的主节点。</li>
-</ul>
-<p>首先3个节点初始状态为 Follower，每个节点会有一个超时时间(计时器)，其时间设置为150ms~300ms之间的随机值。当计时器到期后，节点状态从 Follower 变成 Candidate，如下图所示：<br><img src="https://img-blog.csdnimg.cn/20190810193027410.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>通常情况下，三个节点中会有一个节点的计时器率先到期，节点状态变为 Candidate ，候选者状态下的节点会发起选举投票。我们先来考虑只有一个节点变为Candidate时是如何进行选主的。</p>
-<p>当节点状态为Candidate，将发起一轮投票，由于是第一轮投票，设置本轮投票轮次为1，并首先为自己投上一票，正如上图所示的NodeA节点，Team为1，Vote Count为1.<br><img src="https://img-blog.csdnimg.cn/20190810193206869.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>当一个节点的定时器超时后，首先为自己投上一票，然后向该组内其他的节点发起投票(用拉票更加合适)，发送投票请求。<br><img src="https://img-blog.csdnimg.cn/20190810193241874.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>当集群内的节点收到投票请求外，如果本轮未进行过投票，则赞同，否则反对，然后将结果返回，并重置计时器。<br><img src="https://img-blog.csdnimg.cn/2019081019345071.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>当节点A收到的赞同票大于一半时，则升级为该集群的 Leader，然后定时向集群内的其他节点发送心跳，以便确定自己的领导地位，正如下图所示。<br><img src="https://img-blog.csdnimg.cn/20190810193534746.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>Node A，集群中的 Leader正在向其他节点发送心跳包。<br><img src="https://img-blog.csdnimg.cn/20190810193603638.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>节点在收到 Leader 的心跳包后，返回响应结果，并重置自身的计时器，如果 Flower 状态的节点在计时时间超时内没有收到Leader 的心跳包，就会从 Flower 节点变成 Candidate,该节点就会发起下一轮投票。</p>
-<p>例如NodeA节点宕机，停止向它的从发送心跳，我们来看一下集群如何重新选主。</p>
-        
-          <p class="article-more-link">
-            <a href="/2020/12/07/RocketMQ%20%E5%A4%9A%E5%89%AF%E6%9C%AC%E5%89%8D%E7%BD%AE%E7%AF%87%EF%BC%9A%E5%88%9D%E6%8E%A2raft%E5%8D%8F%E8%AE%AE/#more">Read More</a>
-          </p>
-        
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="http://example.com/2020/12/07/RocketMQ%20%E5%A4%9A%E5%89%AF%E6%9C%AC%E5%89%8D%E7%BD%AE%E7%AF%87%EF%BC%9A%E5%88%9D%E6%8E%A2raft%E5%8D%8F%E8%AE%AE/" data-id="ckieqedx00004ukrg9fl2eav3" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/rocketmq-%E5%A4%9A%E5%89%AF%E6%9C%AC-raft-%E4%B8%BB%E4%BB%8E%E5%88%87%E6%8D%A2/" rel="tag">rocketmq 多副本 raft 主从切换</a></li></ul>
-
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-一次 RocketMQ 进程自动退出排查经验分享（实战篇）" class="article article-type-post" itemscope itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/2020/12/07/%E4%B8%80%E6%AC%A1%20RocketMQ%20%E8%BF%9B%E7%A8%8B%E8%87%AA%E5%8A%A8%E9%80%80%E5%87%BA%E6%8E%92%E6%9F%A5%E7%BB%8F%E9%AA%8C%E5%88%86%E4%BA%AB%EF%BC%88%E5%AE%9E%E6%88%98%E7%AF%87%EF%BC%89/" class="article-date">
-  <time datetime="2020-12-07T15:04:01.000Z" itemprop="datePublished">2020-12-07</time>
-</a>
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/rocketmq/">rocketmq</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/2020/12/07/%E4%B8%80%E6%AC%A1%20RocketMQ%20%E8%BF%9B%E7%A8%8B%E8%87%AA%E5%8A%A8%E9%80%80%E5%87%BA%E6%8E%92%E6%9F%A5%E7%BB%8F%E9%AA%8C%E5%88%86%E4%BA%AB%EF%BC%88%E5%AE%9E%E6%88%98%E7%AF%87%EF%BC%89/">一次 RocketMQ 进程自动退出排查经验分享（实战篇）</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <h2 id="1、背景"><a href="#1、背景" class="headerlink" title="1、背景"></a>1、背景</h2><p>公司一个 RocketMQ 集群由4主4从组成，突然其中3台服务器“竟然”在同一时间下线，其监控显示如下：<br><img src="https://img-blog.csdnimg.cn/20191026211319978.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>依次查看三台机器的监控图形，时间戳几乎完美“吻合”，不可思议吧。</p>
-<h2 id="2、故障分析"><a href="#2、故障分析" class="headerlink" title="2、故障分析"></a>2、故障分析</h2><p>出现问题，先二话不说，马上重启各服务器，尽快恢复集群，降低对业务的影响，接下来开始对日志进行分析。</p>
-<p>Java 进程自动退出(rocketmq 本身就是一个java进程)，一种最常见的问题是由于内存溢出或由于内存泄漏导致进程发送Crash等。由于我们的启动参数中未配置-XX:+HeapDumpOnOutOfMemoryError<br>-XX:HeapDumpPath=/opt/jvmdump 这两个参数，不能直接根据 是否生成 dump 文件，那退而求其次去查看其GC日志，将GC日志下载到本地，然后可以使用一个在线gc日志分析工具：<a target="_blank" rel="noopener" href="https://gceasy.io/">https://gceasy.io/</a> ，将 gc 日志上传后会给出图形化的展示，其图如下：<br><img src="https://img-blog.csdnimg.cn/20191026211454570.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br><img src="https://img-blog.csdnimg.cn/20191026211519396.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>发现垃圾回收很正常。</p>
-<p>既然 Java 进程不是由于内存溢出等问题导致的退出，那又会是什么原因呢？那我们来看一下那个点的broker的日志，其关键日志截图如下：<br><img src="https://img-blog.csdnimg.cn/20191026211607400.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>发现 broker 日志中有打印出 shutdownHook，表示在进程退出之前执行了启动时注册时的退出钩子函数，说明 broker 是正常停止的，并且也不可能是 kill -9 命令，肯定是显示的执行了 shutodown 或 kill 命令，于是立马使用 history 命令 查看历史命令，都未在指定时间执行过该命令，并且切换到 root 命令后，同样使用 history 命令，并未发现端倪。</p>
-<p>但我始终相信，肯定是执行了手动执行了 kill 命令导致进程退出的，经过网上查找查，得知可以通过查阅系统日志/var/log/messages 来查看系统命令的调用，于是乎把日志文件下载到本地，开始搜索 kill 关键字，发现如下日志：<br><img src="https://img-blog.csdnimg.cn/20191026211722459.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>发现最近一次 kill 命令是在25号的凌晨1点多，停止 rocketmq 集群，并使用 bin/mqbroker -c conf/broker-b.conf &amp; 进行了重新启动。</p>
-<p>这个命令是有问题的，没有使用 nohup ，如果会话失效，该进程就会被退出，为了验证，我们再查一下进程退出时的日志：</p>
-        
-          <p class="article-more-link">
-            <a href="/2020/12/07/%E4%B8%80%E6%AC%A1%20RocketMQ%20%E8%BF%9B%E7%A8%8B%E8%87%AA%E5%8A%A8%E9%80%80%E5%87%BA%E6%8E%92%E6%9F%A5%E7%BB%8F%E9%AA%8C%E5%88%86%E4%BA%AB%EF%BC%88%E5%AE%9E%E6%88%98%E7%AF%87%EF%BC%89/#more">Read More</a>
-          </p>
-        
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="http://example.com/2020/12/07/%E4%B8%80%E6%AC%A1%20RocketMQ%20%E8%BF%9B%E7%A8%8B%E8%87%AA%E5%8A%A8%E9%80%80%E5%87%BA%E6%8E%92%E6%9F%A5%E7%BB%8F%E9%AA%8C%E5%88%86%E4%BA%AB%EF%BC%88%E5%AE%9E%E6%88%98%E7%AF%87%EF%BC%89/" data-id="ckieqedxb000lukrg4qe0hk4v" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/rocketmq/" rel="tag">rocketmq</a></li></ul>
-
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-再谈 RocketMQ broker busy(实战篇)" class="article article-type-post" itemscope itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/2020/12/07/%E5%86%8D%E8%B0%88%20RocketMQ%20broker%20busy(%E5%AE%9E%E6%88%98%E7%AF%87)/" class="article-date">
-  <time datetime="2020-12-07T15:04:01.000Z" itemprop="datePublished">2020-12-07</time>
-</a>
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/rocketmq/">rocketmq</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/2020/12/07/%E5%86%8D%E8%B0%88%20RocketMQ%20broker%20busy(%E5%AE%9E%E6%88%98%E7%AF%87)/">再谈 RocketMQ broker busy(实战篇)</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <p>本文将在 <a target="_blank" rel="noopener" href="https://blog.csdn.net/prestigeding/article/details/92800672">RocketMQ 消息发送system busy、broker busy原因分析与解决方案</a> 的基础上，结合生产上的日志尝试再次理解 broker busy 以及探讨解决方案。</p>
-<p>首先，broker busy 相关的日志关键字如下：</p>
-<ul>
-<li>[REJECTREQUEST]system busy</li>
-<li>too many requests and system thread pool busy</li>
-<li>[PC_SYNCHRONIZED]broker busy</li>
-<li>[PCBUSY_CLEAN_QUEUE]broker busy</li>
-<li>[TIMEOUT_CLEAN_QUEUE]broker busy</li>
-</ul>
-<p>上述前面4个关键字在上篇文章中已详细介绍，本文先对出现上述错误进行一个总结，具体的分析过程请查阅上篇文章。</p>
-<p>本文先给出一张流程图，展示上述5种 broker busy 分别会在消息发送的哪个阶段抛出，以便大家能够清晰的了解其发生的原因。<br><img src="https://img-blog.csdnimg.cn/20191024084015845.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br><strong>针对前4种 broker busy 出现的问题已经在上篇文章中详细介绍，主要是由于 Broker 在追加消息时持有的锁时间超过了设置的1s，Broker 为了自我保护，会抛出错误，客户端会选择其他 broker 服务器进行重试。如果对不是金融级服务，建议将 transientStorePoolEnable = true，可以有效避免前面 4 种 broker ，因为开启这个参数，消息首先会存储在堆外内存中，并且 RocketMQ 提供了内存锁定的功能，其追加性能能得到一定的保障，这样可以做到在内存使用层面的读写分离，即写消息是直接写入堆外内存，消费消息直接从 pagecache中读，然后定时将堆外内存的消息写入 pagecache。但这种方案随之带来的就是可能存在消息丢失，如果对消息非常严谨的话，建议扩容集群，或迁移topic到新的集群。</strong></p>
-        
-          <p class="article-more-link">
-            <a href="/2020/12/07/%E5%86%8D%E8%B0%88%20RocketMQ%20broker%20busy(%E5%AE%9E%E6%88%98%E7%AF%87)/#more">Read More</a>
-          </p>
-        
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="http://example.com/2020/12/07/%E5%86%8D%E8%B0%88%20RocketMQ%20broker%20busy(%E5%AE%9E%E6%88%98%E7%AF%87)/" data-id="ckieqedxc000nukrg7vapcbfa" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/rocketmq-broker-busy-TIMEOUT-CLEAN-QUEUE-PCBUSY-CLEAN-QUEUE/" rel="tag">rocketmq broker busy TIMEOUT_CLEAN_QUEUE PCBUSY_CLEAN_QUEUE</a></li></ul>
-
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-踩坑记：rocketmq-console 消费TPS为0，但消息积压数却在降低是个什么“鬼”" class="article article-type-post" itemscope itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/2020/12/07/%E8%B8%A9%E5%9D%91%E8%AE%B0%EF%BC%9Arocketmq-console%20%E6%B6%88%E8%B4%B9TPS%E4%B8%BA0%EF%BC%8C%E4%BD%86%E6%B6%88%E6%81%AF%E7%A7%AF%E5%8E%8B%E6%95%B0%E5%8D%B4%E5%9C%A8%E9%99%8D%E4%BD%8E%E6%98%AF%E4%B8%AA%E4%BB%80%E4%B9%88%E2%80%9C%E9%AC%BC%E2%80%9D/" class="article-date">
-  <time datetime="2020-12-07T15:02:57.000Z" itemprop="datePublished">2020-12-07</time>
-</a>
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/rocketmq/">rocketmq</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/2020/12/07/%E8%B8%A9%E5%9D%91%E8%AE%B0%EF%BC%9Arocketmq-console%20%E6%B6%88%E8%B4%B9TPS%E4%B8%BA0%EF%BC%8C%E4%BD%86%E6%B6%88%E6%81%AF%E7%A7%AF%E5%8E%8B%E6%95%B0%E5%8D%B4%E5%9C%A8%E9%99%8D%E4%BD%8E%E6%98%AF%E4%B8%AA%E4%BB%80%E4%B9%88%E2%80%9C%E9%AC%BC%E2%80%9D/">踩坑记：rocketmq-console 消费TPS为0，但消息积压数却在降低是个什么“鬼”</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <h2 id="1、背景"><a href="#1、背景" class="headerlink" title="1、背景"></a>1、背景</h2><p>当消息出现大量挤压后，消费端将其代码优化后，重启消费端服务器，从 rocketmq-console 上发现 TPS 为 0，如图所示：<br><img src="https://img-blog.csdnimg.cn/20191130162947883.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>乍一看，第一时间得出应用还未恢复，就开始去查看相关的启动日志,通常查看的是应用服务器的 /home/baseuser/logs/rockemqlogs/rocketmq_client.logs，碰巧又看到如下的错误日志：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">RebalanceService - [BUG] ConsumerGroup: consumergourp-1 The consumerId: consumer-client-id-clusterA-192.168.x.x@21932 not in cidAll: [consumer-client-id-clusterA-192.168.x.x@22164]</span><br></pre></td></tr></table></figure>
-<p>上面的日志显示在队列负载时候，当前节点竟然不属于 consumergourp-1 消费组的活跃连接，导致一大片的报错：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">2019-11-02 19:29:17 WARN NettyClientPublicExecutor_1 - execute the pull request exception</span><br><span class="line">org.apache.rocketmq.client.exception.MQBrokerException: CODE: 25  DESC: the consumer&#39;s subscription not latest</span><br><span class="line">For more information, please visit the url, http:&#x2F;&#x2F;rocketmq.apache.org&#x2F;docs&#x2F;faq&#x2F;</span><br><span class="line">	at org.apache.rocketmq.client.impl.MQClientAPIImpl.processPullResponse(MQClientAPIImpl.java:639)</span><br><span class="line">	at org.apache.rocketmq.client.impl.MQClientAPIImpl.access$200(MQClientAPIImpl.java:156)</span><br><span class="line">	at org.apache.rocketmq.client.impl.MQClientAPIImpl$2.operationComplete(MQClientAPIImpl.java:592)</span><br><span class="line">	at org.apache.rocketmq.remoting.netty.ResponseFuture.executeInvokeCallback(ResponseFuture.java:51)</span><br><span class="line">	at org.apache.rocketmq.remoting.netty.NettyRemotingAbstract$2.run(NettyRemotingAbstract.java:275)</span><br><span class="line">	at java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:511)</span><br><span class="line">	at java.util.concurrent.FutureTask.run(FutureTask.java:266)</span><br><span class="line">	at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1142)</span><br><span class="line">	at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:617)</span><br><span class="line">	at java.lang.Thread.run(Thread.java:745)</span><br></pre></td></tr></table></figure>
-<p>乍一看确实是 rocketmq 相关的问题，导致上述 消费TPS 为0，经过半个小时的日志分析，发现这是RocketMQ 这是一种正常现象，最终会自动恢复，这里我留一个<strong>伏笔</strong>，将在我的<strong>知识星球</strong>中与广大星友讨论，<strong>经过日志分析得出 rocketmq 没问题，故后面去查看消息积压，发现消息积压明显在减少，那这就奇了怪了，咋消息积压在快速减少，但为啥消费TPS还是为0呢？</strong></p>
-<p>接下来将该问题进行探讨。</p>
-<blockquote>
-<p>温馨提示：在问题分析部分，作者没有直接给出答案，而是一步一步探寻答案，因此会通过追踪源码来寻求答案，如果大家想急于答案，可以跳过问题分析，直接查看本文末尾的问题解答部分。<br>通过本文的阅读，您将获得如下信息：<br>1、RocketMQ 消费TPS的收集与计算逻辑。<br>2、RocketMQ 监控指标的设计思路。<br>3、RocketMQ 主从同步，消费者从主服务器拉取还是从从服务器拉取的判断逻辑。</p>
 </blockquote>
-<h2 id="2、问题分析"><a href="#2、问题分析" class="headerlink" title="2、问题分析"></a>2、问题分析</h2><h4 id="2-1-rocketmq-console-数据获获取逻辑探讨"><a href="#2-1-rocketmq-console-数据获获取逻辑探讨" class="headerlink" title="2.1 rocketmq-console 数据获获取逻辑探讨"></a>2.1 rocketmq-console 数据获获取逻辑探讨</h4><p>要解开消费TPS 显示为０的问题，我们首先要来看一下 rocketmq-console 这个页面的展示逻辑，即通过阅读 rocketmq-console的源码来解开其采集逻辑。<br><img src="https://img-blog.csdnimg.cn/20191130163430404.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>得知，【消费者】界面查询各个消费组的基本信息的接口为 /consumer/groupList.query，那接下来，我们首先从源码的角度来分析该接口的实现逻辑。其入口如下：</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line">org.apache.rocketmq.console.controller.ConsumerController#list</span><br><span class="line"><span class="meta">@RequestMapping(value = &quot;/groupList.query&quot;)</span></span><br><span class="line"><span class="meta">@ResponseBody</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> Object <span class="title">list</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> consumerService.queryGroupList();</span><br><span class="line">&#125;</span><br><span class="line">就是调用消费服务处理类的 queryGroupList 方法，其实现代码如下：</span><br><span class="line">ConsumerServiceImpl＃queryGroupList</span><br><span class="line"><span class="function"><span class="keyword">public</span> List&lt;GroupConsumeInfo&gt; <span class="title">queryGroupList</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    Set&lt;String&gt; consumerGroupSet = Sets.newHashSet();</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        ClusterInfo clusterInfo = mqAdminExt.examineBrokerClusterInfo();　　<span class="comment">// @1</span></span><br><span class="line">        <span class="keyword">for</span> (BrokerData brokerData : clusterInfo.getBrokerAddrTable().values()) &#123;   <span class="comment">// @2</span></span><br><span class="line">            SubscriptionGroupWrapper subscriptionGroupWrapper = mqAdminExt.getAllSubscriptionGroup(brokerData.selectBrokerAddr(), <span class="number">3000L</span>);  <span class="comment">// @3</span></span><br><span class="line">            consumerGroupSet.addAll(subscriptionGroupWrapper.getSubscriptionGroupTable().keySet());                                                                 </span><br><span class="line">        &#125;</span><br><span class="line">    &#125; <span class="keyword">catch</span> (Exception err) &#123;</span><br><span class="line">        <span class="keyword">throw</span> Throwables.propagate(err);</span><br><span class="line">    &#125;</span><br><span class="line">    List&lt;GroupConsumeInfo&gt; groupConsumeInfoList = Lists.newArrayList();</span><br><span class="line">    <span class="keyword">for</span> (String consumerGroup : consumerGroupSet) &#123;                                                <span class="comment">// @4</span></span><br><span class="line">        groupConsumeInfoList.add(queryGroup(consumerGroup));                              </span><br><span class="line">    &#125;</span><br><span class="line">    Collections.sort(groupConsumeInfoList);</span><br><span class="line">    <span class="keyword">return</span> groupConsumeInfoList;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>代码@1：获取集群的 broker 信息，主要是通过向 NameServer 发送 GET_BROKER_CLUSTER_INFO 请求，NameServer 返回集群包含的所有 broker 信息，包含从节点的信息，返回的格式如下：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line">&quot;clusterInfo&quot;: &#123;</span><br><span class="line">    &quot;brokerAddrTable&quot;: &#123;</span><br><span class="line">	   &quot;broker-a&quot;: &#123;</span><br><span class="line">	       &quot;cluster&quot;: &quot;DefaultCluster&quot;,</span><br><span class="line">			&quot;brokerName&quot;: &quot;broker-a&quot;,</span><br><span class="line">			&quot;brokerAddrs&quot;: &#123;</span><br><span class="line">				&quot;0&quot;: &quot;192.168.0.168:10911&quot;,</span><br><span class="line">				&quot;1&quot;: &quot;192.168.0.169:10911&quot;</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;,</span><br><span class="line">        &quot;broker-b&quot;: &#123;</span><br><span class="line">	       &quot;cluster&quot;: &quot;DefaultCluster&quot;,</span><br><span class="line">			&quot;brokerName&quot;: &quot;broker-b&quot;,</span><br><span class="line">			&quot;brokerAddrs&quot;: &#123;</span><br><span class="line">				&quot;0&quot;: &quot;192.168.0.170:10911&quot;,</span><br><span class="line">				&quot;1&quot;: &quot;192.168.1.171:10911&quot;</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;,</span><br><span class="line">	&quot;clusterAddrTable&quot;: &#123;</span><br><span class="line">		&quot;DefaultCluster&quot;: [&quot;broker-a&quot;,&quot;broker-b&quot;]</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>代码@2：遍历集群中的 brokerAddrTable 数据结构，即存储了 broker 的地址信息的 Map 。</p>
-<p>代码@3：分别向集群中的主节点(brokerData.selectBrokerAddr()) 获取所有的订阅关系（即消费组的订阅信息）。然后将所有的消费者组名称存入 consumerGroupSet。</p>
-<p>代码@4：遍历代码@3收集到的消费组，调用 queryGroup 依次请求消费组的运行时信息，后面接下来详细分析。</p>
-<p>接下来将重点分析 queryGroup方法的实现细节。</p>
-        
-          <p class="article-more-link">
-            <a href="/2020/12/07/%E8%B8%A9%E5%9D%91%E8%AE%B0%EF%BC%9Arocketmq-console%20%E6%B6%88%E8%B4%B9TPS%E4%B8%BA0%EF%BC%8C%E4%BD%86%E6%B6%88%E6%81%AF%E7%A7%AF%E5%8E%8B%E6%95%B0%E5%8D%B4%E5%9C%A8%E9%99%8D%E4%BD%8E%E6%98%AF%E4%B8%AA%E4%BB%80%E4%B9%88%E2%80%9C%E9%AC%BC%E2%80%9D/#more">Read More</a>
-          </p>
-        
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="http://example.com/2020/12/07/%E8%B8%A9%E5%9D%91%E8%AE%B0%EF%BC%9Arocketmq-console%20%E6%B6%88%E8%B4%B9TPS%E4%B8%BA0%EF%BC%8C%E4%BD%86%E6%B6%88%E6%81%AF%E7%A7%AF%E5%8E%8B%E6%95%B0%E5%8D%B4%E5%9C%A8%E9%99%8D%E4%BD%8E%E6%98%AF%E4%B8%AA%E4%BB%80%E4%B9%88%E2%80%9C%E9%AC%BC%E2%80%9D/" data-id="ckieqedxq001kukrg9um988ef" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/rocketmq/" rel="tag">rocketmq</a></li></ul>
-
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-RocketMQ msgId与offsetMsgId释疑(实战篇)" class="article article-type-post" itemscope itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/2020/12/07/RocketMQ%20msgId%E4%B8%8EoffsetMsgId%E9%87%8A%E7%96%91(%E5%AE%9E%E6%88%98%E7%AF%87)/" class="article-date">
-  <time datetime="2020-12-07T14:53:57.000Z" itemprop="datePublished">2020-12-07</time>
-</a>
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/rocketmq/">rocketmq</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/2020/12/07/RocketMQ%20msgId%E4%B8%8EoffsetMsgId%E9%87%8A%E7%96%91(%E5%AE%9E%E6%88%98%E7%AF%87)/">RocketMQ msgId与offsetMsgId释疑(实战篇)</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <div id="vip-container"><p>本篇详细介绍消息发送、消息消费、RocketMQ queryMsgById 命令以及 rocketmq-console 等使用场景中究竟是用的哪一个ID。</p>
-<p>@<a href="%E6%9C%AC%E8%8A%82%E7%9B%AE%E5%BD%95">TOC</a></p>
-<h2 id="1、抛出问题"><a href="#1、抛出问题" class="headerlink" title="1、抛出问题"></a>1、抛出问题</h2><h4 id="1-1-从消息发送看消息ID"><a href="#1-1-从消息发送看消息ID" class="headerlink" title="1.1 从消息发送看消息ID"></a>1.1 从消息发送看消息ID</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> org.apache.rocketmq.example.quickstart;</span><br><span class="line"><span class="keyword">import</span> org.apache.rocketmq.client.producer.DefaultMQProducer;</span><br><span class="line"><span class="keyword">import</span> org.apache.rocketmq.client.producer.SendResult;</span><br><span class="line"><span class="keyword">import</span> org.apache.rocketmq.common.message.Message;</span><br><span class="line"><span class="keyword">import</span> org.apache.rocketmq.remoting.common.RemotingHelper;</span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Producer</span> </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span>  </span>&#123;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            DefaultMQProducer producer = <span class="keyword">new</span> DefaultMQProducer(<span class="string">&quot;please_rename_unique_group_name&quot;</span>);</span><br><span class="line">            producer.setNamesrvAddr(<span class="string">&quot;127.0.0.1:9876&quot;</span>);</span><br><span class="line">            producer.start();</span><br><span class="line">            Message msg = <span class="keyword">new</span> Message(<span class="string">&quot;TestTopic&quot;</span> <span class="comment">/* Topic */</span>,<span class="keyword">null</span> <span class="comment">/* Tag */</span>, (<span class="string">&quot;Hello RocketMQ test1&quot;</span> ).getBytes(RemotingHelper.DEFAULT_CHARSET) <span class="comment">/* Message body */</span>);</span><br><span class="line">            SendResult sendResult = producer.send(msg);</span><br><span class="line">            System.out.printf(<span class="string">&quot;%s%n&quot;</span>, sendResult);</span><br><span class="line">            producer.shutdown();</span><br><span class="line">        &#125; <span class="keyword">catch</span> (Throwable e) &#123;</span><br><span class="line">            e.printStackTrace();</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>执行效果如图所示：<br><img src="https://img-blog.csdnimg.cn/20200308201940382.png" alt="在这里插入图片描述">即消息发送会返回 msgId 与 offsetMsgId。</p>
-<h4 id="1-2-从消息消费看消息ID"><a href="#1-2-从消息消费看消息ID" class="headerlink" title="1.2 从消息消费看消息ID"></a>1.2 从消息消费看消息ID</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> org.apache.rocketmq.example.quickstart;</span><br><span class="line"><span class="keyword">import</span> java.util.List;</span><br><span class="line"><span class="keyword">import</span> org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;</span><br><span class="line"><span class="keyword">import</span> org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext;</span><br><span class="line"><span class="keyword">import</span> org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;</span><br><span class="line"><span class="keyword">import</span> org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently;</span><br><span class="line"><span class="keyword">import</span> org.apache.rocketmq.client.exception.MQClientException;</span><br><span class="line"><span class="keyword">import</span> org.apache.rocketmq.common.consumer.ConsumeFromWhere;</span><br><span class="line"><span class="keyword">import</span> org.apache.rocketmq.common.message.MessageExt;</span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Consumer</span> </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> InterruptedException, MQClientException </span>&#123;</span><br><span class="line">        DefaultMQPushConsumer consumer = <span class="keyword">new</span> DefaultMQPushConsumer(<span class="string">&quot;please_rename_unique_group_name_1&quot;</span>);</span><br><span class="line">        consumer.setNamesrvAddr(<span class="string">&quot;127.0.0.1:9876&quot;</span>);</span><br><span class="line">        consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET);</span><br><span class="line">        consumer.subscribe(<span class="string">&quot;TestTopic&quot;</span>, <span class="string">&quot;*&quot;</span>);</span><br><span class="line">        consumer.registerMessageListener(<span class="keyword">new</span> MessageListenerConcurrently() &#123;</span><br><span class="line">            <span class="function"><span class="keyword">public</span> ConsumeConcurrentlyStatus <span class="title">consumeMessage</span><span class="params">(List&lt;MessageExt&gt; msgs,</span></span></span><br><span class="line"><span class="function"><span class="params">                ConsumeConcurrentlyContext context)</span> </span>&#123;</span><br><span class="line">                System.out.println(<span class="string">&quot;MessageExt msg.getMsgId():&quot;</span> +  msgs.get(<span class="number">0</span>).getMsgId());</span><br><span class="line">                System.out.println(<span class="string">&quot;-------------------分割线-----------------&quot;</span>);</span><br><span class="line">                System.out.printf(<span class="string">&quot;%s Receive New Messages: %s %n&quot;</span>, Thread.currentThread().getName(), msgs);</span><br><span class="line">                <span class="keyword">return</span> ConsumeConcurrentlyStatus.CONSUME_SUCCESS;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;);</span><br><span class="line">        consumer.start();</span><br><span class="line">        System.out.printf(<span class="string">&quot;Consumer Started.%n&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>执行效果如图所示：<br><img src="https://img-blog.csdnimg.cn/20200308202103968.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br><strong>不知道大家是否有注意到，调用 msgs.get(0).getMsgId()返回的msgId 与直接输出msgs中的 msgId 不一样，那这又是为什么呢？答案在本文的第二部分有详细分析。</strong></p>
-<h2 id="2、消息ID释疑"><a href="#2、消息ID释疑" class="headerlink" title="2、消息ID释疑"></a>2、消息ID释疑</h2><p>从消息发送的结果可以得知，RocketMQ 发送的返回结果会返回msgId 与 offsetMsgId，那这两个 msgId 分别是代表什么呢？</p>
+<h2 id="1、RateLimiter-类设计图"><a href="#1、RateLimiter-类设计图" class="headerlink" title="1、RateLimiter 类设计图"></a>1、RateLimiter 类设计图</h2><p><img src="https://img-blog.csdnimg.cn/20200322143507663.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"></p>
 <ul>
-<li>msgId：该ID 是消息发送者在消息发送时会首先在客户端生成，全局唯一，在 RocketMQ 中该 ID 还有另外的一个叫法：uniqId，无不体现其全局唯一性。</li>
-<li>offsetMsgId：消息偏移ID，该 ID 记录了消息所在集群的物理地址，主要包含所存储 Broker 服务器的地址( IP 与端口号)以及所在commitlog 文件的物理偏移量。</li>
+<li>RateLimiter<br>限流抽象类，定义限流器的基本接口。</li>
+<li>SmoothRateLimiter<br>平滑限流实现器，也是一个抽象类。</li>
+<li>SmoothWarmingUp<br>自带预热机制的限流器实现类型。</li>
+<li>SmoothBursty<br>适应于突发流量的限流器。</li>
 </ul>
-<h4 id="2-1-msgId-即全局唯一-ID-构建规则"><a href="#2-1-msgId-即全局唯一-ID-构建规则" class="headerlink" title="2.1 msgId 即全局唯一 ID 构建规则"></a>2.1 msgId 即全局唯一 ID 构建规则</h4><p><img src="https://img-blog.csdnimg.cn/20200308202402908.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>从这张图可以看出，msgId确实是客户端生成的，接下来我们详细分析一下其生成算法。</p>
-<p>MessageClientIDSetter#createUniqID</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> String <span class="title">createUniqID</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    StringBuilder sb = <span class="keyword">new</span> StringBuilder(LEN * <span class="number">2</span>);</span><br><span class="line">    sb.append(FIX_STRING);    <span class="comment">// @1</span></span><br><span class="line">    sb.append(UtilAll.bytes2string(createUniqIDBuffer()));  <span class="comment">// @2</span></span><br><span class="line">    <span class="keyword">return</span> sb.toString();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>一个 uniqID 的构建主要分成两个部分：FIX_STRING 与唯一 ID 生成算法，顾名思义，FIX_STRING 就是一个客户端固定一个前缀，那接下来先看一下固定字符串的生成规则。</p>
-<h5 id="2-1-1-FIX-STRING"><a href="#2-1-1-FIX-STRING" class="headerlink" title="2.1.1 FIX_STRING"></a>2.1.1 FIX_STRING</h5><p>MessageClientIDSetter静态代码块</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">static</span> &#123;</span><br><span class="line">    <span class="keyword">byte</span>[] ip;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        ip = UtilAll.getIP();</span><br><span class="line">    &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">        ip = createFakeIP();</span><br><span class="line">    &#125;</span><br><span class="line">    LEN = ip.length + <span class="number">2</span> + <span class="number">4</span> + <span class="number">4</span> + <span class="number">2</span>;</span><br><span class="line">    ByteBuffer tempBuffer = ByteBuffer.allocate(ip.length + <span class="number">2</span> + <span class="number">4</span>);</span><br><span class="line">    tempBuffer.position(<span class="number">0</span>);</span><br><span class="line">    tempBuffer.put(ip);</span><br><span class="line">    tempBuffer.position(ip.length);</span><br><span class="line">    tempBuffer.putInt(UtilAll.getPid());</span><br><span class="line">    tempBuffer.position(ip.length + <span class="number">2</span>);</span><br><span class="line">    tempBuffer.putInt(MessageClientIDSetter.class.getClassLoader().hashCode());</span><br><span class="line">    FIX_STRING = UtilAll.bytes2string(tempBuffer.array());</span><br><span class="line">    setStartTime(System.currentTimeMillis());</span><br><span class="line">    COUNTER = <span class="keyword">new</span> AtomicInteger(<span class="number">0</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>从这里可以看出 FIX_STRING 的主要由：客户端的IP、进程ID、加载 MessageClientIDSetter 的类加载器的 hashcode。</p>
-<h5 id="2-1-2-唯一性算法"><a href="#2-1-2-唯一性算法" class="headerlink" title="2.1.2 唯一性算法"></a>2.1.2 唯一性算法</h5><p>msgId 的唯一性算法由 MessageClientIDSetter 的createUniqIDBuffer 方法实现。</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">byte</span>[] createUniqIDBuffer() &#123;</span><br><span class="line">    ByteBuffer buffer = ByteBuffer.allocate(<span class="number">4</span> + <span class="number">2</span>);</span><br><span class="line">    <span class="keyword">long</span> current = System.currentTimeMillis();</span><br><span class="line">    <span class="keyword">if</span> (current &gt;= nextStartTime) &#123;</span><br><span class="line">        setStartTime(current);</span><br><span class="line">    &#125;</span><br><span class="line">    buffer.position(<span class="number">0</span>);</span><br><span class="line">    buffer.putInt((<span class="keyword">int</span>) (System.currentTimeMillis() - startTime));</span><br><span class="line">    buffer.putShort((<span class="keyword">short</span>) COUNTER.getAndIncrement());</span><br><span class="line">    <span class="keyword">return</span> buffer.array();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>可以得出 msgId 的后半段主要由：当前时间与系统启动时间的差值，以及自增序号。</p>
-<h4 id="2-2-offsetMsgId构建规则"><a href="#2-2-offsetMsgId构建规则" class="headerlink" title="2.2 offsetMsgId构建规则"></a>2.2 offsetMsgId构建规则</h4><p><img src="https://img-blog.csdnimg.cn/20200308202705728.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>在消息 Broker 服务端将消息追加到内存后会返回其物理偏移量，即在 commitlog 文件中的文件，然后会再次生成一个id，代码中虽然也叫 msgId，其实这里就是我们常说的 offsetMsgId，即记录了消息的物理偏移量，故我们重点来看一下其具体生成规则：<br>MessageDecoder#createMessageId</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> String <span class="title">createMessageId</span><span class="params">(<span class="keyword">final</span> ByteBuffer input ,</span></span></span><br><span class="line"><span class="function"><span class="params">            <span class="keyword">final</span> ByteBuffer addr, <span class="keyword">final</span> <span class="keyword">long</span> offset)</span> </span>&#123;</span><br><span class="line">	input.flip();</span><br><span class="line">    <span class="keyword">int</span> msgIDLength = addr.limit() == <span class="number">8</span> ? <span class="number">16</span> : <span class="number">28</span>;</span><br><span class="line">    input.limit(msgIDLength);</span><br><span class="line">    input.put(addr);</span><br><span class="line">    input.putLong(offset);</span><br><span class="line">    <span class="keyword">return</span> UtilAll.bytes2string(input.array());</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>首先结合该方法的调用上下文，先解释一下该方法三个入参的含义：</p>
-<ul>
-<li>ByteBuffer input<br>用来存放 offsetMsgId 的字节缓存区( NIO 相关的基础知识)</li>
-<li>ByteBuffer addr<br>当前 Broker 服务器的 IP 地址与端口号，即通过解析 offsetMsgId 从而得到消息服务器的地址信息。</li>
-<li>long offset<br>消息的物理偏移量。<br>即构成 offsetMsgId 的组成部分：Broker 服务器的 IP 与端口号、消息的物理偏移量。</li>
-</ul>
+<p>上述类这些属性，在讲解 SmoothBursty、SmoothWarmingUp 时再详细介绍。</p>
 <blockquote>
-<p>温馨提示：即在 RocketMQ中，只需要提供 offsetMsgId，可用不必知道该消息所属的topic信息即可查询该条消息的内容。</p>
+<p>温馨提示：可以看看这些类上的注释，先初步了解其设计思想。</p>
 </blockquote>
-<h4 id="2-3-消息发送与消息消费返回的消息ID信息"><a href="#2-3-消息发送与消息消费返回的消息ID信息" class="headerlink" title="2.3 消息发送与消息消费返回的消息ID信息"></a>2.3 消息发送与消息消费返回的消息ID信息</h4><p>消息发送时会在 SendSesult中返回 msgId、offsetMsgId，在了解了这个两个 ID 的含义时则问题不大，接下来重点介绍一下消息消费时返回的 msgId 到底是哪一个。</p>
-<p>在消息消费时，我们更加希望因为 msgId (即客户端生成的全局唯一性ID)，因为该全局性 ID 非常方便实现消费端的幂等。</p>
-<p>在本文的1.2节我们也提到一个现象，为什么如下图代码中输出的 msgId 会不一样呢？<br><img src="https://img-blog.csdnimg.cn/20200308203117923.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>在客户端返回的 msg 信息，其最终返回的对象是  MessageClientExt ，继承自 MessageExt。<br>那我们接下来分别看一下其 getMsgId() 方法与 toString 方法即可。</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Override</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> String <span class="title">getMsgId</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    String uniqID = MessageClientIDSetter.getUniqID(<span class="keyword">this</span>);</span><br><span class="line">    <span class="keyword">if</span> (uniqID == <span class="keyword">null</span>) &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">this</span>.getOffsetMsgId();</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> uniqID;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>原来在调用 MessageClientExt 中的 getMsgId 方法时，如果消息的属性中存在其唯一ID，则返回消息的全局唯一ID，否则返回消息的 offsetMsgId。</p>
-<p>而 MessageClientExt 方法并没有重写 MessageExt 的 toString 方法，其实现如图所示：<br><img src="https://img-blog.csdnimg.cn/20200308203311967.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>故返回的是 MessageExt中 的 msgId，该 msgId 存放的是offsetMsgId，所以才造成了困扰。</p>
-<blockquote>
-<p>温馨提示：如果消息消费失败需要重试，RocketMQ 的做法是将消息重新发送到 Broker 服务器，此时全局 msgId 是不会发送变化的，但该消息的 offsetMsgId 会发送变化，因为其存储在服务器中的位置发生了变化。</p>
-</blockquote>
-<h2 id="3、实践经验"><a href="#3、实践经验" class="headerlink" title="3、实践经验"></a>3、实践经验</h2><p>在回答了消息发送与消息消费关于msgId与offsetMsgId的困扰后，再来介绍一下如果根据msgId去查询消息。</p>
-<p>想必大家对 rocketmq-console ，那在消息查找界面，展示的消息列表中返回的 msgId 又是哪一个呢？<br><img src="https://img-blog.csdnimg.cn/20200308203400221.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>这里的 Message ID 返回的是消息的全局唯一ID。</p>
-<p>其实 RokcetMQ 也提供了 queryMsgById 命令来查看消息的内容，不过这里的 msgId 是 offsetMsgId，我们首先将全局唯一ID传入命令，其执行效果如下：<br><img src="https://img-blog.csdnimg.cn/20200308203431178.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>发现报错，那我们将 offsetMsgId 传入其执行效果如图所示：<br><img src="https://img-blog.csdnimg.cn/20200308203452188.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>但在 rocketmq-console 的根据消息ID去查找消息，无论传入哪个msgId，下图该功能都能返回正确的结果：<br><img src="https://img-blog.csdnimg.cn/20200308203540222.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>这是因为 rocketmq-console 做了兼容，首先将传入的 msgId 用 queryMsgById 该命令去查，如果报错，则当成 uniqID(全局ID)去查，首先全局ID会存储在消息的属性中，并会创建 Hash 索引，即可用通过 indexfile 快速定位到该条消息。</p>
-</div>
-
-			<script src="https://my.openwrite.cn/js/readmore.js" type="text/javascript"></script>
-			<script>
-			var isMobile = navigator.userAgent.match(/(phone|pad|pod|iPhone|iPod|ios|iPad|Android|Mobile|BlackBerry|IEMobile|MQQBrowser|JUC|Fennec|wOSBrowser|BrowserNG|WebOS|Symbian|Windows Phone)/i);
-			if (!isMobile) {
-			    var btw = new BTWPlugin();
-			    btw.init({
-			        "id": "vip-container",
-			        "blogId": "18019-1573088808868-542",
-			        "name": "中间件兴趣圈",
-			        "qrcode": "https://img-blog.csdnimg.cn/20190314214003962.jpg",
-			        "keyword": "more"
-			    });
-			}
-			</script>
-		
+<h2 id="2、寻找入口"><a href="#2、寻找入口" class="headerlink" title="2、寻找入口"></a>2、寻找入口</h2><p>我们首先从 guava 的测试用例中尝试寻找一下 RateLimiterTest。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">testSimple</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    RateLimiter limiter = RateLimiter.create(stopwatch, <span class="number">5.0</span>);</span><br><span class="line">    limiter.acquire(); <span class="comment">// R0.00, since it&#x27;s the first request</span></span><br><span class="line">    limiter.acquire(); <span class="comment">// R0.20</span></span><br><span class="line">    limiter.acquire(); <span class="comment">// R0.20</span></span><br><span class="line">    assertEvents(<span class="string">&quot;R0.00&quot;</span>, <span class="string">&quot;R0.20&quot;</span>, <span class="string">&quot;R0.20&quot;</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>从这里基本可以看出，首先通过 RateLimiter.create 的静态方法创建一个限流器，然后应用程序在执行业务逻辑之前先调研限流器的 acquire 方法申请许可，接下来我们将循着这个流程来探讨其实现思路。</p>
+<h2 id="3、探究-SmoothBursty-实现原理"><a href="#3、探究-SmoothBursty-实现原理" class="headerlink" title="3、探究 SmoothBursty 实现原理"></a>3、探究 SmoothBursty 实现原理</h2><h4 id="3-1-SmoothBursty-创建流程"><a href="#3-1-SmoothBursty-创建流程" class="headerlink" title="3.1 SmoothBursty 创建流程"></a>3.1 SmoothBursty 创建流程</h4><p>从上面的示例来看，应用程序首先通过 RateLimiter 的静态方法创建一个限流器，其代码如下：<br>RateLimiter#create</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> RateLimiter <span class="title">create</span><span class="params">(SleepingStopwatch stopwatch, <span class="keyword">double</span> permitsPerSecond)</span> </span>&#123; <span class="comment">// @1</span></span><br><span class="line">    RateLimiter rateLimiter = <span class="keyword">new</span> SmoothBursty(stopwatch, <span class="number">1.0</span>);                                  <span class="comment">// @2</span></span><br><span class="line">    rateLimiter.setRate(permitsPerSecond);                                                                    <span class="comment">// @3</span></span><br><span class="line">    <span class="keyword">return</span> rateLimiter;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>代码@1：首先先介绍方法的参数：</p>
+<ul>
+<li>SleepingStopwatch stopwatch<br>秒表，主要是实现当前从启动开始已消耗的时间，有点类似计算一个操作耗时，实现精度纳秒。</li>
+<li>double permitsPerSecond<br>每秒的许可数，即通常我们说的限流TPS。</li>
+</ul>
+<p>代码@2：创建 SmoothBursty 对象。</p>
+<p>代码@3：调用 setRate API 设置其速率器。<br>接下来我们对其进行展开。</p>
+<h5 id="3-1-1-SmoothBursty-构造函数"><a href="#3-1-1-SmoothBursty-构造函数" class="headerlink" title="3.1.1 SmoothBursty 构造函数"></a>3.1.1 SmoothBursty 构造函数</h5><p>SmoothBursty 构造函数</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">SmoothBursty(SleepingStopwatch stopwatch, <span class="keyword">double</span> maxBurstSeconds) &#123;</span><br><span class="line">    <span class="keyword">super</span>(stopwatch);</span><br><span class="line">    <span class="keyword">this</span>.maxBurstSeconds = maxBurstSeconds;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这里主要是为 stopWatch 与 maxBurstSeconds 赋值，其中 maxBurstSeconds 为允许的突发流量的时间，这里默认为 1.0，表示一秒，会影响最大可存储的许可数。</p>
+<h5 id="3-1-2-RateLimiter-setRate-方法详解"><a href="#3-1-2-RateLimiter-setRate-方法详解" class="headerlink" title="3.1.2 RateLimiter setRate 方法详解"></a>3.1.2 RateLimiter setRate 方法详解</h5><p>RateLimiter#setRate</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">final</span> <span class="keyword">void</span> <span class="title">setRate</span><span class="params">(<span class="keyword">double</span> permitsPerSecond)</span> </span>&#123;</span><br><span class="line">    checkArgument(</span><br><span class="line">        permitsPerSecond &gt; <span class="number">0.0</span> &amp;&amp; !Double.isNaN(permitsPerSecond), <span class="string">&quot;rate must be positive&quot;</span>);</span><br><span class="line">    <span class="keyword">synchronized</span> (mutex()) &#123; <span class="comment">// @1</span></span><br><span class="line">      doSetRate(permitsPerSecond, stopwatch.readMicros()); <span class="comment">// @2</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>代码@1：该方法需要获取该类的监视器，在同步代码块中执行，实现线程安全性。</p>
+<p>代码@2：调用 doSetRate 设置速率，将调用其具体实现类 SmoothRateLimiter 的 doSetRate 方法。</p>
+<p>SmoothRateLimiter#doSetRate</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">final</span> <span class="keyword">void</span> <span class="title">doSetRate</span><span class="params">(<span class="keyword">double</span> permitsPerSecond, <span class="keyword">long</span> nowMicros)</span> </span>&#123; <span class="comment">// @1</span></span><br><span class="line">    resync(nowMicros);   <span class="comment">// @2</span></span><br><span class="line">    <span class="keyword">double</span> stableIntervalMicros = SECONDS.toMicros(<span class="number">1L</span>) / permitsPerSecond;  <span class="comment">// @3</span></span><br><span class="line">    <span class="keyword">this</span>.stableIntervalMicros = stableIntervalMicros;                                              </span><br><span class="line">    doSetRate(permitsPerSecond, stableIntervalMicros);                                      <span class="comment">// @4</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>代码@1：先来介绍一下该方法的参数的含义：</p>
+<ul>
+<li>double permitsPerSecond<br>每秒的许可数，即TPS。</li>
+<li>long nowMicros<br>系统已运行时间。</li>
+</ul>
+<p>代码@2：基于当前时间重置 SmoothRateLimiter 内部的 storedPermits (已存储的许可数量) 与 nextFreeTicketMicros (下一次可以免费获取许可的时间) 值，所谓的免费指的是无需等待就可以获取设定速率的许可，该方法对理解限流许可的产生非常关键，稍后详细介绍。</p>
+        
+          <p class="article-more-link">
+            <a href="/2020/12/08/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90%20RateLimiter%20SmoothBursty%20%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86(%E6%96%87%E6%9C%AB%E9%99%84%E6%B5%81%E7%A8%8B%E5%9B%BE)/#more">Read More</a>
+          </p>
+        
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://example.com/2020/12/07/RocketMQ%20msgId%E4%B8%8EoffsetMsgId%E9%87%8A%E7%96%91(%E5%AE%9E%E6%88%98%E7%AF%87)/" data-id="ckieqedx20005ukrgeih0bltx" class="article-share-link">Share</a>
+      <a data-url="http://example.com/2020/12/08/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90%20RateLimiter%20SmoothBursty%20%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86(%E6%96%87%E6%9C%AB%E9%99%84%E6%B5%81%E7%A8%8B%E5%9B%BE)/" data-id="ckig4lif9002im4rg56hp582n" class="article-share-link">Share</a>
       
       
-  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/rocketmq/" rel="tag">rocketmq</a></li></ul>
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/sentinel/" rel="tag">sentinel</a></li></ul>
 
     </footer>
   </div>
@@ -621,14 +689,14 @@
 
 
   
-    <article id="post-RocketMQ一行代码造成大量消息发送失败" class="article article-type-post" itemscope itemprop="blogPost">
+    <article id="post-Sentinel FlowSlot 限流实现原理(文末附流程图与总结)" class="article article-type-post" itemscope itemprop="blogPost">
   <div class="article-meta">
-    <a href="/2020/12/07/RocketMQ%E4%B8%80%E8%A1%8C%E4%BB%A3%E7%A0%81%E9%80%A0%E6%88%90%E5%A4%A7%E9%87%8F%E6%B6%88%E6%81%AF%E5%8F%91%E9%80%81%E5%A4%B1%E8%B4%A5/" class="article-date">
-  <time datetime="2020-12-07T14:51:57.000Z" itemprop="datePublished">2020-12-07</time>
+    <a href="/2020/12/08/Sentinel%20FlowSlot%20%E9%99%90%E6%B5%81%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86(%E6%96%87%E6%9C%AB%E9%99%84%E6%B5%81%E7%A8%8B%E5%9B%BE%E4%B8%8E%E6%80%BB%E7%BB%93)/" class="article-date">
+  <time datetime="2020-12-08T14:50:35.000Z" itemprop="datePublished">2020-12-08</time>
 </a>
     
   <div class="article-category">
-    <a class="article-category-link" href="/categories/rocketmq/">rocketmq</a>
+    <a class="article-category-link" href="/categories/sentinel/">sentinel</a>
   </div>
 
   </div>
@@ -639,7 +707,7 @@
         
   
     <h1 itemprop="name">
-      <a class="article-title" href="/2020/12/07/RocketMQ%E4%B8%80%E8%A1%8C%E4%BB%A3%E7%A0%81%E9%80%A0%E6%88%90%E5%A4%A7%E9%87%8F%E6%B6%88%E6%81%AF%E5%8F%91%E9%80%81%E5%A4%B1%E8%B4%A5/">RocketMQ一行代码造成大量消息发送失败</a>
+      <a class="article-title" href="/2020/12/08/Sentinel%20FlowSlot%20%E9%99%90%E6%B5%81%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86(%E6%96%87%E6%9C%AB%E9%99%84%E6%B5%81%E7%A8%8B%E5%9B%BE%E4%B8%8E%E6%80%BB%E7%BB%93)/">Sentinel FlowSlot 限流实现原理(文末附流程图与总结)</a>
     </h1>
   
 
@@ -647,98 +715,53 @@
     
     <div class="article-entry" itemprop="articleBody">
       
-        <h2 id="1、问题现象"><a href="#1、问题现象" class="headerlink" title="1、问题现象"></a>1、问题现象</h2><p>首先接到项目反馈使用 RocketMQ 会出现如下错误：<br><img src="https://img-blog.csdnimg.cn/2020051623272777.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br>错误信息关键点：MQBrokerException：CODE:2 DESC:[TIMEOUT_CLEAN_QUEUE]broker busy,start flow control for a while,period in queue：205ms，size of queue:880。</p>
-<p>由于项目组并没有对消息发送失败做任何补偿，导致丢失消息发送失败，故需要对这个问题进行深层次的探讨，并加以解决。</p>
-<h2 id="2、问题分析"><a href="#2、问题分析" class="headerlink" title="2、问题分析"></a>2、问题分析</h2><p>首先我们根据关键字：TIMEOUT_CLEAN_QUEUE 去 RocketMQ 中查询，去探究在什么时候会抛出如上错误。根据全文搜索如下图所示：<br><img src="https://img-blog.csdnimg.cn/20200517091330168.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br>该方法是在 BrokerFastFailure 中定义的，通过名称即可以看成其设计目的：Broker端快速失败机制。</p>
-<p><strong>Broker 端快速失败其原理图如下：</strong><br><img src="https://img-blog.csdnimg.cn/20200517091356312.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"></p>
+        <p>Sentinel 触发限流的实现类为 FlowSlot。我们再来简单思考一下，要实现触发限流，至少需要完成如下几件事情：</p>
 <ul>
-<li>消息发送者向 Broker 发送消息写入请求，Broker 端在接收到请求后会首先放入一个队列中(SendThreadPoolQueue)，默认容量为 10000。</li>
-<li>Broker 会专门使用一个线程池(SendMessageExecutor)去从队列中获取任务并执行消息写入请求，为了保证消息的顺序处理，该线程池默认线程个数为1。</li>
+<li>收集实时调用信息。</li>
+<li>设置触发限流规则</li>
+<li>根据限流规则与调用信息来决定是否对请求进行限流等。</li>
 </ul>
-<p>如果 Broker 端受到垃圾回收等等因素造成单条写入数据发生抖动，单个 Broker 端积压的请求太多从而得不到及时处理，会极大的造成客户端消息发送的时间延长。</p>
-<p>设想一下，如果由于 Broker 压力增大，写入一条消息需要500ms甚至超过1s，并且队列中积压了5000条消息，消息发送端的默认超时时间为3s，如果按照这样的速度，这些请求在轮到 Broker 执行写入请求时，客户端已经将这个请求超时了，这样不仅会造成大量的无效处理，还会导致客户端发送超时。</p>
+<p>如何收集实时调用信息在前面的文章中已详细介绍，请带着上述问题开始本节的探讨。<br>@<a href="%E6%9C%AC%E8%8A%82%E7%9B%AE%E5%BD%95">TOC</a></p>
+<h2 id="1、初始-FlowSlot"><a href="#1、初始-FlowSlot" class="headerlink" title="1、初始 FlowSlot"></a>1、初始 FlowSlot</h2><p>我们先从 FlotSlot 类的注释来简单认识一下流量控制相关的内容。</p>
+<ul>
+<li>根据已（NodeSelectorSlot、ClusterNodeBuilderSlot 和 StatisticSlot）收集的运行时统计信息，FlowSlot将使用预先设置的规则来决定是否应阻止传入请求。</li>
+<li>SphU.entry(resourceName)调用时，如果有任意一条规则被触发则会抛出 FlowException 异常，应用程序可捕捉该异常对业务进行定制化处理。</li>
+<li>每一条流控规则(FlowRule)都包含三个要素：流控类别、基于调用链的流控制策略、限流后的处理行为(参考FlowRule相关的注释)。<ul>
+<li><pre><code>grade 流量控制的阈值类型</code></pre>
+可选值：QPS(基于QPS限流策略)、并发线程数。</li>
+<li>strategy 基于调用链的流控制策略<br>可选值：STRATEGY_DIRECT(根据调用方限流策略)、STRATEGY_RELATE(关联流量限<br>流策略)、STRATEGY_CHAIN(根据调用链入口限流策略)</li>
+<li>controlBehavior 流量控制后的采取的行为<br>CONTROL_BEHAVIOR_DEFAULT(直接拒绝)、CONTROL_BEHAVIOR_WARM_UP(预热)、CONTROL_BEHAVIOR_RATE_LIMITER(匀速排队)、<br>CONTROL_BEHAVIOR_WARM_UP_RATE_LIMITER(预热与匀速排队)。</li>
+</ul>
+</li>
+</ul>
+<h2 id="2、FlowSlot-详解"><a href="#2、FlowSlot-详解" class="headerlink" title="2、FlowSlot 详解"></a>2、FlowSlot 详解</h2><h4 id="2-1-FlowSlot-类图"><a href="#2-1-FlowSlot-类图" class="headerlink" title="2.1 FlowSlot 类图"></a>2.1 FlowSlot 类图</h4><p><img src="https://img-blog.csdnimg.cn/20200315193331252.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>FlowSlot 的类图非常简单，内部持有一个成员变量，FlowRuleChecker，用来判断是否满足流控触发条件。</p>
+<p>在继续探讨 Sentinel 限流之前，我们先来了解一下 FlowRule，即认识一下 Sentienl 流控规则主要包含哪些配置项，为后续的流程做一个消息的准备。</p>
+<h4 id="2-2-FlowRule-配置项"><a href="#2-2-FlowRule-配置项" class="headerlink" title="2.2 FlowRule 配置项"></a>2.2 FlowRule 配置项</h4><p>FlowRule 的类体系如图所示：<br><img src="https://img-blog.csdnimg.cn/20200315193402645.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>其属性的含义如下：</p>
+<ul>
+<li>String resource<br>资源的名称。</li>
+<li>String limitApp<br>需要限制的调用来源，对应【新增流控规则界面】的针对来源。</li>
+<li>int grade<br>流量控制的阈值类型，目前支持 QPS 与 并发线程数，对应 【新增流控规则界面】的阔值类型。</li>
+<li>int strategy<br>基于调用链的流量控制策略，对应【新增流控规则界面】的流控模式，其可选取值在本文开头部分有详细介绍。</li>
+<li>String refResource<br>关联资源或入口资源，当流控模式为关联或链路时配置的关联资源或入口资源，对应【新增流控规则界面】的【入口资源】</li>
+<li>int controlBehavior<br>流量控制后的采取的行为，其可选取值在本文开头部分有详细介绍，对应【新增流控规则界面】的流控效果。</li>
+<li>int warmUpPeriodSec<br>预热时间，如果 controlBehavior 设置为预热(warm up)时，可以配置其预热时间，在【新增流控规则界面】中选择 warm up 类型后，会增加一行，供用户配置，默认值 10s。</li>
+<li>int maxQueueingTimeMs<br>最大超时时间，如果 controlBehavior 设置为排队等待时，等待的最大超时时间，默认为500ms。</li>
+<li>boolean clusterMode<br>是否是集群限流模式，对应【新增流控规则界面】的是否集群。</li>
+<li>ClusterFlowConfig clusterConfig<br>集群扩容相关配置，集群限流将在后续文章中重点介绍。</li>
+</ul>
+<p>在 sentinel-dashboard 的配置界面如下图所示：<br><img src="https://img-blog.csdnimg.cn/20200315193551464.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"></p>
         
           <p class="article-more-link">
-            <a href="/2020/12/07/RocketMQ%E4%B8%80%E8%A1%8C%E4%BB%A3%E7%A0%81%E9%80%A0%E6%88%90%E5%A4%A7%E9%87%8F%E6%B6%88%E6%81%AF%E5%8F%91%E9%80%81%E5%A4%B1%E8%B4%A5/#more">Read More</a>
+            <a href="/2020/12/08/Sentinel%20FlowSlot%20%E9%99%90%E6%B5%81%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86(%E6%96%87%E6%9C%AB%E9%99%84%E6%B5%81%E7%A8%8B%E5%9B%BE%E4%B8%8E%E6%80%BB%E7%BB%93)/#more">Read More</a>
           </p>
         
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://example.com/2020/12/07/RocketMQ%E4%B8%80%E8%A1%8C%E4%BB%A3%E7%A0%81%E9%80%A0%E6%88%90%E5%A4%A7%E9%87%8F%E6%B6%88%E6%81%AF%E5%8F%91%E9%80%81%E5%A4%B1%E8%B4%A5/" data-id="ckieqedx20006ukrg1yy07z3b" class="article-share-link">Share</a>
+      <a data-url="http://example.com/2020/12/08/Sentinel%20FlowSlot%20%E9%99%90%E6%B5%81%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86(%E6%96%87%E6%9C%AB%E9%99%84%E6%B5%81%E7%A8%8B%E5%9B%BE%E4%B8%8E%E6%80%BB%E7%BB%93)/" data-id="ckig4lifr003pm4rg6qtq62ia" class="article-share-link">Share</a>
       
       
-  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/rocketmq/" rel="tag">rocketmq</a></li></ul>
-
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-我的另一种参与 RocketMQ 开源社区的方式" class="article article-type-post" itemscope itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/2020/12/07/%E6%88%91%E7%9A%84%E5%8F%A6%E4%B8%80%E7%A7%8D%E5%8F%82%E4%B8%8E%20RocketMQ%20%E5%BC%80%E6%BA%90%E7%A4%BE%E5%8C%BA%E7%9A%84%E6%96%B9%E5%BC%8F/" class="article-date">
-  <time datetime="2020-12-07T14:49:57.000Z" itemprop="datePublished">2020-12-07</time>
-</a>
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/rocketmq/">rocketmq</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/2020/12/07/%E6%88%91%E7%9A%84%E5%8F%A6%E4%B8%80%E7%A7%8D%E5%8F%82%E4%B8%8E%20RocketMQ%20%E5%BC%80%E6%BA%90%E7%A4%BE%E5%8C%BA%E7%9A%84%E6%96%B9%E5%BC%8F/">我的另一种参与 RocketMQ 开源社区的方式</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <p>首先先“SHOW”一波我在 RocketMQ 开源社区所获得的成就：2019年RocketMQ社区授予我优秀布道师荣誉称号，证书很高大上，奖品丰厚哦。<br><img src="https://img-blog.csdnimg.cn/20200608190532198.jpg?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br>布道师是什么？开源项目不是都在追求如何成为一名 Committer？其实这个就是参与开源项目的两种不同方式。如何参与一个开源项目，容我慢慢道来。</p>
-<p>@<a href="%E6%9C%AC%E8%8A%82%E7%9B%AE%E5%BD%95">TOC</a></p>
-<h2 id="1、与-RocketMQ-相识、相知到“在一起”"><a href="#1、与-RocketMQ-相识、相知到“在一起”" class="headerlink" title="1、与 RocketMQ 相识、相知到“在一起”"></a>1、与 RocketMQ 相识、相知到“在一起”</h2><p>在2017年听到阿里巴巴将 RocketMQ 捐赠给 Apache基金会成为 Apache 的顶级项目，我内心是无比激动，因为终于可以一睹一款高性能的消息中间件的实现原理。</p>
-<p>通过阅读 RocketMQ 官方文档，以下几个特别的点吸引了我的注意，让我下定决心深入研究一番。</p>
-<ul>
-<li>RocketMQ 为什么性能高效，到底运用了什么“厉害”的技术</li>
-<li>RocketMQ 如何实现刷盘（可以类比一下数据库方面的刷盘、redo、undo日志）</li>
-<li>RocketMQ 文件存储设计理念、基于文件的 Hash 索引是怎么实现的</li>
-<li>定时消息、消息过滤等实现原理</li>
-<li>如何进行网络编程（Netty实战）</li>
-</ul>
-<p>心动不如行动，下定决心后便开始了我的源码分析 RocketMQ 之旅，大概在4个多月的时间中连续发表了30余篇文章，从 Nameserver、消息发送高可用设计、消息存储、消息消费、消息过滤、事务消息等各个方面对其进行了体系化的剖析，边写边分享，边分享边传播，终于得到了机械工业出版社华章分社的杨福川老师的认可，邀请我出书。</p>
-<p>在杨老师和张工的帮助与指点下，经过将近半年的努力，书稿基本完稿。</p>
-<p>由于我当时是一位名不经传的新人，按照出版行业的惯例，需要找一些该领域内专家大牛帮忙做序或写写推荐语。</p>
-<p>当时我是初生牛犊不怕虎，蹦出了一个非常大胆的想法，是不是可以联系 RocketMQ 官方的一些大佬，最终我直接锁定了 RocketMQ 创始人冯嘉大神，希望他能帮我作序推荐。</p>
-<p>令人惊喜的是冯嘉大神非常平易见人，得知我的来意后，他说了这样一句话：“我是非常愿意为写书的朋友作序，但需要评估一下书稿的质量，如果质量OK，非常愿意效劳”。</p>
-<p>我备受鼓舞，在和出版社初步沟通后，将试读稿件再加上消息存储整章的内容发给冯嘉大神后，经冯嘉大神认真审稿后，决定帮忙推荐作序，真的让我备受鼓舞。</p>
-<p>随着《RocketMQ技术内幕》一书的正式出版上市，并得到广大读者朋友的认可，与官方的联系也越来越多，后面在 RocketMQ 中国社区负责人青峰大佬的筹备下，我还参与了 RocketMQ 官方社区的源码解析直播活动、官方文档审稿等工作，并在社区得到了不错的反响。</p>
-<p><strong>说到这里大家是不是觉得非常奇怪，是不是都认为你只是在写文章，写书，没有真正参与开源社区呀，没有贡献代码，这个算哪门子参与开源社区？</strong></p>
-<p>其实我一开始连我自己也没有意识到我正在参与一个开源项目，直到我在冯嘉大神为我写的序言中看到他给了我一个新的称号：<strong>RocketMQ布道师</strong>，从而才真正了解到参与开源的另外一种方式：做一个开源项目的传播者，让更多人更容易的使用它，即降低大众对它的使用门槛。</p>
-<p>我后面也特意去查了一下开源项目的布道师是一个什么的角色，或者说什么样的人能被称之为布道师。个人的理解就是首先认可并热爱这项技术，并持续输出高质量的技术类文章、文档等有助于技术传播的素材，让更多人更容易理解并使用它。</p>
-<p>有了新的称号，那就得更加努力，朝着优秀努力，在2019年我又陆续发表了20几篇关于RocketMQ相关的文章，这些文章含金量极高，不仅及时跟进了RocketMQ4.3之后的新特性：消息轨迹、ACL、主从切换等机制，更是发表了数篇实战类文章，详细指出在生产环境下一些使用误区，更是输出了几篇生产环境真实故障与解决方案。最终于2019年 RocketMQ 官方社区授予我优秀布道师荣誉称号。</p>
-<p>RocketMQ 成就了现在的我，我也会继续努力，为传播RocketMQ尽一份力所能及的力量。2020年，继续努力。</p>
-<h2 id="2、如何成为开源项目的-Committer"><a href="#2、如何成为开源项目的-Committer" class="headerlink" title="2、如何成为开源项目的 Committer"></a>2、如何成为开源项目的 Committer</h2><p>有一些粉丝在问我，您对 RocketMQ 研究的这么深入，为什么不考虑贡献代码，成为一名 Committer 呢？这是因为参与开源项目需要具备一些基本条件，当下我的实际情况不符合，那成为一个开源项目的 Committer 有些什么条件呢？</p>
-        
-          <p class="article-more-link">
-            <a href="/2020/12/07/%E6%88%91%E7%9A%84%E5%8F%A6%E4%B8%80%E7%A7%8D%E5%8F%82%E4%B8%8E%20RocketMQ%20%E5%BC%80%E6%BA%90%E7%A4%BE%E5%8C%BA%E7%9A%84%E6%96%B9%E5%BC%8F/#more">Read More</a>
-          </p>
-        
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="http://example.com/2020/12/07/%E6%88%91%E7%9A%84%E5%8F%A6%E4%B8%80%E7%A7%8D%E5%8F%82%E4%B8%8E%20RocketMQ%20%E5%BC%80%E6%BA%90%E7%A4%BE%E5%8C%BA%E7%9A%84%E6%96%B9%E5%BC%8F/" data-id="ckieqedxe000sukrgb3wb0kd1" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/rocketmq/" rel="tag">rocketmq</a></li></ul>
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/sentinel/" rel="tag">sentinel</a></li></ul>
 
     </footer>
   </div>
@@ -751,7 +774,7 @@
 
   <nav id="page-nav">
     
-    <span class="page-number current">1</span><a class="page-number" href="/page/2/">2</a><a class="extend next" rel="next" href="/page/2/">下一页 &amp;raquo;</a>
+    <span class="page-number current">1</span><a class="page-number" href="/page/2/">2</a><a class="page-number" href="/page/3/">3</a><span class="space">&hellip;</span><a class="page-number" href="/page/5/">5</a><a class="extend next" rel="next" href="/page/2/">下一页 &amp;raquo;</a>
   </nav>
 
 </section>
@@ -762,7 +785,7 @@
   <div class="widget-wrap">
     <h3 class="widget-title">分类</h3>
     <div class="widget">
-      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/kafka-rocketmq/">kafka rocketmq</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/rocketmq/">rocketmq</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/%E7%A8%8B%E5%BA%8F%E4%BA%BA%E7%94%9F-%E9%80%86%E8%A2%AD-%E8%81%8C%E5%9C%BA%E5%8F%91%E5%B1%95/">程序人生 逆袭 职场发展</a></li></ul>
+      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/kafka-rocketmq/">kafka rocketmq</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/rocketmq/">rocketmq</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/sentinel/">sentinel</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/%E7%A8%8B%E5%BA%8F%E4%BA%BA%E7%94%9F-%E9%80%86%E8%A2%AD-%E8%81%8C%E5%9C%BA%E5%8F%91%E5%B1%95/">程序人生 逆袭 职场发展</a></li></ul>
     </div>
   </div>
 
@@ -772,7 +795,7 @@
   <div class="widget-wrap">
     <h3 class="widget-title">标签</h3>
     <div class="widget">
-      <ul class="tag-list" itemprop="keywords"><li class="tag-list-item"><a class="tag-list-link" href="/tags/kafka-rocketmq/" rel="tag">kafka rocketmq</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rocketmq/" rel="tag">rocketmq</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rocketmq-broker-busy-TIMEOUT-CLEAN-QUEUE-PCBUSY-CLEAN-QUEUE/" rel="tag">rocketmq broker busy TIMEOUT_CLEAN_QUEUE PCBUSY_CLEAN_QUEUE</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rocketmq-%E4%B8%BB%E9%A2%98%E6%89%A9%E5%AE%B9-%E5%AE%9E%E6%88%98-%E5%9D%91/" rel="tag">rocketmq 主题扩容 实战 坑</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rocketmq-%E5%A4%9A%E5%89%AF%E6%9C%AC-raft-%E4%B8%BB%E4%BB%8E%E5%88%87%E6%8D%A2/" rel="tag">rocketmq 多副本 raft 主从切换</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rocketmq-%E5%A4%9A%E5%89%AF%E6%9C%AC-raft-%E9%80%89%E4%B8%BB/" rel="tag">rocketmq 多副本 raft 选主</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E7%A8%8B%E5%BA%8F%E4%BA%BA%E7%94%9F/" rel="tag">程序人生</a></li></ul>
+      <ul class="tag-list" itemprop="keywords"><li class="tag-list-item"><a class="tag-list-link" href="/tags/kafka-rocketmq/" rel="tag">kafka rocketmq</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rocketmq/" rel="tag">rocketmq</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rocketmq-broker-busy-TIMEOUT-CLEAN-QUEUE-PCBUSY-CLEAN-QUEUE/" rel="tag">rocketmq broker busy TIMEOUT_CLEAN_QUEUE PCBUSY_CLEAN_QUEUE</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rocketmq-%E4%B8%BB%E9%A2%98%E6%89%A9%E5%AE%B9-%E5%AE%9E%E6%88%98-%E5%9D%91/" rel="tag">rocketmq 主题扩容 实战 坑</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rocketmq-%E5%A4%9A%E5%89%AF%E6%9C%AC-raft-%E4%B8%BB%E4%BB%8E%E5%88%87%E6%8D%A2/" rel="tag">rocketmq 多副本 raft 主从切换</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rocketmq-%E5%A4%9A%E5%89%AF%E6%9C%AC-raft-%E9%80%89%E4%B8%BB/" rel="tag">rocketmq 多副本 raft 选主</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/sentinel/" rel="tag">sentinel</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E7%A8%8B%E5%BA%8F%E4%BA%BA%E7%94%9F/" rel="tag">程序人生</a></li></ul>
     </div>
   </div>
 
@@ -782,7 +805,7 @@
   <div class="widget-wrap">
     <h3 class="widget-title">标签云</h3>
     <div class="widget tagcloud">
-      <a href="/tags/kafka-rocketmq/" style="font-size: 10px;">kafka rocketmq</a> <a href="/tags/rocketmq/" style="font-size: 20px;">rocketmq</a> <a href="/tags/rocketmq-broker-busy-TIMEOUT-CLEAN-QUEUE-PCBUSY-CLEAN-QUEUE/" style="font-size: 10px;">rocketmq broker busy TIMEOUT_CLEAN_QUEUE PCBUSY_CLEAN_QUEUE</a> <a href="/tags/rocketmq-%E4%B8%BB%E9%A2%98%E6%89%A9%E5%AE%B9-%E5%AE%9E%E6%88%98-%E5%9D%91/" style="font-size: 10px;">rocketmq 主题扩容 实战 坑</a> <a href="/tags/rocketmq-%E5%A4%9A%E5%89%AF%E6%9C%AC-raft-%E4%B8%BB%E4%BB%8E%E5%88%87%E6%8D%A2/" style="font-size: 10px;">rocketmq 多副本 raft 主从切换</a> <a href="/tags/rocketmq-%E5%A4%9A%E5%89%AF%E6%9C%AC-raft-%E9%80%89%E4%B8%BB/" style="font-size: 10px;">rocketmq 多副本 raft 选主</a> <a href="/tags/%E7%A8%8B%E5%BA%8F%E4%BA%BA%E7%94%9F/" style="font-size: 10px;">程序人生</a>
+      <a href="/tags/kafka-rocketmq/" style="font-size: 10px;">kafka rocketmq</a> <a href="/tags/rocketmq/" style="font-size: 20px;">rocketmq</a> <a href="/tags/rocketmq-broker-busy-TIMEOUT-CLEAN-QUEUE-PCBUSY-CLEAN-QUEUE/" style="font-size: 10px;">rocketmq broker busy TIMEOUT_CLEAN_QUEUE PCBUSY_CLEAN_QUEUE</a> <a href="/tags/rocketmq-%E4%B8%BB%E9%A2%98%E6%89%A9%E5%AE%B9-%E5%AE%9E%E6%88%98-%E5%9D%91/" style="font-size: 10px;">rocketmq 主题扩容 实战 坑</a> <a href="/tags/rocketmq-%E5%A4%9A%E5%89%AF%E6%9C%AC-raft-%E4%B8%BB%E4%BB%8E%E5%88%87%E6%8D%A2/" style="font-size: 10px;">rocketmq 多副本 raft 主从切换</a> <a href="/tags/rocketmq-%E5%A4%9A%E5%89%AF%E6%9C%AC-raft-%E9%80%89%E4%B8%BB/" style="font-size: 10px;">rocketmq 多副本 raft 选主</a> <a href="/tags/sentinel/" style="font-size: 15px;">sentinel</a> <a href="/tags/%E7%A8%8B%E5%BA%8F%E4%BA%BA%E7%94%9F/" style="font-size: 10px;">程序人生</a>
     </div>
   </div>
 
@@ -804,23 +827,23 @@
       <ul>
         
           <li>
-            <a href="/2020/12/07/RocketMQ%20%E4%B8%BB%E9%A2%98%E6%89%A9%E5%88%86%E7%89%87%E5%90%8E%E9%81%87%E5%88%B0%E7%9A%84%E5%9D%91/">RocketMQ 主题扩分片后遇到的坑</a>
+            <a href="/2020/12/08/%E7%BB%93%E5%90%88%20Sentinel%20%E4%B8%93%E6%A0%8F%E8%B0%88%E8%B0%88%E6%88%91%E7%9A%84%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB%E6%8A%80%E5%B7%A7/">结合 Sentinel 专栏谈谈我的源码阅读技巧</a>
           </li>
         
           <li>
-            <a href="/2020/12/07/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90%20RocketMQ%20DLedger%20%E5%A4%9A%E5%89%AF%E6%9C%AC%E5%AD%98%E5%82%A8%E5%AE%9E%E7%8E%B0/">源码分析 RocketMQ DLedger 多副本存储实现</a>
+            <a href="/2020/12/08/Sentinel%20%E7%B3%BB%E7%BB%9F%E8%87%AA%E9%80%82%E5%BA%94%E9%99%90%E6%B5%81%E5%8E%9F%E7%90%86%E5%89%96%E6%9E%90%E4%B8%8E%E5%AE%9E%E6%88%98%E6%8C%87%E5%AF%BC/">Sentinel 系统自适应限流原理剖析与实战指导</a>
           </li>
         
           <li>
-            <a href="/2020/12/07/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90%20RocketMQ%20DLedger%20%E5%A4%9A%E5%89%AF%E6%9C%AC%E4%B9%8B%20Leader%20%E9%80%89%E4%B8%BB/">源码分析 RocketMQ DLedger 多副本之 Leader 选主</a>
+            <a href="/2020/12/08/Sentinel%20Dubbo%20%E9%80%82%E9%85%8D%E5%99%A8%E7%9C%8B%E9%99%90%E6%B5%81%E4%B8%8E%E7%86%94%E6%96%AD(%E5%AE%9E%E6%88%98%E6%80%9D%E8%80%83%E7%AF%87)/">Sentinel Dubbo 适配器看限流与熔断(实战思考篇)</a>
           </li>
         
           <li>
-            <a href="/2020/12/07/RocketMQ%20%E5%A4%9A%E5%89%AF%E6%9C%AC%E5%89%8D%E7%BD%AE%E7%AF%87%EF%BC%9A%E5%88%9D%E6%8E%A2raft%E5%8D%8F%E8%AE%AE/">RocketMQ 多副本前置篇：初探raft协议</a>
+            <a href="/2020/12/08/Sentinel%20%E9%9B%86%E7%BE%A4%E9%99%90%E6%B5%81%E8%AE%BE%E8%AE%A1%E5%8E%9F%E7%90%86/">Sentinel 集群限流设计原理</a>
           </li>
         
           <li>
-            <a href="/2020/12/07/%E4%B8%80%E6%AC%A1%20RocketMQ%20%E8%BF%9B%E7%A8%8B%E8%87%AA%E5%8A%A8%E9%80%80%E5%87%BA%E6%8E%92%E6%9F%A5%E7%BB%8F%E9%AA%8C%E5%88%86%E4%BA%AB%EF%BC%88%E5%AE%9E%E6%88%98%E7%AF%87%EF%BC%89/">一次 RocketMQ 进程自动退出排查经验分享（实战篇）</a>
+            <a href="/2020/12/08/Sentienl%20%E5%8A%A8%E6%80%81%E6%95%B0%E6%8D%AE%E6%BA%90%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1%E7%90%86%E5%BF%B5%E4%B8%8E%E6%94%B9%E9%80%A0%E5%AE%9E%E8%B7%B5/">Sentienl 动态数据源架构设计理念与改造实践</a>
           </li>
         
       </ul>

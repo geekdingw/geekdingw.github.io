@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+
+  
+  <title>Alibaba Sentinel 限流与熔断初探(技巧篇) | 中间件兴趣圈</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="温馨提示：源码分析 Alibaba Sentinel 专栏开始连载，本文展示如何学习一个全新的技术的方法。该专栏基于 1.7.0 版本。  在学习一个新技术或新框架时，建议先查看其官方文档， Sentinel 官方文档链接如下：官方文档，以获得对其形成一个整体的认识。 1、Sentinel 是什么 ？主要能解决什么问题？按照官方的定义，Sentinel 意为分布式系统的流量防卫兵，主要提供限流、">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Alibaba Sentinel 限流与熔断初探(技巧篇)">
+<meta property="og:url" content="http://example.com/2020/12/08/Alibaba%20Sentinel%20%E9%99%90%E6%B5%81%E4%B8%8E%E7%86%94%E6%96%AD%E5%88%9D%E6%8E%A2(%E6%8A%80%E5%B7%A7%E7%AF%87)/index.html">
+<meta property="og:site_name" content="中间件兴趣圈">
+<meta property="og:description" content="温馨提示：源码分析 Alibaba Sentinel 专栏开始连载，本文展示如何学习一个全新的技术的方法。该专栏基于 1.7.0 版本。  在学习一个新技术或新框架时，建议先查看其官方文档， Sentinel 官方文档链接如下：官方文档，以获得对其形成一个整体的认识。 1、Sentinel 是什么 ？主要能解决什么问题？按照官方的定义，Sentinel 意为分布式系统的流量防卫兵，主要提供限流、">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/20191214230343989.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/20191214230725995.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/20191214230758222.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/20191214230836334.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/20191214230902547.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/20191214230924603.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/20191214231003110.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/20191214231019623.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70">
+<meta property="article:published_time" content="2020-12-08T14:36:35.000Z">
+<meta property="article:modified_time" content="2020-12-08T14:48:39.077Z">
+<meta property="article:author" content="中间件兴趣圈">
+<meta property="article:tag" content="sentinel">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://img-blog.csdnimg.cn/20191214230343989.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70">
+  
+    <link rel="alternate" href="/atom.xml" title="中间件兴趣圈" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  
+    <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css">
+  
+  
+<link rel="stylesheet" href="/css/style.css">
+
+<meta name="generator" content="Hexo 5.2.0"></head>
+
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">中间件兴趣圈</a>
+      </h1>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="搜索"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://example.com"></form>
+      </div>
+    </div>
+  </div>
+</header>
+      <div class="outer">
+        <section id="main"><article id="post-Alibaba Sentinel 限流与熔断初探(技巧篇)" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2020/12/08/Alibaba%20Sentinel%20%E9%99%90%E6%B5%81%E4%B8%8E%E7%86%94%E6%96%AD%E5%88%9D%E6%8E%A2(%E6%8A%80%E5%B7%A7%E7%AF%87)/" class="article-date">
+  <time datetime="2020-12-08T14:36:35.000Z" itemprop="datePublished">2020-12-08</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/sentinel/">sentinel</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      Alibaba Sentinel 限流与熔断初探(技巧篇)
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <div id="vip-container"><blockquote>
+<p>温馨提示：源码分析 Alibaba Sentinel 专栏开始连载，本文展示如何学习一个全新的技术的方法。该专栏基于 1.7.0 版本。</p>
+</blockquote>
+<p>在学习一个新技术或新框架时，建议先查看其官方文档， Sentinel 官方文档链接如下：<a target="_blank" rel="noopener" href="https://github.com/alibaba/Sentinel/wiki/%E4%BB%8B%E7%BB%8D">官方文档</a>，以获得对其形成一个整体的认识。</p>
+<h2 id="1、Sentinel-是什么-？主要能解决什么问题？"><a href="#1、Sentinel-是什么-？主要能解决什么问题？" class="headerlink" title="1、Sentinel 是什么 ？主要能解决什么问题？"></a>1、Sentinel 是什么 ？主要能解决什么问题？</h2><p>按照官方的定义，Sentinel 意为分布式系统的流量防卫兵，主要提供限流、熔断等服务治理相关的功能。</p>
+<p>服务的动态注册、服务发现是 SOA、微服务架构体系中首先需要解决的基本问题，服务治理是 SOA 领域又一重要课题，而 dubbo 框架只提供了一些基本的服务治理能力，例如限制服务并发调用数、配置合适的业务线程数量等，但熔断相关的功能就涉及的较少。</p>
+<p>Sentinel 将作为 Dubbo 生态的重要一员，将集中解决服务治理相关的课题，服务限流与熔断又是服务治理首先要解决的课题。</p>
+<p>那什么是限流与熔断呢？</p>
+<p>限流：我们通常使用TPS对流量来进行描述，限流就是现在服务被调用的并发TPS，从而对系统进行自我保护。</p>
+<p>熔断：就是当系统中某一个服务出现性能瓶颈是，对这个服务的调用进行快速失败，避免造成连锁反应，从而影响整个链路的调用。</p>
+<h2 id="2、限流与熔断的使用场景"><a href="#2、限流与熔断的使用场景" class="headerlink" title="2、限流与熔断的使用场景"></a>2、限流与熔断的使用场景</h2><p>限流还是比较好理解，例如一个项目在上线之前经过性能测试评估，例如服务在 TPS 达到 1w/s 时系统资源利用率飙升，与此同时响应时间急剧增大，那我们就要控制该服务的调用TPS，超过该 TPS 的流量就需要进行干预，可以采取拒绝、排队等策略，实现流量的削峰填谷。</p>
+<p>还有一个场景，例如一下开放平台，对接口进行收费，免费用户要控制调用TPS，账户的等级不同，允许调用的TPS也不同，这种情况就非常适合限流。</p>
+<p>那熔断的使用场景呢？我们首先来看一下如下的分布式架构。<br><img src="https://img-blog.csdnimg.cn/20191214230343989.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>例如应用A 部署了3台机器，如果由于某种原因，例如线程池 hold 住，导致发送到它上面的请求会出现超时而报错，由于该进程并未宕机，请求还是会通过负载算法请求出现故障的机器，出现整个1/3的请求出现超时报错，影响整个系统的可用性？也就是其中一台故障会对整个服务质量产生严重的影响，虽然是集群部署，但无法达到高可用性。那如何解决该问题？如果在调用方(API-Center) 对异常进行统计，发现发往某一台机器的错误数或错误率达到设定的值，就在一定的世界间隔内不继续发往该机器，转而发送给集群内正常的节点，这样就实现了高可用，这就是所谓的熔断机制。</p>
+<p>有了上面的基本认识，接下来会进行一些阅读源码的准备，为后面的源码分析 Sentinel 打下坚实的基础。</p>
+<a id="more"></a>
+
+<h2 id="3、Sentinel-源码结构"><a href="#3、Sentinel-源码结构" class="headerlink" title="3、Sentinel 源码结构"></a>3、Sentinel 源码结构</h2><p><img src="https://img-blog.csdnimg.cn/20191214230725995.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>Sentinel 的核心模块说明如下：</p>
+<ul>
+<li><p>sentinel-core<br>Sentinel 核心模块，实现限流、熔断等基本能力。</p>
+</li>
+<li><p>sentinel-dashboard<br>Sentinel 可视化控制台，提供基本的管理界面，配置限流、熔断规则等，展示监控数据等。</p>
+</li>
+<li><p>sentinel-adapter<br>Sentinel 适配，Sentinel-core 模块提供的是限流等基本API，主要是提供给应用自己去显示调用，对代码有侵入性，故该模块对主流框架进行了适配，目前已适配的模块如下：</p>
+<ul>
+<li>sentinel-apache-dubbo-adapter<br>对 Apache Dubbo 版本进行适配，这样应用只需引入 sentinel-apache-dubbo-adapter 包即可对 dubbo 服务进行流控与熔断，大家可以思考会利用 Dubbo 的哪个功能特性。</li>
+<li>sentinel-dubbo-adapter<br>对 Alibaba Dubbo 版本进行适配。</li>
+<li>sentinel-grpc-adapter<br>对 GRPC 进行适配。</li>
+<li>sentinel-spring-webflux-adapter<br>对响应式编程框架 webflux 进行适配。</li>
+<li>sentinel-web-servlet<br>对 servlet 进行适配，例如 Spring MVC。</li>
+<li>sentinel-zuul-adapter<br>对 zuul 网关进行适配。</li>
+</ul>
+</li>
+<li><p>sentinel-cluster<br>提供集群模式的限流与熔断支持，因为通常一个应用会部署在多台机器上组成应用集群。</p>
+</li>
+<li><p>sentinel-transport<br>网络通讯模块，提供 Sentinel 节点与 sentinel-dashboard 的通讯支持，主要有如下两种实现。</p>
+<ul>
+<li>sentinel-transport-netty-http<br>基于 Netty 实现的 http 通讯模式。</li>
+<li>sentinel-transport-simple-http<br>简单的 http 实现方式。</li>
+</ul>
+</li>
+<li><p>sentinel-extension<br>Sentinel 扩展模式。主要提供了如下扩展(高级)功能：</p>
+<ul>
+<li>sentinel-annotation-aspectj<br>提供基于注解的方式来定义资源等。</li>
+<li>sentinel-parameter-flow-control<br>提供基于参数的限流（热点限流）。</li>
+<li>sentinel-datasource-extension<br>限流规则、熔断规则的存储实现，默认是存储在内存中。</li>
+<li>sentinel-datasource-apollo<br>基于 apollo 配置中心实现限流规则、熔断规则的存储，动态推送生效机制。</li>
+<li>sentinel-datasource-consul<br>基于 consul 实现限流规则、熔断规则的存储，动态推送生效机制。</li>
+<li>sentinel-datasource-etcd<br>基于 etcd 实现限流规则、熔断规则的存储，动态推送生效机制。</li>
+<li>sentinel-datasource-nacos<br>基于 nacos 实现限流规则、熔断规则的存储，动态推送生效机制。</li>
+<li>sentinel-datasource-redis<br>基于 redis 实现限流规则、熔断规则的存储，动态推送生效机制。</li>
+<li>sentinel-datasource-spring-cloud-config<br>基于 spring-cloud-config 实现限流规则、熔断规则的存储，动态推送生效机制。</li>
+<li>sentinel-datasource-zookeeper<br>基于 zookeeper 实现限流规则、熔断规则的存储，动态推送生效机制。</li>
+</ul>
+</li>
+</ul>
+<h2 id="4、在-IntelliJ-IDEA-中运行-Sentine-Demo"><a href="#4、在-IntelliJ-IDEA-中运行-Sentine-Demo" class="headerlink" title="4、在 IntelliJ IDEA 中运行 Sentine Demo"></a>4、在 IntelliJ IDEA 中运行 Sentine Demo</h2><p>在 sentinel-demo 模块下提供了很多示例，Seninel 一开始是为 Dubbo 而生的，故我们选取一下 sentinel-demo-apache-dubbo 为本次演示的示例。</p>
+<p>注意：该版本需要引入的 apache dubbo 版本需要修改为 2.7.2。</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">dependency</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>org.apache.dubbo<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>dubbo<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">version</span>&gt;</span>2.7.2<span class="tag">&lt;/<span class="name">version</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">dependency</span>&gt;</span></span><br></pre></td></tr></table></figure>
+<p>Step1：先启动 sentinel-dashboard，启动参数配置如下：<br><img src="https://img-blog.csdnimg.cn/20191214230758222.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>sentinel-demo-apache-dubbo 模块如下所示：<br><img src="https://img-blog.csdnimg.cn/20191214230836334.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>先启动服务提供者，其配置参数如下：<br><img src="https://img-blog.csdnimg.cn/20191214230902547.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>然后启动服务消费者，其配置参数如下：<br><img src="https://img-blog.csdnimg.cn/20191214230924603.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>启动后，我们能看到消费者会出现报错，因为触发了限流，我们可以通过控制台查看接入应用的信息，例如输入：<a target="_blank" rel="noopener" href="http://localhost:8080/">http://localhost:8080</a></p>
+<p>部分截图如下：<br><img src="https://img-blog.csdnimg.cn/20191214231003110.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br><img src="https://img-blog.csdnimg.cn/20191214231019623.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>可以在控制台动态添加限流、熔断等规则配置，然后接入的客户端将能在不启动应用的情况下生效。</p>
+<p>默认情况下，sentinel-dashboard 中的规则是存储在内存中，重启后就会丢失，因此 Sentinel 提供了很多种数据源的实现，例如 sentinel-datasource-zookeeper，这部分内容随着该专栏的陆续更新，将会对该机制进行介绍。</p>
+</div>
+
+			<script src="https://my.openwrite.cn/js/readmore.js" type="text/javascript"></script>
+			<script>
+			var isMobile = navigator.userAgent.match(/(phone|pad|pod|iPhone|iPod|ios|iPad|Android|Mobile|BlackBerry|IEMobile|MQQBrowser|JUC|Fennec|wOSBrowser|BrowserNG|WebOS|Symbian|Windows Phone)/i);
+			if (!isMobile) {
+			    var btw = new BTWPlugin();
+			    btw.init({
+			        "id": "vip-container",
+			        "blogId": "18019-1573088808868-542",
+			        "name": "中间件兴趣圈",
+			        "qrcode": "https://img-blog.csdnimg.cn/20190314214003962.jpg",
+			        "keyword": "more"
+			    });
+			}
+			</script>
+		
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://example.com/2020/12/08/Alibaba%20Sentinel%20%E9%99%90%E6%B5%81%E4%B8%8E%E7%86%94%E6%96%AD%E5%88%9D%E6%8E%A2(%E6%8A%80%E5%B7%A7%E7%AF%87)/" data-id="ckig4lie30001m4rgdhbm0eye" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/sentinel/" rel="tag">sentinel</a></li></ul>
+
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+    <a href="/2020/12/08/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90%20Sentinel%20%E4%B9%8B%20Dubbo%20%E9%80%82%E9%85%8D%E5%8E%9F%E7%90%86/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Newer</strong>
+      <div class="article-nav-title">
+        
+          源码分析 Sentinel 之 Dubbo 适配原理
+        
+      </div>
+    </a>
+  
+  
+    <a href="/2020/12/08/%E5%9F%BA%E4%BA%8E%20Flink%20%E5%AE%9E%E7%8E%B0%E8%A7%A3%E5%86%B3%E6%95%B0%E6%8D%AE%E5%BA%93%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8%E4%BB%BB%E5%8A%A1%E6%8B%86%E5%88%86/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">基于 Flink 实现解决数据库分库分表任务拆分</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+</section>
+        
+          <aside id="sidebar">
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">分类</h3>
+    <div class="widget">
+      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/kafka-rocketmq/">kafka rocketmq</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/rocketmq/">rocketmq</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/sentinel/">sentinel</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/%E7%A8%8B%E5%BA%8F%E4%BA%BA%E7%94%9F-%E9%80%86%E8%A2%AD-%E8%81%8C%E5%9C%BA%E5%8F%91%E5%B1%95/">程序人生 逆袭 职场发展</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">标签</h3>
+    <div class="widget">
+      <ul class="tag-list" itemprop="keywords"><li class="tag-list-item"><a class="tag-list-link" href="/tags/kafka-rocketmq/" rel="tag">kafka rocketmq</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rocketmq/" rel="tag">rocketmq</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rocketmq-broker-busy-TIMEOUT-CLEAN-QUEUE-PCBUSY-CLEAN-QUEUE/" rel="tag">rocketmq broker busy TIMEOUT_CLEAN_QUEUE PCBUSY_CLEAN_QUEUE</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rocketmq-%E4%B8%BB%E9%A2%98%E6%89%A9%E5%AE%B9-%E5%AE%9E%E6%88%98-%E5%9D%91/" rel="tag">rocketmq 主题扩容 实战 坑</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rocketmq-%E5%A4%9A%E5%89%AF%E6%9C%AC-raft-%E4%B8%BB%E4%BB%8E%E5%88%87%E6%8D%A2/" rel="tag">rocketmq 多副本 raft 主从切换</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rocketmq-%E5%A4%9A%E5%89%AF%E6%9C%AC-raft-%E9%80%89%E4%B8%BB/" rel="tag">rocketmq 多副本 raft 选主</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/sentinel/" rel="tag">sentinel</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E7%A8%8B%E5%BA%8F%E4%BA%BA%E7%94%9F/" rel="tag">程序人生</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">标签云</h3>
+    <div class="widget tagcloud">
+      <a href="/tags/kafka-rocketmq/" style="font-size: 10px;">kafka rocketmq</a> <a href="/tags/rocketmq/" style="font-size: 20px;">rocketmq</a> <a href="/tags/rocketmq-broker-busy-TIMEOUT-CLEAN-QUEUE-PCBUSY-CLEAN-QUEUE/" style="font-size: 10px;">rocketmq broker busy TIMEOUT_CLEAN_QUEUE PCBUSY_CLEAN_QUEUE</a> <a href="/tags/rocketmq-%E4%B8%BB%E9%A2%98%E6%89%A9%E5%AE%B9-%E5%AE%9E%E6%88%98-%E5%9D%91/" style="font-size: 10px;">rocketmq 主题扩容 实战 坑</a> <a href="/tags/rocketmq-%E5%A4%9A%E5%89%AF%E6%9C%AC-raft-%E4%B8%BB%E4%BB%8E%E5%88%87%E6%8D%A2/" style="font-size: 10px;">rocketmq 多副本 raft 主从切换</a> <a href="/tags/rocketmq-%E5%A4%9A%E5%89%AF%E6%9C%AC-raft-%E9%80%89%E4%B8%BB/" style="font-size: 10px;">rocketmq 多副本 raft 选主</a> <a href="/tags/sentinel/" style="font-size: 15px;">sentinel</a> <a href="/tags/%E7%A8%8B%E5%BA%8F%E4%BA%BA%E7%94%9F/" style="font-size: 10px;">程序人生</a>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">归档</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/12/">十二月 2020</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">最新文章</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2020/12/08/%E7%BB%93%E5%90%88%20Sentinel%20%E4%B8%93%E6%A0%8F%E8%B0%88%E8%B0%88%E6%88%91%E7%9A%84%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB%E6%8A%80%E5%B7%A7/">结合 Sentinel 专栏谈谈我的源码阅读技巧</a>
+          </li>
+        
+          <li>
+            <a href="/2020/12/08/Sentinel%20%E7%B3%BB%E7%BB%9F%E8%87%AA%E9%80%82%E5%BA%94%E9%99%90%E6%B5%81%E5%8E%9F%E7%90%86%E5%89%96%E6%9E%90%E4%B8%8E%E5%AE%9E%E6%88%98%E6%8C%87%E5%AF%BC/">Sentinel 系统自适应限流原理剖析与实战指导</a>
+          </li>
+        
+          <li>
+            <a href="/2020/12/08/Sentinel%20Dubbo%20%E9%80%82%E9%85%8D%E5%99%A8%E7%9C%8B%E9%99%90%E6%B5%81%E4%B8%8E%E7%86%94%E6%96%AD(%E5%AE%9E%E6%88%98%E6%80%9D%E8%80%83%E7%AF%87)/">Sentinel Dubbo 适配器看限流与熔断(实战思考篇)</a>
+          </li>
+        
+          <li>
+            <a href="/2020/12/08/Sentinel%20%E9%9B%86%E7%BE%A4%E9%99%90%E6%B5%81%E8%AE%BE%E8%AE%A1%E5%8E%9F%E7%90%86/">Sentinel 集群限流设计原理</a>
+          </li>
+        
+          <li>
+            <a href="/2020/12/08/Sentienl%20%E5%8A%A8%E6%80%81%E6%95%B0%E6%8D%AE%E6%BA%90%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1%E7%90%86%E5%BF%B5%E4%B8%8E%E6%94%B9%E9%80%A0%E5%AE%9E%E8%B7%B5/">Sentienl 动态数据源架构设计理念与改造实践</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2020 中间件兴趣圈<br>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+</nav>
+    
+
+<script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+
+
+  
+<link rel="stylesheet" href="/fancybox/jquery.fancybox.css">
+
+  
+<script src="/fancybox/jquery.fancybox.pack.js"></script>
+
+
+
+
+<script src="/js/script.js"></script>
+
+
+
+
+  </div>
+</body>
+</html>

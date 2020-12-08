@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+
+  
+  <title>RocketMQ 整合 DLedger(多副本)即主从切换实现平滑升级的设计技巧 | 中间件兴趣圈</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="源码分析 RocketMQ DLedger 多副本系列已经进行到第 8 篇了，前面的章节主要是介绍了基于 raft  协议的选主与日志复制，从本篇开始将开始关注如何将 DLedger 应用到 RocketMQ中。 摘要：详细分析了RocketMQ DLedger 多副本(主从切换) 是如何整合到 RocketMQ中，本文的行文思路首先结合已掌握的DLedger 多副本相关的知识初步思考其实现思路，">
+<meta property="og:type" content="article">
+<meta property="og:title" content="RocketMQ 整合 DLedger(多副本)即主从切换实现平滑升级的设计技巧">
+<meta property="og:url" content="http://example.com/2020/12/08/RocketMQ%20%E6%95%B4%E5%90%88%20DLedger(%E5%A4%9A%E5%89%AF%E6%9C%AC)%E5%8D%B3%E4%B8%BB%E4%BB%8E%E5%88%87%E6%8D%A2%E5%AE%9E%E7%8E%B0%E5%B9%B3%E6%BB%91%E5%8D%87%E7%BA%A7%E7%9A%84%E8%AE%BE%E8%AE%A1%E6%8A%80%E5%B7%A7/index.html">
+<meta property="og:site_name" content="中间件兴趣圈">
+<meta property="og:description" content="源码分析 RocketMQ DLedger 多副本系列已经进行到第 8 篇了，前面的章节主要是介绍了基于 raft  协议的选主与日志复制，从本篇开始将开始关注如何将 DLedger 应用到 RocketMQ中。 摘要：详细分析了RocketMQ DLedger 多副本(主从切换) 是如何整合到 RocketMQ中，本文的行文思路首先结合已掌握的DLedger 多副本相关的知识初步思考其实现思路，">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/20191003120527109.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/20191003120628182.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/20191003120747775.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/20191003120936564.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/20191003143959204.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/20191003152522946.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70">
+<meta property="article:published_time" content="2020-12-08T13:49:35.000Z">
+<meta property="article:modified_time" content="2020-12-08T13:50:23.412Z">
+<meta property="article:author" content="中间件兴趣圈">
+<meta property="article:tag" content="rocketmq">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://img-blog.csdnimg.cn/20191003120527109.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70">
+  
+    <link rel="alternate" href="/atom.xml" title="中间件兴趣圈" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  
+    <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css">
+  
+  
+<link rel="stylesheet" href="/css/style.css">
+
+<meta name="generator" content="Hexo 5.2.0"></head>
+
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">中间件兴趣圈</a>
+      </h1>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="搜索"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://example.com"></form>
+      </div>
+    </div>
+  </div>
+</header>
+      <div class="outer">
+        <section id="main"><article id="post-RocketMQ 整合 DLedger(多副本)即主从切换实现平滑升级的设计技巧" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2020/12/08/RocketMQ%20%E6%95%B4%E5%90%88%20DLedger(%E5%A4%9A%E5%89%AF%E6%9C%AC)%E5%8D%B3%E4%B8%BB%E4%BB%8E%E5%88%87%E6%8D%A2%E5%AE%9E%E7%8E%B0%E5%B9%B3%E6%BB%91%E5%8D%87%E7%BA%A7%E7%9A%84%E8%AE%BE%E8%AE%A1%E6%8A%80%E5%B7%A7/" class="article-date">
+  <time datetime="2020-12-08T13:49:35.000Z" itemprop="datePublished">2020-12-08</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/rocketmq/">rocketmq</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      RocketMQ 整合 DLedger(多副本)即主从切换实现平滑升级的设计技巧
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <div id="vip-container"><p>源码分析 RocketMQ DLedger 多副本系列已经进行到第 8 篇了，前面的章节主要是介绍了基于 raft  协议的选主与日志复制，从本篇开始将开始关注如何将 DLedger 应用到 RocketMQ中。</p>
+<p>摘要：详细分析了RocketMQ DLedger 多副本(主从切换) 是如何整合到 RocketMQ中，本文的行文思路首先结合已掌握的DLedger 多副本相关的知识初步思考其实现思路，然后从 Broker启动流程、DLedgerCommitlog 核心类的讲解，再从消息发送(追加)与消息查找来进一步探讨 DLedger 是如何支持平滑升级的。</p>
+<h2 id="1、阅读源码之前的思考"><a href="#1、阅读源码之前的思考" class="headerlink" title="1、阅读源码之前的思考"></a>1、阅读源码之前的思考</h2><p>RocketMQ 的消息存储文件主要包括 commitlog 文件、consumequeue 文件与 Index 文件。commitlog 文件存储全量的消息，consumequeue、index 文件都是基于 commitlog 文件构建的。要使用 DLedger 来实现消息存储的一致性，应该关键是要实现 commitlog 文件的一致性，即  DLedger 要整合的对象应该是 commitlog 文件，即只需保证 raft 协议的复制组内各个节点的 commitlog 文件一致即可。</p>
+<p>我们知道使用文件存储消息都会基于一定的存储格式，rocketmq 的 commitlog 一个条目就包含魔数、消息长度，消息属性、消息体等，而我们再来回顾一下 DLedger 日志的存储格式：<br><img src="https://img-blog.csdnimg.cn/20191003120527109.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>DLedger 要整合 commitlog 文件，是不是可以把 rocketmq  消息，即一个个  commitlog 条目整体当成 DLedger 的 body 字段即可。</p>
+<p>还等什么，跟我一起来看源码吧！！！别急，再抛一个问题，DLedger 整合 RocketMQ commitlog，能不能做到平滑升级？</p>
+<p>带着这些思考和问题，一起来探究 DLedger 是如何整合 RocketMQ 的。 </p>
+<a id="more"></a>
+
+<h2 id="2、从-Broker-启动流程看-DLedger"><a href="#2、从-Broker-启动流程看-DLedger" class="headerlink" title="2、从 Broker 启动流程看 DLedger"></a>2、从 Broker 启动流程看 DLedger</h2><blockquote>
+<p>温馨提示：本文不会详细介绍 Broker 端的启动流程，只会点出在启动过程中与 DLedger 相关的代码，如想详细了解 Broker 的启动流程，建议关注笔者的《RocketMQ技术内幕》一书。</p>
+</blockquote>
+<p>Broker 涉及到 DLedger 相关关键点如下：<br><img src="https://img-blog.csdnimg.cn/20191003120628182.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"></p>
+<h3 id="2-1-构建-DefaultMessageStore"><a href="#2-1-构建-DefaultMessageStore" class="headerlink" title="2.1 构建 DefaultMessageStore"></a>2.1 构建 DefaultMessageStore</h3><p>DefaultMessageStore 构造方法</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span>(messageStoreConfig.isEnableDLegerCommitLog()) &#123;  <span class="comment">// @1</span></span><br><span class="line">    <span class="keyword">this</span>.commitLog = <span class="keyword">new</span> DLedgerCommitLog(<span class="keyword">this</span>);</span><br><span class="line"> <span class="keyword">else</span> &#123;</span><br><span class="line">    <span class="keyword">this</span>.commitLog = <span class="keyword">new</span> CommitLog(<span class="keyword">this</span>);                    <span class="comment">// @2</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>代码@1：如果开启 DLedger ，commitlog 的实现类为 DLedgerCommitLog，也是本文需要关注的关键所在。</p>
+<p>代码@2：如果未开启 DLedger，则使用旧版的 Commitlog实现类。</p>
+<h3 id="2-2-增加节点状态变更事件监听器"><a href="#2-2-增加节点状态变更事件监听器" class="headerlink" title="2.2 增加节点状态变更事件监听器"></a>2.2 增加节点状态变更事件监听器</h3><p>BrokerController#initialize</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (messageStoreConfig.isEnableDLegerCommitLog()) &#123;</span><br><span class="line">    DLedgerRoleChangeHandler roleChangeHandler = <span class="keyword">new</span> DLedgerRoleChangeHandler(<span class="keyword">this</span>, (DefaultMessageStore) messageStore);</span><br><span class="line">    ((DLedgerCommitLog)((DefaultMessageStore) messageStore).getCommitLog()).getdLedgerServer().getdLedgerLeaderElector().addRoleChangeHandler(roleChangeHandler);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>主要调用 LedgerLeaderElector 的 addRoleChanneHandler 方法增加 节点角色变更事件监听器，DLedgerRoleChangeHandler 是实现主从切换的另外一个关键点。</p>
+<h3 id="2-3-调用-DefaultMessageStore-的-load-方法"><a href="#2-3-调用-DefaultMessageStore-的-load-方法" class="headerlink" title="2.3 调用 DefaultMessageStore 的 load 方法"></a>2.3 调用 DefaultMessageStore 的 load 方法</h3><p>DefaultMessageStore#load</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// load Commit Log</span></span><br><span class="line">result = result &amp;&amp; <span class="keyword">this</span>.commitLog.load();   <span class="comment">// @1</span></span><br><span class="line"><span class="comment">// load Consume Queue</span></span><br><span class="line">result = result &amp;&amp; <span class="keyword">this</span>.loadConsumeQueue();  </span><br><span class="line"><span class="keyword">if</span> (result) &#123;</span><br><span class="line">    <span class="keyword">this</span>.storeCheckpoint =  <span class="keyword">new</span> StoreCheckpoint(StorePathConfigHelper.getStoreCheckpoint(<span class="keyword">this</span>.messageStoreConfig.getStorePathRootDir()));</span><br><span class="line">    <span class="keyword">this</span>.indexService.load(lastExitOK);</span><br><span class="line">    <span class="keyword">this</span>.recover(lastExitOK);                         <span class="comment">// @2</span></span><br><span class="line">    log.info(<span class="string">&quot;load over, and the max phy offset = &#123;&#125;&quot;</span>, <span class="keyword">this</span>.getMaxPhyOffset());</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>代码@1、@2 最终都是委托 commitlog 对象来执行，这里的关键又是如果开启了 DLedger，则最终调用的是 DLedgerCommitLog。</p>
+<p>经过上面的铺垫，主角 DLedgerCommitLog “闪亮登场“了。</p>
+<h2 id="3、DLedgerCommitLog-详解"><a href="#3、DLedgerCommitLog-详解" class="headerlink" title="3、DLedgerCommitLog 详解"></a>3、DLedgerCommitLog 详解</h2><p>温馨提示：由于 Commitlog 的绝大部分方法都已经在《RocketMQ技术内幕》一书中详细介绍了，并且 DLedgerCommitLog  的实现原理与 Commitlog 文件的实现原理类同，本文会一笔带过关于存储部分的实现细节。</p>
+<h3 id="3-1-核心类图"><a href="#3-1-核心类图" class="headerlink" title="3.1 核心类图"></a>3.1 核心类图</h3><p><img src="https://img-blog.csdnimg.cn/20191003120747775.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>DLedgerCommitlog 继承自 Commitlog。让我们一一来看一下它的核心属性。</p>
+<ul>
+<li>DLedgerServer dLedgerServer<br>基于 raft 协议实现的集群内的一个节点，用 DLedgerServer 实例表示。</li>
+<li>DLedgerConfig dLedgerConfig<br>DLedger 的配置信息。</li>
+<li>DLedgerMmapFileStore dLedgerFileStore<br>DLedger 基于文件映射的存储实现。</li>
+<li>MmapFileList dLedgerFileList<br>DLedger 所管理的存储文件集合，对比 RocketMQ 中的 MappedFileQueue。</li>
+<li>int id<br>节点ID，0 表示主节点，非0表示从节点</li>
+<li>MessageSerializer messageSerializer<br>消息序列器。</li>
+<li>long beginTimeInDledgerLock = 0<br>用于记录 消息追加的时耗(日志追加所持有锁时间)。</li>
+<li>long dividedCommitlogOffset = -1<br>记录的旧 commitlog 文件中的最大偏移量，如果访问的偏移量大于它，则访问 dledger 管理的文件。</li>
+<li>boolean isInrecoveringOldCommitlog = false<br>是否正在恢复旧的 commitlog 文件。</li>
+</ul>
+<p>接下来我们将详细介绍 DLedgerCommitlog 各个核心方法及其实现要点。</p>
+<h3 id="3-2-构造方法"><a href="#3-2-构造方法" class="headerlink" title="3.2 构造方法"></a>3.2 构造方法</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="title">DLedgerCommitLog</span><span class="params">(<span class="keyword">final</span> DefaultMessageStore defaultMessageStore)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">super</span>(defaultMessageStore);                   <span class="comment">// @1</span></span><br><span class="line">    dLedgerConfig =  <span class="keyword">new</span> DLedgerConfig();</span><br><span class="line">    dLedgerConfig.setEnableDiskForceClean(defaultMessageStore.getMessageStoreConfig().isCleanFileForciblyEnable());</span><br><span class="line">    dLedgerConfig.setStoreType(DLedgerConfig.FILE);</span><br><span class="line">    dLedgerConfig.setSelfId(defaultMessageStore.getMessageStoreConfig().getdLegerSelfId());</span><br><span class="line">    dLedgerConfig.setGroup(defaultMessageStore.getMessageStoreConfig().getdLegerGroup());</span><br><span class="line">    dLedgerConfig.setPeers(defaultMessageStore.getMessageStoreConfig().getdLegerPeers());</span><br><span class="line">    dLedgerConfig.setStoreBaseDir(defaultMessageStore.getMessageStoreConfig().getStorePathRootDir());</span><br><span class="line">    dLedgerConfig.setMappedFileSizeForEntryData(defaultMessageStore.getMessageStoreConfig().getMapedFileSizeCommitLog());</span><br><span class="line">    dLedgerConfig.setDeleteWhen(defaultMessageStore.getMessageStoreConfig().getDeleteWhen());</span><br><span class="line">    dLedgerConfig.setFileReservedHours(defaultMessageStore.getMessageStoreConfig().getFileReservedTime() + <span class="number">1</span>);  </span><br><span class="line">    id = Integer.valueOf(dLedgerConfig.getSelfId().substring(<span class="number">1</span>)) + <span class="number">1</span>;            <span class="comment">// @2</span></span><br><span class="line">    dLedgerServer = <span class="keyword">new</span> DLedgerServer(dLedgerConfig);                           <span class="comment">// @3</span></span><br><span class="line">    dLedgerFileStore = (DLedgerMmapFileStore) dLedgerServer.getdLedgerStore();</span><br><span class="line">    DLedgerMmapFileStore.AppendHook appendHook = (entry, buffer, bodyOffset) -&gt; &#123;</span><br><span class="line">            <span class="keyword">assert</span> bodyOffset == DLedgerEntry.BODY_OFFSET;</span><br><span class="line">            buffer.position(buffer.position() + bodyOffset + MessageDecoder.PHY_POS_POSITION);</span><br><span class="line">            buffer.putLong(entry.getPos() + bodyOffset);</span><br><span class="line">    &#125;;</span><br><span class="line">    dLedgerFileStore.addAppendHook(appendHook);   <span class="comment">// @4</span></span><br><span class="line">    dLedgerFileList = dLedgerFileStore.getDataFileList();</span><br><span class="line">    <span class="keyword">this</span>.messageSerializer = <span class="keyword">new</span> MessageSerializer(defaultMessageStore.getMessageStoreConfig().getMaxMessageSize());   <span class="comment">// @5</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>代码@1：调用父类 即 CommitLog 的构造函数，加载 ${ROCKETMQ_HOME}/store/ comitlog 下的 commitlog 文件，以便兼容升级 DLedger 的消息。我们稍微看一下 CommitLog 的构造函数：<br><img src="https://img-blog.csdnimg.cn/20191003120936564.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>代码@2：构建 DLedgerConfig 相关配置属性，其主要属性如下：</p>
+<ul>
+<li>enableDiskForceClean<br>是否强制删除文件，取自 broker 配置属性 cleanFileForciblyEnable，默认为 true 。</li>
+<li>storeType<br>DLedger 存储类型，固定为 基于文件的存储模式。</li>
+<li>dLegerSelfId<br>leader 节点的 id 名称，示例配置：n0，其配置要求第二个字符后必须是数字。</li>
+<li>dLegerGroup<br>DLeger group 的名称，建议与 broker 配置属性 brokerName 保持一致。</li>
+<li>dLegerPeers<br>DLeger Group 中所有的节点信息，其配置示例 n0-127.0.0.1:40911;n1-127.0.0.1:40912;n2-127.0.0.1:40913。多个节点使用分号隔开。</li>
+<li>storeBaseDir<br>设置 DLedger 的日志文件的根目录，取自 borker 配件文件中的 storePathRootDir ，即 RocketMQ 的数据存储根路径。</li>
+<li>mappedFileSizeForEntryData<br>设置 DLedger 的单个日志文件的大小，取自 broker 配置文件中的 - mapedFileSizeCommitLog，即与 commitlog 文件的单个文件大小一致。</li>
+<li>deleteWhen<br>DLedger 日志文件的删除时间，取自 broker 配置文件中的 deleteWhen，默认为凌晨 4点。</li>
+<li>fileReservedHours<br>DLedger 日志文件保留时长，取自 broker 配置文件中的 fileReservedHours，默认为 72h。</li>
+</ul>
+<p>代码@3：根据 DLedger 配置信息创建 DLedgerServer，即创建 DLedger 集群节点，集群内各个节点启动后，就会触发选主。</p>
+<p>代码@4：构建 appendHook 追加钩子函数，这是兼容 Commitlog 文件很关键的一步，后面会详细介绍其作用。</p>
+<p>代码@5：构建消息序列化。</p>
+<p>根据上述的流程图，构建好 DefaultMessageStore 实现后，就是调用其 load 方法，在启用 DLedger 机制后，会依次调用 DLedgerCommitlog 的 load、recover 方法。</p>
+<h3 id="3-3-load"><a href="#3-3-load" class="headerlink" title="3.3 load"></a>3.3 load</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">boolean</span> <span class="title">load</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">boolean</span> result = <span class="keyword">super</span>.load();</span><br><span class="line">    <span class="keyword">if</span> (!result) &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">false</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">true</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>DLedgerCommitLog 的 laod 方法实现比较简单，就是调用 其父类 Commitlog 的 load 方法，即这里也是为了启用 DLedger 时能够兼容以前的消息。</p>
+<h3 id="3-4-recover"><a href="#3-4-recover" class="headerlink" title="3.4 recover"></a>3.4 recover</h3><p>在 Broker 启动时会加载 commitlog、consumequeue等文件，需要恢复其相关是数据结构，特别是与写入、刷盘、提交等指针，其具体调用 recover 方法。<br>DLedgerCommitLog#recover</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">recoverNormally</span><span class="params">(<span class="keyword">long</span> maxPhyOffsetOfConsumeQueue)</span> </span>&#123;  <span class="comment">// @1</span></span><br><span class="line">    recover(maxPhyOffsetOfConsumeQueue);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>首先会先恢复 consumequeue，得出 consumequeue 中记录的最大有效物理偏移量，然后根据该物理偏移量进行恢复。<br>接下来看一下该方法的处理流程与关键点。</p>
+<p>DLedgerCommitLog#recover</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">dLedgerFileStore.load();</span><br></pre></td></tr></table></figure>
+<p>Step1：加载 DLedger  相关的存储文件，并一一构建对应的 MmapFile，其初始化三个重要的指针 wrotePosition、flushedPosition、committedPosition 三个指针为文件的大小。</p>
+<p>DLedgerCommitLog#recover</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (dLedgerFileList.getMappedFiles().size() &gt; <span class="number">0</span>) &#123;   </span><br><span class="line">    dLedgerFileStore.recover();   <span class="comment">// @1</span></span><br><span class="line">    dividedCommitlogOffset = dLedgerFileList.getFirstMappedFile().getFileFromOffset();     <span class="comment">// @2</span></span><br><span class="line">    MappedFile mappedFile = <span class="keyword">this</span>.mappedFileQueue.getLastMappedFile();</span><br><span class="line">    <span class="keyword">if</span> (mappedFile != <span class="keyword">null</span>) &#123;                                                                                                       <span class="comment">// @3</span></span><br><span class="line">        disableDeleteDledger();</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">long</span> maxPhyOffset = dLedgerFileList.getMaxWrotePosition();</span><br><span class="line">    <span class="comment">// Clear ConsumeQueue redundant data</span></span><br><span class="line">    <span class="keyword">if</span> (maxPhyOffsetOfConsumeQueue &gt;= maxPhyOffset) &#123;      <span class="comment">// @4</span></span><br><span class="line">        log.warn(<span class="string">&quot;[TruncateCQ]maxPhyOffsetOfConsumeQueue(&#123;&#125;) &gt;= processOffset(&#123;&#125;), truncate dirty logic files&quot;</span>, maxPhyOffsetOfConsumeQueue, maxPhyOffset);</span><br><span class="line">        <span class="keyword">this</span>.defaultMessageStore.truncateDirtyLogicFiles(maxPhyOffset);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>Step2：如果已存在  DLedger 的数据文件，则只需要恢复 DLedger 相关数据文建，因为在加载旧的 commitlog 文件时已经将其重要的数据指针设置为最大值。其关键实现点如下：</p>
+<ul>
+<li>首先调用 DLedger 文件存储实现类 DLedgerFileStore 的 recover 方法，恢复管辖的 MMapFile 对象(一个文件对应一个MMapFile实例)的相关指针，其实现方法与 RocketMQ 的 DefaultMessageStore 的恢复过程类似。</li>
+<li>设置 dividedCommitlogOffset 的值为  DLedger 中所有物理文件的最小偏移量。操作消息的物理偏移量小于该值，则从 commitlog 文件中查找；物理偏移量大于等于该值的话则从 DLedger 相关的文件中查找消息。</li>
+<li>如果存在旧的 commitlog 文件，则禁止删除 DLedger 文件，其具体做法就是禁止强制删除文件，并将文件的有效存储时间设置为 10 年。</li>
+<li>如果 consumequeue 中存储的最大物理偏移量大于 DLedger 中最大的物理偏移量，则删除多余的 consumequeue 文件。</li>
+</ul>
+<blockquote>
+<p>温馨提示：为什么当存在 commitlog 文件的情况下，不能删除 DLedger 相关的日志文件呢？</p>
+<p>因为在此种情况下，如果 DLedger 中的物理文件有删除，则物理偏移量会断层。<br><img src="https://img-blog.csdnimg.cn/20191003143959204.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>正常情况下， maxCommitlogPhyOffset 与 dividedCommitlogOffset 是连续的，这样非常方便是访问 commitlog 还是 访问 DLedger ，但如果DLedger 部分文件删除后，这两个值就变的不连续，就会造成中间的文件空洞，无法被连续访问。</p>
+</blockquote>
+<p>DLedgerCommitLog#recover</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">isInrecoveringOldCommitlog = <span class="keyword">true</span>;</span><br><span class="line"><span class="keyword">super</span>.recoverNormally(maxPhyOffsetOfConsumeQueue);</span><br><span class="line">isInrecoveringOldCommitlog = <span class="keyword">false</span>;</span><br></pre></td></tr></table></figure>
+<p>Step3：如果启用了 DLedger 并且是初次启动(还未生成 DLedger 相关的日志文件)，则需要恢复 旧的 commitlog 文件。</p>
+<p>DLedgerCommitLog#recover</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line">MappedFile mappedFile = <span class="keyword">this</span>.mappedFileQueue.getLastMappedFile();</span><br><span class="line"><span class="keyword">if</span> (mappedFile == <span class="keyword">null</span>) &#123;           <span class="comment">// @1</span></span><br><span class="line">    <span class="keyword">return</span>;</span><br><span class="line">&#125;</span><br><span class="line">ByteBuffer byteBuffer =  mappedFile.sliceByteBuffer();</span><br><span class="line">byteBuffer.position(mappedFile.getWrotePosition());</span><br><span class="line"><span class="keyword">boolean</span> needWriteMagicCode = <span class="keyword">true</span>;</span><br><span class="line"><span class="comment">// 1 TOTAL SIZE</span></span><br><span class="line">byteBuffer.getInt(); <span class="comment">//size</span></span><br><span class="line"><span class="keyword">int</span> magicCode = byteBuffer.getInt();</span><br><span class="line"><span class="keyword">if</span> (magicCode == CommitLog.BLANK_MAGIC_CODE) &#123;   <span class="comment">// @2</span></span><br><span class="line">    needWriteMagicCode = <span class="keyword">false</span>;</span><br><span class="line">&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">    log.info(<span class="string">&quot;Recover old commitlog found a illegal magic code=&#123;&#125;&quot;</span>, magicCode);</span><br><span class="line">&#125;</span><br><span class="line">dLedgerConfig.setEnableDiskForceClean(<span class="keyword">false</span>);</span><br><span class="line">dividedCommitlogOffset = mappedFile.getFileFromOffset() + mappedFile.getFileSize();   <span class="comment">// @3</span></span><br><span class="line">log.info(<span class="string">&quot;Recover old commitlog needWriteMagicCode=&#123;&#125; pos=&#123;&#125; file=&#123;&#125; dividedCommitlogOffset=&#123;&#125;&quot;</span>, needWriteMagicCode, mappedFile.getFileFromOffset() + mappedFile.getWrotePosition(), mappedFile.getFileName(), dividedCommitlogOffset);</span><br><span class="line"><span class="keyword">if</span> (needWriteMagicCode) &#123;  <span class="comment">// @4</span></span><br><span class="line">    byteBuffer.position(mappedFile.getWrotePosition());</span><br><span class="line">    byteBuffer.putInt(mappedFile.getFileSize() - mappedFile.getWrotePosition());</span><br><span class="line">    byteBuffer.putInt(BLANK_MAGIC_CODE);</span><br><span class="line">    mappedFile.flush(<span class="number">0</span>);</span><br><span class="line">&#125;</span><br><span class="line">mappedFile.setWrotePosition(mappedFile.getFileSize());   <span class="comment">// @5</span></span><br><span class="line">mappedFile.setCommittedPosition(mappedFile.getFileSize());</span><br><span class="line">mappedFile.setFlushedPosition(mappedFile.getFileSize());</span><br><span class="line">dLedgerFileList.getLastMappedFile(dividedCommitlogOffset);</span><br><span class="line">log.info(<span class="string">&quot;Will set the initial commitlog offset=&#123;&#125; for dledger&quot;</span>, dividedCommitlogOffset);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>Step4：如果存在旧的 commitlog 文件，需要将最后的文件剩余部分全部填充，即不再接受新的数据写入，新的数据全部写入到 DLedger 的数据文件中。其关键实现点如下：</p>
+<ul>
+<li>尝试查找最后一个 commitlog 文件，如果未找到，则结束。</li>
+<li>从最后一个文件的最后写入点(原 commitlog 文件的 待写入位点)尝试去查找写入的魔数，如果存在魔数并等于 CommitLog.BLANK_MAGIC_CODE，则无需再写入魔数，在升级 DLedger 第一次启动时，魔数为空，故需要写入魔数。</li>
+<li>初始化 dividedCommitlogOffset ，等于最后一个文件的起始偏移量加上文件的大小，即该指针指向最后一个文件的结束位置。</li>
+<li>将最后一个 commitlog 未写满的数据全部写入，其方法为 设置消息体的 size 与 魔数即可。</li>
+<li>设置最后一个文件的 wrotePosition、flushedPosition、committedPosition  为文件的大小，同样有意味者最后一个文件已经写满，下一条消息将写入 DLedger 中。</li>
+</ul>
+<p>在启用 DLedger 机制时 Broker 的启动流程就介绍到这里了，相信大家已经了解 DLedger 在整合 RocketMQ 上做的努力，接下来我们从消息追加、消息读取两个方面再来探讨  DLedger 是如何无缝整合 RocketMQ 的，实现平滑升级的。</p>
+<h2 id="4、从消息追加看-DLedger-整合-RocketMQ-如何实现无缝兼容"><a href="#4、从消息追加看-DLedger-整合-RocketMQ-如何实现无缝兼容" class="headerlink" title="4、从消息追加看 DLedger 整合 RocketMQ 如何实现无缝兼容"></a>4、从消息追加看 DLedger 整合 RocketMQ 如何实现无缝兼容</h2><blockquote>
+<p>温馨提示：本节同样也不会详细介绍整个消息追加(存储流程)，只是要点出与 DLedger(多副本、主从切换)相关的核心关键点。如果想详细了解消息追加的流程，可以阅读笔者所著的《RocketMQ技术内幕》一书。</p>
+</blockquote>
+<p>DLedgerCommitLog#putMessage</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">AppendEntryRequest request = <span class="keyword">new</span> AppendEntryRequest();</span><br><span class="line">request.setGroup(dLedgerConfig.getGroup());</span><br><span class="line">request.setRemoteId(dLedgerServer.getMemberState().getSelfId());</span><br><span class="line">request.setBody(encodeResult.data);</span><br><span class="line">dledgerFuture = (AppendFuture&lt;AppendEntryResponse&gt;) dLedgerServer.handleAppend(request);</span><br><span class="line"><span class="keyword">if</span> (dledgerFuture.getPos() == -<span class="number">1</span>) &#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">new</span> PutMessageResult(PutMessageStatus.OS_PAGECACHE_BUSY, <span class="keyword">new</span> AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>关键点一：消息追加时，则不再写入到原先的 commitlog 文件中，而是调用 DLedgerServer 的 handleAppend 进行消息追加，该方法会有集群内的 Leader 节点负责消息追加以及在消息复制，只有超过集群内的半数节点成功写入消息后，才会返回写入成功。如果追加成功，将会返回本次追加成功后的起始偏移量，即 pos 属性，即类似于 rocketmq 中 commitlog 的偏移量，即物理偏移量。</p>
+<p>DLedgerCommitLog#putMessage</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">long</span> wroteOffset =  dledgerFuture.getPos() + DLedgerEntry.BODY_OFFSET;</span><br><span class="line">ByteBuffer buffer = ByteBuffer.allocate(MessageDecoder.MSG_ID_LENGTH);</span><br><span class="line">String msgId = MessageDecoder.createMessageId(buffer, msg.getStoreHostBytes(), wroteOffset);</span><br><span class="line">eclipseTimeInLock = <span class="keyword">this</span>.defaultMessageStore.getSystemClock().now() - beginTimeInDledgerLock;</span><br><span class="line">appendResult = <span class="keyword">new</span> AppendMessageResult(AppendMessageStatus.PUT_OK, wroteOffset, encodeResult.data.length, msgId, System.currentTimeMillis(), queueOffset, eclipseTimeInLock);</span><br></pre></td></tr></table></figure>
+<p>关键点二：根据 DLedger 的起始偏移量计算真正的消息的物理偏移量，从开头部分得知，DLedger 自身有其存储协议，其 body 字段存储真实的消息，即 commitlog 条目的存储结构，返回给客户端的消息偏移量为  body  字段的开始偏移量，即通过 putMessage 返回的物理偏移量与不使用Dledger 方式返回的物理偏移量的含义是一样的，即从开偏移量开始，可以正确读取消息，这样 DLedger 完美的兼容了 RocketMQ Commitlog。关于 pos 以及 wroteOffset 的图解如下：<br><img src="https://img-blog.csdnimg.cn/20191003152522946.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"></p>
+<h2 id="5、从消息读取看-DLedger-整合-RocketMQ-如何实现无缝兼容"><a href="#5、从消息读取看-DLedger-整合-RocketMQ-如何实现无缝兼容" class="headerlink" title="5、从消息读取看 DLedger 整合 RocketMQ 如何实现无缝兼容"></a>5、从消息读取看 DLedger 整合 RocketMQ 如何实现无缝兼容</h2><p>DLedgerCommitLog#getMessage</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> SelectMappedBufferResult <span class="title">getMessage</span><span class="params">(<span class="keyword">final</span> <span class="keyword">long</span> offset, <span class="keyword">final</span> <span class="keyword">int</span> size)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (offset &lt; dividedCommitlogOffset) &#123;   <span class="comment">// @1</span></span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">super</span>.getMessage(offset, size);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">int</span> mappedFileSize = <span class="keyword">this</span>.dLedgerServer.getdLedgerConfig().getMappedFileSizeForEntryData();</span><br><span class="line">    MmapFile mappedFile = <span class="keyword">this</span>.dLedgerFileList.findMappedFileByOffset(offset, offset == <span class="number">0</span>);   <span class="comment">// @2</span></span><br><span class="line">    <span class="keyword">if</span> (mappedFile != <span class="keyword">null</span>) &#123;</span><br><span class="line">        <span class="keyword">int</span> pos = (<span class="keyword">int</span>) (offset % mappedFileSize);</span><br><span class="line">        <span class="keyword">return</span>  convertSbr(mappedFile.selectMappedBuffer(pos, size));                                       <span class="comment">// @3</span></span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">null</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>消息查找比较简单，因为返回给客户端消息，转发给 consumequeue 的消息物理偏移量并不是  DLedger 条目的偏移量，而是真实消息的起始偏移量。其实现关键点如下：</p>
+<ul>
+<li>如果查找的物理偏移量小于 dividedCommitlogOffset，则从原先的 commitlog 文件中查找。</li>
+<li>然后根据物理偏移量按照二分方找到具体的物理文件。</li>
+<li>对物理偏移量取模，得出在该物理文件中中的绝对偏移量，进行消息查找即可，因为只有知道其物理偏移量，从该处先将消息的长度读取出来，然后即可读出一条完整的消息。</li>
+</ul>
+<h2 id="5、总结"><a href="#5、总结" class="headerlink" title="5、总结"></a>5、总结</h2><p>根据上面详细的介绍，我想读者朋友们应该不难得出如下结论：</p>
+<ul>
+<li>DLedger 在整合时，使用 DLedger 条目包裹 RocketMQ 中的 commitlog 条目，即在  DLedger 条目的 body 字段来存储整条 commitlog 条目。</li>
+<li>引入 dividedCommitlogOffset 变量，表示物理偏移量小于该值的消息存在于旧的 commitlog 文件中，实现 升级 DLedger 集群后能访问到旧的数据。</li>
+<li>新 DLedger 集群启动后，会将最后一个 commitlog 填充，即新的数据不会再写入到 原先的 commitlog 文件。</li>
+<li>消息追加到 DLedger 数据日志文件中，返回的偏移量不是 DLedger 条目的起始偏移量，而是DLedger 条目中 body 字段的起始偏移量，即真实消息的起始偏移量，保证消息物理偏移量的语义与 RocketMQ Commitlog一样。</li>
+</ul>
+<p>RocketMQ 整合 DLedger(多副本)实现平滑升级的设计技巧就介绍到这里了。</p>
+</div>
+
+			<script src="https://my.openwrite.cn/js/readmore.js" type="text/javascript"></script>
+			<script>
+			var isMobile = navigator.userAgent.match(/(phone|pad|pod|iPhone|iPod|ios|iPad|Android|Mobile|BlackBerry|IEMobile|MQQBrowser|JUC|Fennec|wOSBrowser|BrowserNG|WebOS|Symbian|Windows Phone)/i);
+			if (!isMobile) {
+			    var btw = new BTWPlugin();
+			    btw.init({
+			        "id": "vip-container",
+			        "blogId": "18019-1573088808868-542",
+			        "name": "中间件兴趣圈",
+			        "qrcode": "https://img-blog.csdnimg.cn/20190314214003962.jpg",
+			        "keyword": "more"
+			    });
+			}
+			</script>
+		
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://example.com/2020/12/08/RocketMQ%20%E6%95%B4%E5%90%88%20DLedger(%E5%A4%9A%E5%89%AF%E6%9C%AC)%E5%8D%B3%E4%B8%BB%E4%BB%8E%E5%88%87%E6%8D%A2%E5%AE%9E%E7%8E%B0%E5%B9%B3%E6%BB%91%E5%8D%87%E7%BA%A7%E7%9A%84%E8%AE%BE%E8%AE%A1%E6%8A%80%E5%B7%A7/" data-id="ckig4lifp003km4rgglsvhi0y" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/rocketmq/" rel="tag">rocketmq</a></li></ul>
+
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+    <a href="/2020/12/08/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90%20RocketMQ%20DLedger%20%E5%A4%9A%E5%89%AF%E6%9C%AC%E5%8D%B3%E4%B8%BB%E4%BB%8E%E5%88%87%E6%8D%A2%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Newer</strong>
+      <div class="article-nav-title">
+        
+          源码分析 RocketMQ DLedger 多副本即主从切换实现原理
+        
+      </div>
+    </a>
+  
+  
+    <a href="/2020/12/08/%E5%9F%BA%E4%BA%8E%20raft%20%E5%8D%8F%E8%AE%AE%E7%9A%84%20RocketMQ%20DLedger%20%E5%A4%9A%E5%89%AF%E6%9C%AC%E6%97%A5%E5%BF%97%E5%A4%8D%E5%88%B6%E8%AE%BE%E8%AE%A1%E5%8E%9F%E7%90%86/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">基于 raft 协议的 RocketMQ DLedger 多副本日志复制设计原理</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+</section>
+        
+          <aside id="sidebar">
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">分类</h3>
+    <div class="widget">
+      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/kafka-rocketmq/">kafka rocketmq</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/rocketmq/">rocketmq</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/sentinel/">sentinel</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/%E7%A8%8B%E5%BA%8F%E4%BA%BA%E7%94%9F-%E9%80%86%E8%A2%AD-%E8%81%8C%E5%9C%BA%E5%8F%91%E5%B1%95/">程序人生 逆袭 职场发展</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">标签</h3>
+    <div class="widget">
+      <ul class="tag-list" itemprop="keywords"><li class="tag-list-item"><a class="tag-list-link" href="/tags/kafka-rocketmq/" rel="tag">kafka rocketmq</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rocketmq/" rel="tag">rocketmq</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rocketmq-broker-busy-TIMEOUT-CLEAN-QUEUE-PCBUSY-CLEAN-QUEUE/" rel="tag">rocketmq broker busy TIMEOUT_CLEAN_QUEUE PCBUSY_CLEAN_QUEUE</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rocketmq-%E4%B8%BB%E9%A2%98%E6%89%A9%E5%AE%B9-%E5%AE%9E%E6%88%98-%E5%9D%91/" rel="tag">rocketmq 主题扩容 实战 坑</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rocketmq-%E5%A4%9A%E5%89%AF%E6%9C%AC-raft-%E4%B8%BB%E4%BB%8E%E5%88%87%E6%8D%A2/" rel="tag">rocketmq 多副本 raft 主从切换</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rocketmq-%E5%A4%9A%E5%89%AF%E6%9C%AC-raft-%E9%80%89%E4%B8%BB/" rel="tag">rocketmq 多副本 raft 选主</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/sentinel/" rel="tag">sentinel</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E7%A8%8B%E5%BA%8F%E4%BA%BA%E7%94%9F/" rel="tag">程序人生</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">标签云</h3>
+    <div class="widget tagcloud">
+      <a href="/tags/kafka-rocketmq/" style="font-size: 10px;">kafka rocketmq</a> <a href="/tags/rocketmq/" style="font-size: 20px;">rocketmq</a> <a href="/tags/rocketmq-broker-busy-TIMEOUT-CLEAN-QUEUE-PCBUSY-CLEAN-QUEUE/" style="font-size: 10px;">rocketmq broker busy TIMEOUT_CLEAN_QUEUE PCBUSY_CLEAN_QUEUE</a> <a href="/tags/rocketmq-%E4%B8%BB%E9%A2%98%E6%89%A9%E5%AE%B9-%E5%AE%9E%E6%88%98-%E5%9D%91/" style="font-size: 10px;">rocketmq 主题扩容 实战 坑</a> <a href="/tags/rocketmq-%E5%A4%9A%E5%89%AF%E6%9C%AC-raft-%E4%B8%BB%E4%BB%8E%E5%88%87%E6%8D%A2/" style="font-size: 10px;">rocketmq 多副本 raft 主从切换</a> <a href="/tags/rocketmq-%E5%A4%9A%E5%89%AF%E6%9C%AC-raft-%E9%80%89%E4%B8%BB/" style="font-size: 10px;">rocketmq 多副本 raft 选主</a> <a href="/tags/sentinel/" style="font-size: 15px;">sentinel</a> <a href="/tags/%E7%A8%8B%E5%BA%8F%E4%BA%BA%E7%94%9F/" style="font-size: 10px;">程序人生</a>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">归档</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/12/">十二月 2020</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">最新文章</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2020/12/08/%E7%BB%93%E5%90%88%20Sentinel%20%E4%B8%93%E6%A0%8F%E8%B0%88%E8%B0%88%E6%88%91%E7%9A%84%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB%E6%8A%80%E5%B7%A7/">结合 Sentinel 专栏谈谈我的源码阅读技巧</a>
+          </li>
+        
+          <li>
+            <a href="/2020/12/08/Sentinel%20%E7%B3%BB%E7%BB%9F%E8%87%AA%E9%80%82%E5%BA%94%E9%99%90%E6%B5%81%E5%8E%9F%E7%90%86%E5%89%96%E6%9E%90%E4%B8%8E%E5%AE%9E%E6%88%98%E6%8C%87%E5%AF%BC/">Sentinel 系统自适应限流原理剖析与实战指导</a>
+          </li>
+        
+          <li>
+            <a href="/2020/12/08/Sentinel%20Dubbo%20%E9%80%82%E9%85%8D%E5%99%A8%E7%9C%8B%E9%99%90%E6%B5%81%E4%B8%8E%E7%86%94%E6%96%AD(%E5%AE%9E%E6%88%98%E6%80%9D%E8%80%83%E7%AF%87)/">Sentinel Dubbo 适配器看限流与熔断(实战思考篇)</a>
+          </li>
+        
+          <li>
+            <a href="/2020/12/08/Sentinel%20%E9%9B%86%E7%BE%A4%E9%99%90%E6%B5%81%E8%AE%BE%E8%AE%A1%E5%8E%9F%E7%90%86/">Sentinel 集群限流设计原理</a>
+          </li>
+        
+          <li>
+            <a href="/2020/12/08/Sentienl%20%E5%8A%A8%E6%80%81%E6%95%B0%E6%8D%AE%E6%BA%90%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1%E7%90%86%E5%BF%B5%E4%B8%8E%E6%94%B9%E9%80%A0%E5%AE%9E%E8%B7%B5/">Sentienl 动态数据源架构设计理念与改造实践</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2020 中间件兴趣圈<br>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+</nav>
+    
+
+<script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+
+
+  
+<link rel="stylesheet" href="/fancybox/jquery.fancybox.css">
+
+  
+<script src="/fancybox/jquery.fancybox.pack.js"></script>
+
+
+
+
+<script src="/js/script.js"></script>
+
+
+
+
+  </div>
+</body>
+</html>

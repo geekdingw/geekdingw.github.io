@@ -1,0 +1,906 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+
+  
+  <title>中间件兴趣圈</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="关注微信公众号「中间件兴趣圈」，第一时间获取最新干货！">
+<meta property="og:type" content="website">
+<meta property="og:title" content="中间件兴趣圈">
+<meta property="og:url" content="http://example.com/page/3/index.html">
+<meta property="og:site_name" content="中间件兴趣圈">
+<meta property="og:description" content="关注微信公众号「中间件兴趣圈」，第一时间获取最新干货！">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:author" content="中间件兴趣圈">
+<meta name="twitter:card" content="summary">
+  
+    <link rel="alternate" href="/atom.xml" title="中间件兴趣圈" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  
+    <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css">
+  
+  
+<link rel="stylesheet" href="/css/style.css">
+
+<meta name="generator" content="Hexo 5.2.0"></head>
+
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">中间件兴趣圈</a>
+      </h1>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="搜索"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://example.com"></form>
+      </div>
+    </div>
+  </div>
+</header>
+      <div class="outer">
+        <section id="main">
+  
+    <article id="post-RocketMQ HA机制(主从同步)" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2020/12/08/RocketMQ%20HA%E6%9C%BA%E5%88%B6(%E4%B8%BB%E4%BB%8E%E5%90%8C%E6%AD%A5)/" class="article-date">
+  <time datetime="2020-12-08T14:22:35.000Z" itemprop="datePublished">2020-12-08</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/rocketmq/">rocketmq</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/2020/12/08/RocketMQ%20HA%E6%9C%BA%E5%88%B6(%E4%B8%BB%E4%BB%8E%E5%90%8C%E6%AD%A5)/">RocketMQ HA机制(主从同步)</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <blockquote>
+<p>温馨提示：建议参考代码RocketMQ4.4版本，4.5版本引入了多副本机制，实现了主从自动切换，本文并不关心主从切换功能。</p>
+</blockquote>
+<p>@<a href="%E6%9C%AC%E8%8A%82%E7%9B%AE%E5%BD%95">TOC</a></p>
+<h2 id="1、初识主从同步"><a href="#1、初识主从同步" class="headerlink" title="1、初识主从同步"></a>1、初识主从同步</h2><p>主从同步基本实现过程如下图所示：<br><img src="https://img-blog.csdnimg.cn/20190625233757881.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>RocketMQ 的主从同步机制如下：<br>A. 首先启动Master并在指定端口监听；<br>B. 客户端启动，主动连接Master，建立TCP连接；<br>C. 客户端以每隔5s的间隔时间向服务端拉取消息，如果是第一次拉取的话，先获取本地commitlog文件中最大的偏移量，以该偏移量向服务端拉取消息；<br>D. 服务端解析请求，并返回一批数据给客户端；<br>E. 客户端收到一批消息后，将消息写入本地commitlog文件中，然后向Master汇报拉取进度，并更新下一次待拉取偏移量；<br>F. 然后重复第3步；</p>
+<p>RocketMQ主从同步一个重要的特征：主从同步不具备主从切换功能，即当主节点宕机后，从不会接管消息发送，但可以提供消息读取。</p>
+<blockquote>
+<p>温馨提示：本文并不会详细分析RocketMQ主从同步的实现细节，如大家对其感兴趣，可以查阅笔者所著的《RocketMQ技术内幕》或查看笔者博文：<a target="_blank" rel="noopener" href="https://blog.csdn.net/prestigeding/article/details/79600792">https://blog.csdn.net/prestigeding/article/details/79600792</a></p>
+</blockquote>
+<h2 id="2、提出问题"><a href="#2、提出问题" class="headerlink" title="2、提出问题"></a>2、提出问题</h2><ul>
+<li>主，从服务器都在运行过程中，消息消费者是从主拉取消息还是从从拉取？</li>
+<li>RocketMQ主从同步架构中，如果主服务器宕机，从服务器会接管消息消费，此时消息消费进度如何保持，当主服务器恢复后，消息消费者是从主拉取消息还是从从服务器拉取，主从服务器之间的消息消费进度如何同步？</li>
+</ul>
+<p>接下来带着上述问题，一起来探究其实现原理。</p>
+<h2 id="3、原理探究"><a href="#3、原理探究" class="headerlink" title="3、原理探究"></a>3、原理探究</h2><h3 id="3-1-RocketMQ主从读写分离机制"><a href="#3-1-RocketMQ主从读写分离机制" class="headerlink" title="3.1 RocketMQ主从读写分离机制"></a>3.1 RocketMQ主从读写分离机制</h3><p>RocketMQ的主从同步，在默认情况下RocketMQ会优先选择从主服务器进行拉取消息，并不是通常意义的上的读写分离，那什么时候会从拉取呢？</p>
+<blockquote>
+<p>温馨提示：本节同样不会详细整个流程，只会点出其关键点，如果想详细了解消息拉取、消息消费等核心流程，建议大家查阅笔者所著的《RocketMQ技术内幕》。</p>
+</blockquote>
+<p>在RocketMQ中判断是从主拉取，还是从从拉取的核心代码如下：<br>DefaultMessageStore#getMessage</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">long</span> diff = maxOffsetPy - maxPhyOffsetPulling;  <span class="comment">// @1</span></span><br><span class="line"><span class="keyword">long</span> memory = (<span class="keyword">long</span>) (StoreUtil.TOTAL_PHYSICAL_MEMORY_SIZE</span><br><span class="line">                            * (<span class="keyword">this</span>.messageStoreConfig.getAccessMessageInMemoryMaxRatio() / <span class="number">100.0</span>));  <span class="comment">// @2</span></span><br><span class="line">getResult.setSuggestPullingFromSlave(diff &gt; memory);   <span class="comment">// @3</span></span><br></pre></td></tr></table></figure>
+<p>代码@1：首先介绍一下几个局部变量的含义：</p>
+<ul>
+<li>maxOffsetPy<br>当前最大的物理偏移量。返回的偏移量为已存入到操作系统的PageCache中的内容。</li>
+<li>maxPhyOffsetPulling<br>本次消息拉取最大物理偏移量，按照消息顺序拉取的基本原则，可以基本预测下次开始拉取的物理偏移量将大于该值，并且就在其附近。</li>
+<li>diff<br>maxOffsetPy与maxPhyOffsetPulling之间的间隔，getMessage通常用于消息消费时，即这个间隔可以理解为目前未处理的消息总大小。</li>
+</ul>
+<p>代码@2：获取RocketMQ消息存储在PageCache中的总大小，如果当RocketMQ容量超过该阔值，将会将被置换出内存，如果要访问不在PageCache中的消息，则需要从磁盘读取。</p>
+<ul>
+<li>StoreUtil.TOTAL_PHYSICAL_MEMORY_SIZE<br>返回当前系统的总物理内存。参数</li>
+<li>accessMessageInMemoryMaxRatio<br>设置消息存储在内存中的阀值，默认为40。<br>结合代码@2这两个参数的含义，算出RocketMQ消息能映射到内存中最大值为40% * (机器物理内存)。</li>
+</ul>
+<p>代码@3：设置下次拉起是否从从拉取标记，触发下次从从服务器拉取的条件为：当前所有可用消息数据(所有commitlog)文件的大小已经超过了其阔值，默认为物理内存的40%。</p>
+        
+          <p class="article-more-link">
+            <a href="/2020/12/08/RocketMQ%20HA%E6%9C%BA%E5%88%B6(%E4%B8%BB%E4%BB%8E%E5%90%8C%E6%AD%A5)/#more">Read More</a>
+          </p>
+        
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://example.com/2020/12/08/RocketMQ%20HA%E6%9C%BA%E5%88%B6(%E4%B8%BB%E4%BB%8E%E5%90%8C%E6%AD%A5)/" data-id="ckig4lie70006m4rg1pq22czh" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/rocketmq/" rel="tag">rocketmq</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-源码分析RocketMQ ACL实现机制" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2020/12/08/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90RocketMQ%20ACL%E5%AE%9E%E7%8E%B0%E6%9C%BA%E5%88%B6/" class="article-date">
+  <time datetime="2020-12-08T14:20:35.000Z" itemprop="datePublished">2020-12-08</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/rocketmq/">rocketmq</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/2020/12/08/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90RocketMQ%20ACL%E5%AE%9E%E7%8E%B0%E6%9C%BA%E5%88%B6/">源码分析RocketMQ ACL实现机制</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>有关RocketMQ ACL的使用请查看上一篇<a target="_blank" rel="noopener" href="https://blog.csdn.net/prestigeding/article/details/94317946">《RocketMQ ACL使用指南》</a>，本文从源码的角度，分析一下RocketMQ ACL的实现原理。</p>
+<blockquote>
+<p>备注：RocketMQ在4.4.0时引入了ACL机制，本文代码基于RocketMQ4.5.0版本。</p>
+</blockquote>
+<p>@<a href="%E6%9C%AC%E8%8A%82%E7%9B%AE%E5%BD%95">TOC</a><br>根据RocketMQ ACL使用手册，我们应该首先看一下Broker服务器在开启ACL机制时如何加载配置文件，并如何工作的。</p>
+<h2 id="1、BrokerController-initialAcl"><a href="#1、BrokerController-initialAcl" class="headerlink" title="1、BrokerController#initialAcl"></a>1、BrokerController#initialAcl</h2><p>Broker端ACL的入口代码为：BrokerController#initialAcl</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">initialAcl</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (!<span class="keyword">this</span>.brokerConfig.isAclEnable()) &#123;                           <span class="comment">// @1</span></span><br><span class="line">        log.info(<span class="string">&quot;The broker dose not enable acl&quot;</span>);</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    List&lt;AccessValidator&gt; accessValidators = ServiceProvider.load(ServiceProvider.ACL_VALIDATOR_ID, AccessValidator.class);   <span class="comment">// @2</span></span><br><span class="line">    <span class="keyword">if</span> (accessValidators == <span class="keyword">null</span> || accessValidators.isEmpty()) &#123;</span><br><span class="line">        log.info(<span class="string">&quot;The broker dose not load the AccessValidator&quot;</span>);</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span> (AccessValidator accessValidator: accessValidators) &#123;                       <span class="comment">// @3</span></span><br><span class="line">        <span class="keyword">final</span> AccessValidator validator = accessValidator;</span><br><span class="line">        <span class="keyword">this</span>.registerServerRPCHook(<span class="keyword">new</span> RPCHook() &#123;</span><br><span class="line"></span><br><span class="line">            <span class="meta">@Override</span></span><br><span class="line">            <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">doBeforeRequest</span><span class="params">(String remoteAddr, RemotingCommand request)</span> </span>&#123;</span><br><span class="line">                <span class="comment">//Do not catch the exception</span></span><br><span class="line">                validator.validate(validator.parse(request, remoteAddr));                         <span class="comment">// @4</span></span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            <span class="meta">@Override</span></span><br><span class="line">            <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">doAfterResponse</span><span class="params">(String remoteAddr, RemotingCommand request, RemotingCommand response)</span> </span>&#123;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>本方法的实现共4个关键点。<br>代码@1：首先判断Broker是否开启了acl，通过配置参数aclEnable指定，默认为false。</p>
+<p>代码@2：使用类似SPI机制，加载配置的AccessValidator,该方法返回一个列表，其实现逻辑时读取META-INF/service/org.apache.rocketmq.acl.AccessValidator文件中配置的访问验证器，默认配置内容如下：<br><img src="https://img-blog.csdnimg.cn/20190707120439720.png" alt="在这里插入图片描述"><br>代码@3：遍历配置的访问验证器(AccessValidator),并向Broker处理服务器注册钩子函数，RPCHook的doBeforeRequest方法会在服务端接收到请求，将其请求解码后，执行处理请求之前被调用;RPCHook的doAfterResponse方法会在处理完请求后，将结果返回之前被调用，其调用如图所示：<br><img src="https://img-blog.csdnimg.cn/20190707120505807.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>代码@4：在RPCHook#doBeforeRequest方法中调用AccessValidator#validate, 在真实处理命令之前，先执行ACL的验证逻辑，如果拥有该操作的执行权限，则放行，否则抛出AclException。</p>
+<p>接下来，我们将重点放到Broker默认实现的访问验证器：PlainAccessValidator。</p>
+<h2 id="2、PlainAccessValidator"><a href="#2、PlainAccessValidator" class="headerlink" title="2、PlainAccessValidator"></a>2、PlainAccessValidator</h2><h3 id="2-1-类图"><a href="#2-1-类图" class="headerlink" title="2.1 类图"></a>2.1 类图</h3><p><img src="https://img-blog.csdnimg.cn/20190707120530560.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"></p>
+<ul>
+<li>AccessValidator<br>访问验证器接口，主要定义两个接口。<br>1）AccessResource parse(RemotingCommand request, String remoteAddr)<br>从请求头中解析本次请求对应的访问资源，即本次请求需要的访问权限。<br>2）void validate(AccessResource accessResource)<br>根据本次需要访问的权限，与请求用户拥有的权限进行对比验证，判断是拥有权限，如果没有访问该操作的权限，则抛出异常，否则放行。</li>
+<li>PlainAccessValidator<br>RocketMQ默认提供的基于yml配置格式的访问验证器。</li>
+</ul>
+<p>接下来我们重点看一下PlainAccessValidator的parse方法与validate方法的实现细节。在讲解该方法之前，我们首先认识一下RocketMQ封装访问资源的PlainAccessResource。</p>
+        
+          <p class="article-more-link">
+            <a href="/2020/12/08/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90RocketMQ%20ACL%E5%AE%9E%E7%8E%B0%E6%9C%BA%E5%88%B6/#more">Read More</a>
+          </p>
+        
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://example.com/2020/12/08/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90RocketMQ%20ACL%E5%AE%9E%E7%8E%B0%E6%9C%BA%E5%88%B6/" data-id="ckig4lify0044m4rgfq9d42xi" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/rocketmq/" rel="tag">rocketmq</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-RocketMQ ACL使用指南NEW" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2020/12/08/RocketMQ%20ACL%E4%BD%BF%E7%94%A8%E6%8C%87%E5%8D%97NEW/" class="article-date">
+  <time datetime="2020-12-08T14:08:35.000Z" itemprop="datePublished">2020-12-08</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/rocketmq/">rocketmq</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/2020/12/08/RocketMQ%20ACL%E4%BD%BF%E7%94%A8%E6%8C%87%E5%8D%97NEW/">RocketMQ ACL 使用指南</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h2 id="1、什么是ACL"><a href="#1、什么是ACL" class="headerlink" title="1、什么是ACL?"></a>1、什么是ACL?</h2><p>ACL是access control list的简称，俗称访问控制列表。访问控制，基本上会涉及到用户、资源、权限、角色等概念，那在RocketMQ中上述会对应哪些对象呢？</p>
+<ul>
+<li>用户<br>用户是访问控制的基础要素，也不难理解，RocketMQ ACL必然也会引入用户的概念，即支持用户名、密码。</li>
+<li>资源<br>资源，需要保护的对象，在RocketMQ中，消息发送涉及的Topic、消息消费涉及的消费组，应该进行保护，故可以抽象成资源。</li>
+<li>权限<br>针对资源，能进行的操作，</li>
+<li>角色<br>RocketMQ中，只定义两种角色：是否是管理员。</li>
+</ul>
+<p>另外，RocketMQ还支持按照客户端IP进行白名单设置。</p>
+<h2 id="2、ACL基本流程图"><a href="#2、ACL基本流程图" class="headerlink" title="2、ACL基本流程图"></a>2、ACL基本流程图</h2><p>在讲解如何使用ACL之前，我们先简单看一下RocketMQ ACL的请求流程：<br><img src="https://img-blog.csdnimg.cn/2019063014185470.jpg?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>对于上述具体的实现，将在后续文章中重点讲解，本文的目的只是希望给读者一个大概的了解。</p>
+<h2 id="3、如何配置ACL"><a href="#3、如何配置ACL" class="headerlink" title="3、如何配置ACL"></a>3、如何配置ACL</h2><h3 id="3-1-acl配置文件"><a href="#3-1-acl配置文件" class="headerlink" title="3.1 acl配置文件"></a>3.1 acl配置文件</h3><p>acl默认的配置文件名：plain_acl.yml,需要放在${ROCKETMQ_HOME}/store/config目录下。下面对其配置项一一介绍。</p>
+        
+          <p class="article-more-link">
+            <a href="/2020/12/08/RocketMQ%20ACL%E4%BD%BF%E7%94%A8%E6%8C%87%E5%8D%97NEW/#more">Read More</a>
+          </p>
+        
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://example.com/2020/12/08/RocketMQ%20ACL%E4%BD%BF%E7%94%A8%E6%8C%87%E5%8D%97NEW/" data-id="ckig4lie70005m4rg4fuibzu7" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/rocketmq/" rel="tag">rocketmq</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-RocketMQ ACL 使用指南" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2020/12/08/RocketMQ%20ACL%20%E4%BD%BF%E7%94%A8%E6%8C%87%E5%8D%97/" class="article-date">
+  <time datetime="2020-12-08T14:07:38.864Z" itemprop="datePublished">2020-12-08</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>RocketMQ ACL使用指南title: 源码分析RocketMQ消息轨迹<br>tags: rocketmq<br>date: 2020-12-08 22:01:35<br>categories: rocketmq</p>
+<p>本文沿着<a target="_blank" rel="noopener" href="https://blog.csdn.net/prestigeding/article/details/95922489">《RocketMQ消息轨迹-设计篇》</a>的思路，从如下3个方面对其源码进行解读：</p>
+<ol>
+<li>发送消息轨迹</li>
+<li>消息轨迹格式</li>
+<li>存储消息轨迹数据</li>
+</ol>
+<h2 id="1、发送消息轨迹流程"><a href="#1、发送消息轨迹流程" class="headerlink" title="1、发送消息轨迹流程"></a>1、发送消息轨迹流程</h2><p>首先我们来看一下在消息发送端如何启用消息轨迹，示例代码如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">TraceProducer</span> </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> MQClientException, InterruptedException </span>&#123;</span><br><span class="line">        DefaultMQProducer producer = <span class="keyword">new</span> DefaultMQProducer(<span class="string">&quot;ProducerGroupName&quot;</span>,<span class="keyword">true</span>);      <span class="comment">// @1</span></span><br><span class="line">        producer.setNamesrvAddr(<span class="string">&quot;127.0.0.1:9876&quot;</span>);</span><br><span class="line">        producer.start();</span><br><span class="line">        <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; <span class="number">10</span>; i++)</span><br><span class="line">            <span class="keyword">try</span> &#123;</span><br><span class="line">                &#123;</span><br><span class="line">                    Message msg = <span class="keyword">new</span> Message(<span class="string">&quot;TopicTest&quot;</span>,</span><br><span class="line">                        <span class="string">&quot;TagA&quot;</span>,</span><br><span class="line">                        <span class="string">&quot;OrderID188&quot;</span>,</span><br><span class="line">                        <span class="string">&quot;Hello world&quot;</span>.getBytes(RemotingHelper.DEFAULT_CHARSET));</span><br><span class="line">                    SendResult sendResult = producer.send(msg);</span><br><span class="line">                    System.out.printf(<span class="string">&quot;%s%n&quot;</span>, sendResult);</span><br><span class="line">                &#125;</span><br><span class="line"></span><br><span class="line">            &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">                e.printStackTrace();</span><br><span class="line">            &#125;</span><br><span class="line">        producer.shutdown();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>从上述代码可以看出其关键点是在创建DefaultMQProducer时指定开启消息轨迹跟踪。我们不妨浏览一下DefaultMQProducer与启用消息轨迹相关的构造函数：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="title">DefaultMQProducer</span><span class="params">(<span class="keyword">final</span> String producerGroup, <span class="keyword">boolean</span> enableMsgTrace)</span></span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="title">DefaultMQProducer</span><span class="params">(<span class="keyword">final</span> String producerGroup, <span class="keyword">boolean</span> enableMsgTrace, <span class="keyword">final</span> String customizedTraceTopic)</span></span></span><br></pre></td></tr></table></figure>
+<p>参数如下：</p>
+<ul>
+<li>String producerGroup<br>生产者所属组名。</li>
+<li>boolean enableMsgTrace<br>是否开启跟踪消息轨迹，默认为false。</li>
+<li>String customizedTraceTopic<br>如果开启消息轨迹跟踪，用来存储消息轨迹数据所属的主题名称，默认为：RMQ_SYS_TRACE_TOPIC。</li>
+</ul>
+<h3 id="1-1-DefaultMQProducer构造函数"><a href="#1-1-DefaultMQProducer构造函数" class="headerlink" title="1.1 DefaultMQProducer构造函数"></a>1.1 DefaultMQProducer构造函数</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="title">DefaultMQProducer</span><span class="params">(<span class="keyword">final</span> String producerGroup, RPCHook rpcHook, <span class="keyword">boolean</span> enableMsgTrace,<span class="keyword">final</span> String customizedTraceTopic)</span> </span>&#123;      <span class="comment">// @1</span></span><br><span class="line">    <span class="keyword">this</span>.producerGroup = producerGroup;</span><br><span class="line">    defaultMQProducerImpl = <span class="keyword">new</span> DefaultMQProducerImpl(<span class="keyword">this</span>, rpcHook);</span><br><span class="line">    <span class="comment">//if client open the message trace feature</span></span><br><span class="line">    <span class="keyword">if</span> (enableMsgTrace) &#123;                                                                                                                                                                                            <span class="comment">// @2</span></span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            AsyncTraceDispatcher dispatcher = <span class="keyword">new</span> AsyncTraceDispatcher(customizedTraceTopic, rpcHook);                                                         </span><br><span class="line">            dispatcher.setHostProducer(<span class="keyword">this</span>.getDefaultMQProducerImpl());</span><br><span class="line">            traceDispatcher = dispatcher;</span><br><span class="line">            <span class="keyword">this</span>.getDefaultMQProducerImpl().registerSendMessageHook(</span><br><span class="line">                <span class="keyword">new</span> SendMessageTraceHookImpl(traceDispatcher));                                                                                                                             <span class="comment">// @3</span></span><br><span class="line">        &#125; <span class="keyword">catch</span> (Throwable e) &#123;</span><br><span class="line">            log.error(<span class="string">&quot;system mqtrace hook init failed ,maybe can&#x27;t send msg trace data&quot;</span>);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>代码@1：首先介绍一下其局部变量。</p>
+<ul>
+<li>String producerGroup<br>生产者所属组。</li>
+<li>RPCHook rpcHook<br>生产者发送钩子函数。</li>
+<li>boolean enableMsgTrace<br>是否开启消息轨迹跟踪。</li>
+<li>String customizedTraceTopic<br>定制用于存储消息轨迹的数据。</li>
+</ul>
+<p>代码@2：用来构建AsyncTraceDispatcher，看其名：异步转发消息轨迹数据，稍后重点关注。</p>
+<p>代码@3：构建SendMessageTraceHookImpl对象，并使用AsyncTraceDispatcher用来异步转发。</p>
+<h3 id="1-2-SendMessageTraceHookImpl钩子函数"><a href="#1-2-SendMessageTraceHookImpl钩子函数" class="headerlink" title="1.2 SendMessageTraceHookImpl钩子函数"></a>1.2 SendMessageTraceHookImpl钩子函数</h3><h4 id="1-2-1-SendMessageTraceHookImpl类图"><a href="#1-2-1-SendMessageTraceHookImpl类图" class="headerlink" title="1.2.1 SendMessageTraceHookImpl类图"></a>1.2.1 SendMessageTraceHookImpl类图</h4><p><img src="https://img-blog.csdnimg.cn/20190803203518449.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"></p>
+<ol>
+<li>SendMessageHook<br>消息发送钩子函数，用于在消息发送之前、发送之后执行一定的业务逻辑，是记录消息轨迹的最佳扩展点。</li>
+<li>TraceDispatcher<br>消息轨迹转发处理器，其默认实现类AsyncTraceDispatcher，异步实现消息轨迹数据的发送。下面对其属性做一个简单的介绍：<ul>
+<li>int queueSize<br>异步转发，队列长度，默认为2048，当前版本不能修改。</li>
+<li>int batchSize<br>批量消息条数，消息轨迹一次消息发送请求包含的数据条数，默认为100，当前版本不能修改。</li>
+<li>int maxMsgSize<br>消息轨迹一次发送的最大消息大小，默认为128K，当前版本不能修改。</li>
+<li>DefaultMQProducer traceProducer<br>  用来发送消息轨迹的消息发送者。</li>
+<li>ThreadPoolExecutor traceExecuter<br>线程池，用来异步执行消息发送。</li>
+<li>AtomicLong discardCount<br>记录丢弃的消息个数。</li>
+<li>Thread worker<br>woker线程，主要负责从追加队列中获取一批待发送的消息轨迹数据，提交到线程池中执行。</li>
+<li>ArrayBlockingQueue&lt; TraceContext&gt; traceContextQueue<br>消息轨迹TraceContext队列，用来存放待发送到服务端的消息。</li>
+<li>ArrayBlockingQueue&lt; Runnable&gt; appenderQueue<br>线程池内部队列，默认长度1024。</li>
+<li>DefaultMQPushConsumerImpl hostConsumer<br>消费者信息，记录消息消费时的轨迹信息。</li>
+<li>String traceTopicName<br>用于跟踪消息轨迹的topic名称。</li>
+</ul>
+</li>
+</ol>
+        
+          <p class="article-more-link">
+            <a href="/2020/12/08/RocketMQ%20ACL%20%E4%BD%BF%E7%94%A8%E6%8C%87%E5%8D%97/#more">Read More</a>
+          </p>
+        
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://example.com/2020/12/08/RocketMQ%20ACL%20%E4%BD%BF%E7%94%A8%E6%8C%87%E5%8D%97/" data-id="ckig4lifo003jm4rggl45bq4b" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-源码分析RocketMQ消息轨迹" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2020/12/08/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90RocketMQ%E6%B6%88%E6%81%AF%E8%BD%A8%E8%BF%B9/" class="article-date">
+  <time datetime="2020-12-08T14:01:35.000Z" itemprop="datePublished">2020-12-08</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/rocketmq/">rocketmq</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/2020/12/08/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90RocketMQ%E6%B6%88%E6%81%AF%E8%BD%A8%E8%BF%B9/">源码分析RocketMQ消息轨迹</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>本文沿着<a target="_blank" rel="noopener" href="https://blog.csdn.net/prestigeding/article/details/95922489">《RocketMQ消息轨迹-设计篇》</a>的思路，从如下3个方面对其源码进行解读：</p>
+<ol>
+<li>发送消息轨迹</li>
+<li>消息轨迹格式</li>
+<li>存储消息轨迹数据</li>
+</ol>
+<h2 id="1、发送消息轨迹流程"><a href="#1、发送消息轨迹流程" class="headerlink" title="1、发送消息轨迹流程"></a>1、发送消息轨迹流程</h2><p>首先我们来看一下在消息发送端如何启用消息轨迹，示例代码如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">TraceProducer</span> </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> MQClientException, InterruptedException </span>&#123;</span><br><span class="line">        DefaultMQProducer producer = <span class="keyword">new</span> DefaultMQProducer(<span class="string">&quot;ProducerGroupName&quot;</span>,<span class="keyword">true</span>);      <span class="comment">// @1</span></span><br><span class="line">        producer.setNamesrvAddr(<span class="string">&quot;127.0.0.1:9876&quot;</span>);</span><br><span class="line">        producer.start();</span><br><span class="line">        <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; <span class="number">10</span>; i++)</span><br><span class="line">            <span class="keyword">try</span> &#123;</span><br><span class="line">                &#123;</span><br><span class="line">                    Message msg = <span class="keyword">new</span> Message(<span class="string">&quot;TopicTest&quot;</span>,</span><br><span class="line">                        <span class="string">&quot;TagA&quot;</span>,</span><br><span class="line">                        <span class="string">&quot;OrderID188&quot;</span>,</span><br><span class="line">                        <span class="string">&quot;Hello world&quot;</span>.getBytes(RemotingHelper.DEFAULT_CHARSET));</span><br><span class="line">                    SendResult sendResult = producer.send(msg);</span><br><span class="line">                    System.out.printf(<span class="string">&quot;%s%n&quot;</span>, sendResult);</span><br><span class="line">                &#125;</span><br><span class="line"></span><br><span class="line">            &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">                e.printStackTrace();</span><br><span class="line">            &#125;</span><br><span class="line">        producer.shutdown();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>从上述代码可以看出其关键点是在创建DefaultMQProducer时指定开启消息轨迹跟踪。我们不妨浏览一下DefaultMQProducer与启用消息轨迹相关的构造函数：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="title">DefaultMQProducer</span><span class="params">(<span class="keyword">final</span> String producerGroup, <span class="keyword">boolean</span> enableMsgTrace)</span></span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="title">DefaultMQProducer</span><span class="params">(<span class="keyword">final</span> String producerGroup, <span class="keyword">boolean</span> enableMsgTrace, <span class="keyword">final</span> String customizedTraceTopic)</span></span></span><br></pre></td></tr></table></figure>
+<p>参数如下：</p>
+<ul>
+<li>String producerGroup<br>生产者所属组名。</li>
+<li>boolean enableMsgTrace<br>是否开启跟踪消息轨迹，默认为false。</li>
+<li>String customizedTraceTopic<br>如果开启消息轨迹跟踪，用来存储消息轨迹数据所属的主题名称，默认为：RMQ_SYS_TRACE_TOPIC。</li>
+</ul>
+<h3 id="1-1-DefaultMQProducer构造函数"><a href="#1-1-DefaultMQProducer构造函数" class="headerlink" title="1.1 DefaultMQProducer构造函数"></a>1.1 DefaultMQProducer构造函数</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="title">DefaultMQProducer</span><span class="params">(<span class="keyword">final</span> String producerGroup, RPCHook rpcHook, <span class="keyword">boolean</span> enableMsgTrace,<span class="keyword">final</span> String customizedTraceTopic)</span> </span>&#123;      <span class="comment">// @1</span></span><br><span class="line">    <span class="keyword">this</span>.producerGroup = producerGroup;</span><br><span class="line">    defaultMQProducerImpl = <span class="keyword">new</span> DefaultMQProducerImpl(<span class="keyword">this</span>, rpcHook);</span><br><span class="line">    <span class="comment">//if client open the message trace feature</span></span><br><span class="line">    <span class="keyword">if</span> (enableMsgTrace) &#123;                                                                                                                                                                                            <span class="comment">// @2</span></span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            AsyncTraceDispatcher dispatcher = <span class="keyword">new</span> AsyncTraceDispatcher(customizedTraceTopic, rpcHook);                                                         </span><br><span class="line">            dispatcher.setHostProducer(<span class="keyword">this</span>.getDefaultMQProducerImpl());</span><br><span class="line">            traceDispatcher = dispatcher;</span><br><span class="line">            <span class="keyword">this</span>.getDefaultMQProducerImpl().registerSendMessageHook(</span><br><span class="line">                <span class="keyword">new</span> SendMessageTraceHookImpl(traceDispatcher));                                                                                                                             <span class="comment">// @3</span></span><br><span class="line">        &#125; <span class="keyword">catch</span> (Throwable e) &#123;</span><br><span class="line">            log.error(<span class="string">&quot;system mqtrace hook init failed ,maybe can&#x27;t send msg trace data&quot;</span>);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>代码@1：首先介绍一下其局部变量。</p>
+<ul>
+<li>String producerGroup<br>生产者所属组。</li>
+<li>RPCHook rpcHook<br>生产者发送钩子函数。</li>
+<li>boolean enableMsgTrace<br>是否开启消息轨迹跟踪。</li>
+<li>String customizedTraceTopic<br>定制用于存储消息轨迹的数据。</li>
+</ul>
+<p>代码@2：用来构建AsyncTraceDispatcher，看其名：异步转发消息轨迹数据，稍后重点关注。</p>
+<p>代码@3：构建SendMessageTraceHookImpl对象，并使用AsyncTraceDispatcher用来异步转发。</p>
+<h3 id="1-2-SendMessageTraceHookImpl钩子函数"><a href="#1-2-SendMessageTraceHookImpl钩子函数" class="headerlink" title="1.2 SendMessageTraceHookImpl钩子函数"></a>1.2 SendMessageTraceHookImpl钩子函数</h3><h4 id="1-2-1-SendMessageTraceHookImpl类图"><a href="#1-2-1-SendMessageTraceHookImpl类图" class="headerlink" title="1.2.1 SendMessageTraceHookImpl类图"></a>1.2.1 SendMessageTraceHookImpl类图</h4><p><img src="https://img-blog.csdnimg.cn/20190803203518449.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"></p>
+<ol>
+<li>SendMessageHook<br>消息发送钩子函数，用于在消息发送之前、发送之后执行一定的业务逻辑，是记录消息轨迹的最佳扩展点。</li>
+<li>TraceDispatcher<br>消息轨迹转发处理器，其默认实现类AsyncTraceDispatcher，异步实现消息轨迹数据的发送。下面对其属性做一个简单的介绍：<ul>
+<li>int queueSize<br>异步转发，队列长度，默认为2048，当前版本不能修改。</li>
+<li>int batchSize<br>批量消息条数，消息轨迹一次消息发送请求包含的数据条数，默认为100，当前版本不能修改。</li>
+<li>int maxMsgSize<br>消息轨迹一次发送的最大消息大小，默认为128K，当前版本不能修改。</li>
+<li>DefaultMQProducer traceProducer<br>  用来发送消息轨迹的消息发送者。</li>
+<li>ThreadPoolExecutor traceExecuter<br>线程池，用来异步执行消息发送。</li>
+<li>AtomicLong discardCount<br>记录丢弃的消息个数。</li>
+<li>Thread worker<br>woker线程，主要负责从追加队列中获取一批待发送的消息轨迹数据，提交到线程池中执行。</li>
+<li>ArrayBlockingQueue&lt; TraceContext&gt; traceContextQueue<br>消息轨迹TraceContext队列，用来存放待发送到服务端的消息。</li>
+<li>ArrayBlockingQueue&lt; Runnable&gt; appenderQueue<br>线程池内部队列，默认长度1024。</li>
+<li>DefaultMQPushConsumerImpl hostConsumer<br>消费者信息，记录消息消费时的轨迹信息。</li>
+<li>String traceTopicName<br>用于跟踪消息轨迹的topic名称。</li>
+</ul>
+</li>
+</ol>
+        
+          <p class="article-more-link">
+            <a href="/2020/12/08/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90RocketMQ%E6%B6%88%E6%81%AF%E8%BD%A8%E8%BF%B9/#more">Read More</a>
+          </p>
+        
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://example.com/2020/12/08/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90RocketMQ%E6%B6%88%E6%81%AF%E8%BD%A8%E8%BF%B9/" data-id="ckig4lifv0041m4rghufk3fqk" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/rocketmq/" rel="tag">rocketmq</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-RocketMQ消息轨迹-设计篇" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2020/12/08/RocketMQ%E6%B6%88%E6%81%AF%E8%BD%A8%E8%BF%B9-%E8%AE%BE%E8%AE%A1%E7%AF%87/" class="article-date">
+  <time datetime="2020-12-08T13:55:35.000Z" itemprop="datePublished">2020-12-08</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/rocketmq/">rocketmq</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/2020/12/08/RocketMQ%E6%B6%88%E6%81%AF%E8%BD%A8%E8%BF%B9-%E8%AE%BE%E8%AE%A1%E7%AF%87/">RocketMQ消息轨迹-设计篇</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>RocketMQ消息轨迹主要包含两篇文章：设计篇与源码分析篇，本节将详细介绍RocketMQ消息轨迹-设计相关。</p>
+<p>RocketMQ消息轨迹，主要跟踪消息发送、消息消费的轨迹，即详细记录消息各个处理环节的日志，从设计上至少需要解决如下三个核心问题：</p>
+<ul>
+<li>消费轨迹数据格式</li>
+<li>记录消息轨迹(消息日志)</li>
+<li>消息轨迹数据存储在哪？</li>
+</ul>
+<h2 id="1、消息轨迹数据格式"><a href="#1、消息轨迹数据格式" class="headerlink" title="1、消息轨迹数据格式"></a>1、消息轨迹数据格式</h2><p>RocketMQ4.5版本消息轨迹主要记录如下信息：</p>
+<ul>
+<li>traceType<br>跟踪类型，可选值：Pub(消息发送)、SubBefore(消息拉取到客户端，执行业务定义的消费逻辑之前)、SubAfter(消费后)。</li>
+<li>timeStamp<br>当前时间戳。</li>
+<li>regionId<br>broker所在的区域ID，取自BrokerConfig#regionId。</li>
+<li>groupName<br>组名称，traceType为Pub时为生产者组的名称；如果traceType为subBefore或subAfter时为消费组名称。</li>
+<li>requestId<br>traceType为subBefore、subAfter时使用，消费端的请求Id。</li>
+<li>topic<br>消息主题。</li>
+<li>msgId<br>消息唯一ID。</li>
+<li>tags<br>消息tag。</li>
+<li>keys<br>消息索引key，根据该key可快速检索消息。</li>
+<li>storeHost<br>跟踪类型为PUB时为存储该消息的Broker服务器IP；跟踪类型为subBefore、subAfter时为消费者IP。</li>
+<li>bodyLength<br>消息体的长度。</li>
+<li>costTime<br>耗时。</li>
+<li>msgType<br>消息的类型，可选值：Normal_Msg(普通消息),Trans_Msg_Half(预提交消息),Trans_msg_Commit(提交消息),Delay_Msg(延迟消息)。</li>
+<li>offsetMsgId<br>消息偏移量ID,该ID中包含了broker的ip以及偏移量。</li>
+<li>success<br>是发送成功。</li>
+<li>contextCode<br>消费状态码，可选值：SUCCESS,TIME_OUT,EXCEPTION,RETURNNULL,FAILED。</li>
+</ul>
+        
+          <p class="article-more-link">
+            <a href="/2020/12/08/RocketMQ%E6%B6%88%E6%81%AF%E8%BD%A8%E8%BF%B9-%E8%AE%BE%E8%AE%A1%E7%AF%87/#more">Read More</a>
+          </p>
+        
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://example.com/2020/12/08/RocketMQ%E6%B6%88%E6%81%AF%E8%BD%A8%E8%BF%B9-%E8%AE%BE%E8%AE%A1%E7%AF%87/" data-id="ckig4liem0012m4rgas8z5e36" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/rocketmq/" rel="tag">rocketmq</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-源码阅读技巧篇：RocketMQ DLedger 多副本即主从切换专栏回顾" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2020/12/08/%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB%E6%8A%80%E5%B7%A7%E7%AF%87%EF%BC%9ARocketMQ%20DLedger%20%E5%A4%9A%E5%89%AF%E6%9C%AC%E5%8D%B3%E4%B8%BB%E4%BB%8E%E5%88%87%E6%8D%A2%E4%B8%93%E6%A0%8F%E5%9B%9E%E9%A1%BE/" class="article-date">
+  <time datetime="2020-12-08T13:55:35.000Z" itemprop="datePublished">2020-12-08</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/rocketmq/">rocketmq</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/2020/12/08/%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB%E6%8A%80%E5%B7%A7%E7%AF%87%EF%BC%9ARocketMQ%20DLedger%20%E5%A4%9A%E5%89%AF%E6%9C%AC%E5%8D%B3%E4%B8%BB%E4%BB%8E%E5%88%87%E6%8D%A2%E4%B8%93%E6%A0%8F%E5%9B%9E%E9%A1%BE/">源码阅读技巧篇：RocketMQ DLedger 多副本即主从切换专栏回顾</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>RocketMQ DLedger 多副本即主从切换专栏总共包含9篇文章，时间跨度大概为2个月的时间，笔者觉得授人以鱼不如授人以渔，借以这个系列来展示该系列的创作始末，展示笔者阅读源码的技巧。</p>
+<p>首先在下决心研读  RocketMQ DLedger 多副本(主从切换)的源码之前，首先还是要通过官方的分享、百度等途径对该功能进行一些基本的了解。</p>
+<p>我们了解到 RocketMQ 在 4.5.0 之前提供了主从同步功能，即当主节点宕机后，消费端可以继续从从节点上消费消息，但无法继续向该复制组发送消息。RocketMQ 4.5.0版本引入了多副本机制，即 DLedger，支持主从切换，即当一个复制组内的主节点宕机后，会在该复制组内触发重新选主，选主完成后即可继续提供消息写功能。同时还了解到 rocketmq 主从切换是基于 raft 协议的。</p>
+<p>raft 协议是何许人也，我猜想大部分读者对这个名词并不陌生，但像笔者一样只是听过其大体作用但并未详细学习的应该也不在少数，故我觉得看 RocketMQ DLedger 多副本即主从切换之前应该重点了解 raft 协议。</p>
+<p>1、<a target="_blank" rel="noopener" href="https://blog.csdn.net/prestigeding/article/details/99101912">RocketMQ 多副本前置篇：初探raft协议</a></p>
+<p>本文主要根据 raft 官方提供的动画来学习了解 raft 协议，从本文基本得知了 raft 协议主要包含两个重要部分：选主 以及 日志复制。在了解了 raft 协议的选主、日志复制的基本实现后，然后就可以步入到 RocketMQ DLedger 多副本即主从切换的源码研究了，以探究大神是如何实现 raft 协议的。同时在了解到了 raft 协议的选主部分内容后，自己也可以简单的思考，如果自己去实现 raft 协议，应该要实现哪些关键点，当时我的思考如下：<br><img src="https://img-blog.csdnimg.cn/20191020212502611.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>这样在看源码时更加有针对性，不至于在阅读源码过程中“迷失”。</p>
+<p>2、<a target="_blank" rel="noopener" href="https://blog.csdn.net/prestigeding/article/details/99697323">源码分析 RocketMQ DLedger 多副本之 Leader 选主</a></p>
+<p>本文按照上一篇的思路，重点对 DLedgerLeaderElector 的实现进行了详细分析，特别是其内部的状态机流转，最后也给出一张流程图对选主过程进行一个简单的梳理与总结。</p>
+        
+          <p class="article-more-link">
+            <a href="/2020/12/08/%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB%E6%8A%80%E5%B7%A7%E7%AF%87%EF%BC%9ARocketMQ%20DLedger%20%E5%A4%9A%E5%89%AF%E6%9C%AC%E5%8D%B3%E4%B8%BB%E4%BB%8E%E5%88%87%E6%8D%A2%E4%B8%93%E6%A0%8F%E5%9B%9E%E9%A1%BE/#more">Read More</a>
+          </p>
+        
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://example.com/2020/12/08/%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB%E6%8A%80%E5%B7%A7%E7%AF%87%EF%BC%9ARocketMQ%20DLedger%20%E5%A4%9A%E5%89%AF%E6%9C%AC%E5%8D%B3%E4%B8%BB%E4%BB%8E%E5%88%87%E6%8D%A2%E4%B8%93%E6%A0%8F%E5%9B%9E%E9%A1%BE/" data-id="ckig4life002xm4rgfgawdibw" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/rocketmq/" rel="tag">rocketmq</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-RocketMQ一个新的消费组初次启动时从何处开始消费呢？" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2020/12/08/RocketMQ%E4%B8%80%E4%B8%AA%E6%96%B0%E7%9A%84%E6%B6%88%E8%B4%B9%E7%BB%84%E5%88%9D%E6%AC%A1%E5%90%AF%E5%8A%A8%E6%97%B6%E4%BB%8E%E4%BD%95%E5%A4%84%E5%BC%80%E5%A7%8B%E6%B6%88%E8%B4%B9%E5%91%A2%EF%BC%9F/" class="article-date">
+  <time datetime="2020-12-08T13:55:35.000Z" itemprop="datePublished">2020-12-08</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/rocketmq/">rocketmq</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/2020/12/08/RocketMQ%E4%B8%80%E4%B8%AA%E6%96%B0%E7%9A%84%E6%B6%88%E8%B4%B9%E7%BB%84%E5%88%9D%E6%AC%A1%E5%90%AF%E5%8A%A8%E6%97%B6%E4%BB%8E%E4%BD%95%E5%A4%84%E5%BC%80%E5%A7%8B%E6%B6%88%E8%B4%B9%E5%91%A2%EF%BC%9F/">RocketMQ一个新的消费组初次启动时从何处开始消费呢？</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h2 id="1、抛出问题"><a href="#1、抛出问题" class="headerlink" title="1、抛出问题"></a>1、抛出问题</h2><p>一个新的消费组订阅一个已存在的Topic主题时，消费组是从该Topic的哪条消息开始消费呢？</p>
+<p>首先翻阅DefaultMQPushConsumer的API时，setConsumeFromWhere(ConsumeFromWhere consumeFromWhere)API映入眼帘，从字面意思来看是设置消费者从哪里开始消费，正是解开该问题的”钥匙“。ConsumeFromWhere枚举类图如下：<br><img src="https://img-blog.csdnimg.cn/20190720120834686.png" alt="在这里插入图片描述"></p>
+<ul>
+<li>CONSUME_FROM_MAX_OFFSET<br>从消费队列最大的偏移量开始消费。</li>
+<li>CONSUME_FROM_FIRST_OFFSET<br>从消费队列最小偏移量开始消费。</li>
+<li>CONSUME_FROM_TIMESTAMP<br>从指定的时间戳开始消费，默认为消费者启动之前的30分钟处开始消费。可以通过DefaultMQPushConsumer#setConsumeTimestamp。</li>
+</ul>
+<p>是不是点小激动，还不快试试。</p>
+<p>需求：新的消费组启动时，从队列最后开始消费，即只消费启动后发送到消息服务器后的最新消息。</p>
+<h3 id="1-1-环境准备"><a href="#1-1-环境准备" class="headerlink" title="1.1 环境准备"></a>1.1 环境准备</h3><p>本示例所用到的Topic路由信息如下：<br><img src="https://img-blog.csdnimg.cn/20190720120920850.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"></p>
+<p><strong>Broker的配置如下(broker.conf)</strong></p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">brokerClusterName &#x3D; DefaultCluster</span><br><span class="line">brokerName &#x3D; broker-a</span><br><span class="line">brokerId &#x3D; 0</span><br><span class="line">deleteWhen &#x3D; 04</span><br><span class="line">fileReservedTime &#x3D; 48</span><br><span class="line">brokerRole &#x3D; ASYNC_MASTER</span><br><span class="line">flushDiskType &#x3D; ASYNC_FLUSH</span><br><span class="line"></span><br><span class="line">storePathRootDir&#x3D;E:&#x2F;SH2019&#x2F;tmp&#x2F;rocketmq_home&#x2F;rocketmq4.5_simple&#x2F;store</span><br><span class="line">storePathCommitLog&#x3D;E:&#x2F;SH2019&#x2F;tmp&#x2F;rocketmq_home&#x2F;rocketmq4.5_simple&#x2F;store&#x2F;commitlog</span><br><span class="line">namesrvAddr&#x3D;127.0.0.1:9876</span><br><span class="line">autoCreateTopicEnable&#x3D;false</span><br><span class="line">mapedFileSizeCommitLog&#x3D;10240</span><br><span class="line">mapedFileSizeConsumeQueue&#x3D;2000</span><br></pre></td></tr></table></figure>
+<p>其中重点修改了如下两个参数：</p>
+<ul>
+<li>mapedFileSizeCommitLog<br>单个commitlog文件的大小，这里使用10M，方便测试用。</li>
+<li>mapedFileSizeConsumeQueue<br>单个consumequeue队列长度，这里使用1000，表示一个consumequeue文件中包含1000个条目。</li>
+</ul>
+<h3 id="1-2-消息发送者代码"><a href="#1-2-消息发送者代码" class="headerlink" title="1.2 消息发送者代码"></a>1.2 消息发送者代码</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> MQClientException, InterruptedException </span>&#123;</span><br><span class="line">    DefaultMQProducer producer = <span class="keyword">new</span> DefaultMQProducer(<span class="string">&quot;please_rename_unique_group_name&quot;</span>);</span><br><span class="line">    producer.setNamesrvAddr(<span class="string">&quot;127.0.0.1:9876&quot;</span>);</span><br><span class="line">    producer.start();</span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; <span class="number">300</span>; i++) &#123;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            Message msg = <span class="keyword">new</span> Message(<span class="string">&quot;TopicTest&quot;</span> ,<span class="string">&quot;TagA&quot;</span> , (<span class="string">&quot;Hello RocketMQ &quot;</span> + i).getBytes(RemotingHelper.DEFAULT_CHARSET));</span><br><span class="line">            SendResult sendResult = producer.send(msg);</span><br><span class="line">            System.out.printf(<span class="string">&quot;%s%n&quot;</span>, sendResult);</span><br><span class="line">        &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">            e.printStackTrace();</span><br><span class="line">            Thread.sleep(<span class="number">1000</span>);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    producer.shutdown();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>通过上述，往TopicTest发送300条消息，发送完毕后，RocketMQ Broker存储结构如下：<br><img src="https://img-blog.csdnimg.cn/20190720121132299.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"></p>
+<h3 id="1-3-消费端验证代码"><a href="#1-3-消费端验证代码" class="headerlink" title="1.3 消费端验证代码"></a>1.3 消费端验证代码</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> InterruptedException, MQClientException </span>&#123;</span><br><span class="line">    DefaultMQPushConsumer consumer = <span class="keyword">new</span> DefaultMQPushConsumer(<span class="string">&quot;my_consumer_01&quot;</span>);</span><br><span class="line">    consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET);</span><br><span class="line">    consumer.subscribe(<span class="string">&quot;TopicTest&quot;</span>, <span class="string">&quot;*&quot;</span>);</span><br><span class="line">    consumer.setNamesrvAddr(<span class="string">&quot;127.0.0.1:9876&quot;</span>);</span><br><span class="line">    consumer.registerMessageListener(<span class="keyword">new</span> MessageListenerConcurrently() &#123;</span><br><span class="line">        <span class="meta">@Override</span></span><br><span class="line">        <span class="function"><span class="keyword">public</span> ConsumeConcurrentlyStatus <span class="title">consumeMessage</span><span class="params">(List&lt;MessageExt&gt; msgs,</span></span></span><br><span class="line"><span class="function"><span class="params">            ConsumeConcurrentlyContext context)</span> </span>&#123;</span><br><span class="line">            System.out.printf(<span class="string">&quot;%s Receive New Messages: %s %n&quot;</span>, Thread.currentThread().getName(), msgs);</span><br><span class="line">            <span class="keyword">return</span> ConsumeConcurrentlyStatus.CONSUME_SUCCESS;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;);</span><br><span class="line">    consumer.start();</span><br><span class="line">    System.out.printf(<span class="string">&quot;Consumer Started.%n&quot;</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>执行上述代码后，按照期望，应该是不会消费任何消息，只有等生产者再发送消息后，才会对消息进行消费，事实是这样吗？执行效果如图所示：<br><img src="https://img-blog.csdnimg.cn/20190720121225978.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br><strong>令人意外的是，竟然从队列的最小偏移量开始消费了</strong>，这就“尴尬”了。难不成是RocketMQ的Bug。带着这个疑问，从源码的角度尝试来解读该问题，并指导我们实践。</p>
+        
+          <p class="article-more-link">
+            <a href="/2020/12/08/RocketMQ%E4%B8%80%E4%B8%AA%E6%96%B0%E7%9A%84%E6%B6%88%E8%B4%B9%E7%BB%84%E5%88%9D%E6%AC%A1%E5%90%AF%E5%8A%A8%E6%97%B6%E4%BB%8E%E4%BD%95%E5%A4%84%E5%BC%80%E5%A7%8B%E6%B6%88%E8%B4%B9%E5%91%A2%EF%BC%9F/#more">Read More</a>
+          </p>
+        
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://example.com/2020/12/08/RocketMQ%E4%B8%80%E4%B8%AA%E6%96%B0%E7%9A%84%E6%B6%88%E8%B4%B9%E7%BB%84%E5%88%9D%E6%AC%A1%E5%90%AF%E5%8A%A8%E6%97%B6%E4%BB%8E%E4%BD%95%E5%A4%84%E5%BC%80%E5%A7%8B%E6%B6%88%E8%B4%B9%E5%91%A2%EF%BC%9F/" data-id="ckig4lifq003lm4rghk6x44ut" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/rocketmq/" rel="tag">rocketmq</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-RocketMQ 升级到主从切换(DLedger、多副本)实战" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2020/12/08/RocketMQ%20%E5%8D%87%E7%BA%A7%E5%88%B0%E4%B8%BB%E4%BB%8E%E5%88%87%E6%8D%A2(DLedger%E3%80%81%E5%A4%9A%E5%89%AF%E6%9C%AC)%E5%AE%9E%E6%88%98/" class="article-date">
+  <time datetime="2020-12-08T13:53:35.000Z" itemprop="datePublished">2020-12-08</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/rocketmq/">rocketmq</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/2020/12/08/RocketMQ%20%E5%8D%87%E7%BA%A7%E5%88%B0%E4%B8%BB%E4%BB%8E%E5%88%87%E6%8D%A2(DLedger%E3%80%81%E5%A4%9A%E5%89%AF%E6%9C%AC)%E5%AE%9E%E6%88%98/">RocketMQ 升级到主从切换(DLedger、多副本)实战</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>本文主要介绍如何将 RocketMQ 集群从原先的主从同步升级到主从切换。</p>
+<p>首先先介绍与 DLedger 多副本即 RocketMQ 主从切换相关的核心配置属性，然后尝试搭建一个主从同步集群，再从原先的 RocketMQ 集群平滑升级到 DLedger 集群的示例，并简单测试一下主从切换功能。</p>
+<p>@<a href="%E6%9C%AC%E8%8A%82%E7%9B%AE%E5%BD%95">TOC</a></p>
+<h2 id="1、RocketMQ-DLedger-多副本即主从切换核心配置参数详解"><a href="#1、RocketMQ-DLedger-多副本即主从切换核心配置参数详解" class="headerlink" title="1、RocketMQ DLedger 多副本即主从切换核心配置参数详解"></a>1、RocketMQ DLedger 多副本即主从切换核心配置参数详解</h2><p>其主要的配置参数如下所示：</p>
+<ul>
+<li>enableDLegerCommitLog<br>是否启用 DLedger，即是否启用 RocketMQ 主从切换，默认值为 false。如果需要开启主从切换，则该值需要设置为 true 。</li>
+<li>dLegerGroup<br>节点所属的 raft 组，建议与 brokerName 保持一致，例如 broker-a。</li>
+<li>dLegerPeers<br>集群节点信息，示例配置如下：n0-127.0.0.1:40911;n1-127.0.0.1:40912;n2-127.0.0.1:40913，多个节点用英文冒号隔开，单个条目遵循   legerSlefId-ip:端口，这里的端口用作 dledger 内部通信。</li>
+<li>dLegerSelfId<br>当前节点id。取自 legerPeers 中条目的开头，即上述示例中的 n0，并且特别需要强调，只能第一个字符为英文，其他字符需要配置成数字。</li>
+<li>storePathRootDir<br>DLedger 日志文件的存储根目录，为了能够支持平滑升级，该值与 storePathCommitLog 设置为不同的目录。</li>
+</ul>
+<h2 id="2、搭建主从同步环境"><a href="#2、搭建主从同步环境" class="headerlink" title="2、搭建主从同步环境"></a>2、搭建主从同步环境</h2><p>首先先搭建一个传统意义上的主从同步架构，往集群中灌一定量的数据，然后升级到 DLedger 集群。</p>
+<p>在 Linux 服务器上搭建一个 rocketmq 主从同步集群我想不是一件很难的事情，故本文就不会详细介绍按照过程，只贴出相关配置。</p>
+<p>实验环境的部署结构采取 一主一次，其部署图如下：<br><img src="https://img-blog.csdnimg.cn/20191013142340811.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>下面我就重点贴一下 broker 的配置文件。<br>220 上的 broker 配置文件如下：</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">brokerClusterName = DefaultCluster</span><br><span class="line">brokerName = broker-a</span><br><span class="line">brokerId = <span class="number">0</span></span><br><span class="line">deleteWhen = <span class="number">04</span></span><br><span class="line">fileReservedTime = <span class="number">48</span></span><br><span class="line">brokerRole = ASYNC_MASTER</span><br><span class="line">flushDiskType = ASYNC_FLUSH</span><br><span class="line">brokerIP1=<span class="number">192.168</span><span class="number">.0</span><span class="number">.220</span></span><br><span class="line">brokerIP2=<span class="number">192.168</span><span class="number">.0</span><span class="number">.220</span></span><br><span class="line">namesrvAddr=<span class="number">192.168</span><span class="number">.0</span><span class="number">.221</span>:<span class="number">9876</span>;<span class="number">192.168</span><span class="number">.0</span><span class="number">.220</span>:<span class="number">9876</span></span><br><span class="line">storePathRootDir=<span class="regexp">/opt/</span>application/rocketmq-all-<span class="number">4.5</span><span class="number">.2</span>-bin-release/store</span><br><span class="line">storePathCommitLog=<span class="regexp">/opt/</span>application/rocketmq-all-<span class="number">4.5</span><span class="number">.2</span>-bin-release/store/commitlog</span><br><span class="line">autoCreateTopicEnable=<span class="literal">false</span></span><br><span class="line">autoCreateSubscriptionGroup=<span class="literal">false</span></span><br></pre></td></tr></table></figure>
+<p>221 上 broker 的配置文件如下：</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">brokerClusterName = DefaultCluster</span><br><span class="line">brokerName = broker-a</span><br><span class="line">brokerId = <span class="number">1</span></span><br><span class="line">deleteWhen = <span class="number">04</span></span><br><span class="line">fileReservedTime = <span class="number">48</span></span><br><span class="line">brokerRole = SLAVE</span><br><span class="line">flushDiskType = ASYNC_FLUSH</span><br><span class="line">brokerIP1=<span class="number">192.168</span><span class="number">.0</span><span class="number">.221</span></span><br><span class="line">brokerIP2=<span class="number">192.168</span><span class="number">.0</span><span class="number">.221</span></span><br><span class="line">namesrvAddr=<span class="number">192.168</span><span class="number">.0</span><span class="number">.221</span>:<span class="number">9876</span>;<span class="number">192.168</span><span class="number">.0</span><span class="number">.220</span>:<span class="number">9876</span></span><br><span class="line">storePathRootDir=<span class="regexp">/opt/</span>application/rocketmq-all-<span class="number">4.5</span><span class="number">.2</span>-bin-release/store</span><br><span class="line">storePathCommitLog=<span class="regexp">/opt/</span>application/rocketmq-all-<span class="number">4.5</span><span class="number">.2</span>-bin-release/store/commitlog</span><br><span class="line">autoCreateTopicEnable=<span class="literal">false</span></span><br><span class="line">autoCreateSubscriptionGroup=<span class="literal">false</span></span><br></pre></td></tr></table></figure>
+<p>相关的启动命令如下：</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">nohup bin/mqnamesrv  /dev/<span class="literal">null</span>  <span class="number">2</span>&gt;&amp;<span class="number">1</span> &amp;</span><br><span class="line">nohup bin/mqbroker -c conf/broker.conf  /dev/<span class="literal">null</span>  <span class="number">2</span>&gt;&amp;<span class="number">1</span> &amp;</span><br></pre></td></tr></table></figure>
+<p>安装后的集群信息如图所示：<br><img src="https://img-blog.csdnimg.cn/20191013142514649.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"></p>
+<h2 id="3、主从同步集群升级到DLedger"><a href="#3、主从同步集群升级到DLedger" class="headerlink" title="3、主从同步集群升级到DLedger"></a>3、主从同步集群升级到DLedger</h2><h3 id="3-1-部署架构"><a href="#3-1-部署架构" class="headerlink" title="3.1 部署架构"></a>3.1 部署架构</h3><p>DLedger 集群至少需要3台机器，故搭建 DLedger 还需要再引入一台机器，其部署结构图如下：</p>
+        
+          <p class="article-more-link">
+            <a href="/2020/12/08/RocketMQ%20%E5%8D%87%E7%BA%A7%E5%88%B0%E4%B8%BB%E4%BB%8E%E5%88%87%E6%8D%A2(DLedger%E3%80%81%E5%A4%9A%E5%89%AF%E6%9C%AC)%E5%AE%9E%E6%88%98/#more">Read More</a>
+          </p>
+        
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://example.com/2020/12/08/RocketMQ%20%E5%8D%87%E7%BA%A7%E5%88%B0%E4%B8%BB%E4%BB%8E%E5%88%87%E6%8D%A2(DLedger%E3%80%81%E5%A4%9A%E5%89%AF%E6%9C%AC)%E5%AE%9E%E6%88%98/" data-id="ckig4lie9000am4rggc5w2hs6" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/rocketmq/" rel="tag">rocketmq</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-源码分析 RocketMQ DLedger 多副本即主从切换实现原理" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2020/12/08/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90%20RocketMQ%20DLedger%20%E5%A4%9A%E5%89%AF%E6%9C%AC%E5%8D%B3%E4%B8%BB%E4%BB%8E%E5%88%87%E6%8D%A2%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86/" class="article-date">
+  <time datetime="2020-12-08T13:51:35.000Z" itemprop="datePublished">2020-12-08</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/rocketmq/">rocketmq</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/2020/12/08/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90%20RocketMQ%20DLedger%20%E5%A4%9A%E5%89%AF%E6%9C%AC%E5%8D%B3%E4%B8%BB%E4%BB%8E%E5%88%87%E6%8D%A2%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86/">源码分析 RocketMQ DLedger 多副本即主从切换实现原理</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>DLedger 基于 raft 协议，故天然支持主从切换，即主节点(Leader)发生故障，会重新触发选主，在集群内再选举出新的主节点。</p>
+<p>RocketMQ 中主从同步，从节点不仅会从主节点同步数据，也会同步元数据，包含 topic 路由信息、消费进度、延迟队列处理队列、消费组订阅配置等信息。那主从切换后元数据如何同步呢？特别是主从切换过程中，对消息消费有多大的影响，会丢失消息吗？</p>
+<blockquote>
+<p>温馨提示：本文假设大家已经对 RocketMQ4.5 版本之前的主从同步实现有一定的了解，这部分内容在《RocketMQ技术内幕》一书中有详细的介绍，大家也可以参考如下两篇文章：<br>1、 <a target="_blank" rel="noopener" href="https://blog.csdn.net/prestigeding/article/details/93672079">RocketMQ HA机制(主从同步)</a> 。<br>2、<a target="_blank" rel="noopener" href="https://blog.csdn.net/prestigeding/article/details/101629440">RocketMQ 整合 DLedger(多副本)即主从切换实现平滑升级的设计技巧</a></p>
+</blockquote>
+<h2 id="1、BrokerController-中与主从相关的方法详解"><a href="#1、BrokerController-中与主从相关的方法详解" class="headerlink" title="1、BrokerController 中与主从相关的方法详解"></a>1、BrokerController 中与主从相关的方法详解</h2><p>本节先对 BrokerController 中与主从切换相关的方法。</p>
+<h3 id="1-1-startProcessorByHa"><a href="#1-1-startProcessorByHa" class="headerlink" title="1.1 startProcessorByHa"></a>1.1 startProcessorByHa</h3><p>BrokerController#startProcessorByHa</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">startProcessorByHa</span><span class="params">(BrokerRole role)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (BrokerRole.SLAVE != role) &#123;</span><br><span class="line">        <span class="keyword">if</span> (<span class="keyword">this</span>.transactionalMessageCheckService != <span class="keyword">null</span>) &#123;</span><br><span class="line">            <span class="keyword">this</span>.transactionalMessageCheckService.start();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>感觉该方法的取名较为随意，该方法的作用是开启事务状态回查处理器，即当节点为主节点时，开启对应的事务状态回查处理器，对PREPARE状态的消息发起事务状态回查请求。</p>
+<h3 id="1-2-shutdownProcessorByHa"><a href="#1-2-shutdownProcessorByHa" class="headerlink" title="1.2 shutdownProcessorByHa"></a>1.2 shutdownProcessorByHa</h3><p>BrokerController#shutdownProcessorByHa</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">shutdownProcessorByHa</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (<span class="keyword">this</span>.transactionalMessageCheckService != <span class="keyword">null</span>) &#123;</span><br><span class="line">        <span class="keyword">this</span>.transactionalMessageCheckService.shutdown(<span class="keyword">true</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>关闭事务状态回查处理器，当节点从主节点变更为从节点后，该方法被调用。</p>
+<h3 id="1-3-handleSlaveSynchronize"><a href="#1-3-handleSlaveSynchronize" class="headerlink" title="1.3 handleSlaveSynchronize"></a>1.3 handleSlaveSynchronize</h3><p>BrokerController#handleSlaveSynchronize</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">handleSlaveSynchronize</span><span class="params">(BrokerRole role)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (role == BrokerRole.SLAVE) &#123;   <span class="comment">// @1</span></span><br><span class="line">        <span class="keyword">if</span> (<span class="keyword">null</span> != slaveSyncFuture) &#123;   </span><br><span class="line">            slaveSyncFuture.cancel(<span class="keyword">false</span>);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">this</span>.slaveSynchronize.setMasterAddr(<span class="keyword">null</span>);   <span class="comment">// </span></span><br><span class="line">        slaveSyncFuture = <span class="keyword">this</span>.scheduledExecutorService.scheduleAtFixedRate(<span class="keyword">new</span> Runnable() &#123;</span><br><span class="line">            <span class="meta">@Override</span></span><br><span class="line">            <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">run</span><span class="params">()</span> </span>&#123;</span><br><span class="line">                <span class="keyword">try</span> &#123;</span><br><span class="line">                    BrokerController.<span class="keyword">this</span>.slaveSynchronize.syncAll();</span><br><span class="line">                &#125; <span class="keyword">catch</span> (Throwable e) &#123;</span><br><span class="line">                    log.error(<span class="string">&quot;ScheduledTask SlaveSynchronize syncAll error.&quot;</span>, e);</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;, <span class="number">1000</span> * <span class="number">3</span>, <span class="number">1000</span> * <span class="number">10</span>, TimeUnit.MILLISECONDS);</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;  <span class="comment">// @2</span></span><br><span class="line">        <span class="comment">//handle the slave synchronise</span></span><br><span class="line">        <span class="keyword">if</span> (<span class="keyword">null</span> != slaveSyncFuture) &#123;</span><br><span class="line">            slaveSyncFuture.cancel(<span class="keyword">false</span>);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">this</span>.slaveSynchronize.setMasterAddr(<span class="keyword">null</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>该方法的主要作用是处理从节点的元数据同步，即从节点向主节点主动同步 topic 的路由信息、消费进度、延迟队列处理队列、消费组订阅配置等信息。</p>
+<p>代码@1：如果当前节点的角色为从节点：</p>
+<ul>
+<li>如果上次同步的 future 不为空，则首先先取消。</li>
+<li>然后设置 slaveSynchronize 的 master 地址为空。不知大家是否与笔者一样，有一个疑问，从节点的时候，如果将 master 地址设置为空，那如何同步元数据，那这个值会在什么时候设置呢？</li>
+<li>开启定时同步任务，每 10s 从主节点同步一次元数据。 </li>
+</ul>
+<p>代码@2：如果当前节点的角色为主节点，则取消定时同步任务并设置 master 的地址为空。</p>
+<h3 id="1-4-changeToSlave"><a href="#1-4-changeToSlave" class="headerlink" title="1.4 changeToSlave"></a>1.4 changeToSlave</h3><p>BrokerController#changeToSlave</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">changeToSlave</span><span class="params">(<span class="keyword">int</span> brokerId)</span> </span>&#123;</span><br><span class="line">    log.info(<span class="string">&quot;Begin to change to slave brokerName=&#123;&#125; brokerId=&#123;&#125;&quot;</span>, brokerConfig.getBrokerName(), brokerId);</span><br><span class="line">    <span class="comment">//change the role</span></span><br><span class="line">    brokerConfig.setBrokerId(brokerId == <span class="number">0</span> ? <span class="number">1</span> : brokerId); <span class="comment">//TO DO check       // @1</span></span><br><span class="line">    messageStoreConfig.setBrokerRole(BrokerRole.SLAVE);                            <span class="comment">// @2</span></span><br><span class="line">    <span class="comment">//handle the scheduled service</span></span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        <span class="keyword">this</span>.messageStore.handleScheduleMessageService(BrokerRole.SLAVE);    <span class="comment">//  @3</span></span><br><span class="line">    &#125; <span class="keyword">catch</span> (Throwable t) &#123;</span><br><span class="line">        log.error(<span class="string">&quot;[MONITOR] handleScheduleMessageService failed when changing to slave&quot;</span>, t);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">//handle the transactional service</span></span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        <span class="keyword">this</span>.shutdownProcessorByHa();                                                                    <span class="comment">//  @4</span></span><br><span class="line">    &#125; <span class="keyword">catch</span> (Throwable t) &#123;</span><br><span class="line">        log.error(<span class="string">&quot;[MONITOR] shutdownProcessorByHa failed when changing to slave&quot;</span>, t);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">//handle the slave synchronise</span></span><br><span class="line">    handleSlaveSynchronize(BrokerRole.SLAVE);                                               <span class="comment">// @5</span></span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        <span class="keyword">this</span>.registerBrokerAll(<span class="keyword">true</span>, <span class="keyword">true</span>, brokerConfig.isForceRegister());              <span class="comment">// @6</span></span><br><span class="line">    &#125; <span class="keyword">catch</span> (Throwable ignored) &#123;</span><br><span class="line">    &#125;</span><br><span class="line">    log.info(<span class="string">&quot;Finish to change to slave brokerName=&#123;&#125; brokerId=&#123;&#125;&quot;</span>, brokerConfig.getBrokerName(), brokerId);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>Broker 状态变更为从节点。其关键实现如下：</p>
+<ul>
+<li>设置 brokerId，如果broker的id为0，则设置为1，这里在使用的时候，注意规划好集群内节点的 brokerId。</li>
+<li>设置 broker  的状态为 BrokerRole.SLAVE。</li>
+<li>如果是从节点，则关闭定时调度线程(处理 RocketMQ 延迟队列)，如果是主节点，则启动该线程。</li>
+<li>关闭事务状态回查处理器。</li>
+<li>从节点需要启动元数据同步处理器，即启动 SlaveSynchronize 定时从主服务器同步元数据。</li>
+<li>立即向集群内所有的 nameserver 告知 broker  信息状态的变更。</li>
+</ul>
+<h3 id="1-5-changeToMaster"><a href="#1-5-changeToMaster" class="headerlink" title="1.5 changeToMaster"></a>1.5 changeToMaster</h3><p>BrokerController#changeToMaster</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">changeToMaster</span><span class="params">(BrokerRole role)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (role == BrokerRole.SLAVE) &#123;</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    log.info(<span class="string">&quot;Begin to change to master brokerName=&#123;&#125;&quot;</span>, brokerConfig.getBrokerName());</span><br><span class="line">    <span class="comment">//handle the slave synchronise</span></span><br><span class="line">    handleSlaveSynchronize(role);   <span class="comment">// @1</span></span><br><span class="line">    <span class="comment">//handle the scheduled service</span></span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        <span class="keyword">this</span>.messageStore.handleScheduleMessageService(role);      <span class="comment">// @2</span></span><br><span class="line">    &#125; <span class="keyword">catch</span> (Throwable t) &#123;</span><br><span class="line">        log.error(<span class="string">&quot;[MONITOR] handleScheduleMessageService failed when changing to master&quot;</span>, t);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">//handle the transactional service</span></span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        <span class="keyword">this</span>.startProcessorByHa(BrokerRole.SYNC_MASTER);         <span class="comment">// @3</span></span><br><span class="line">    &#125; <span class="keyword">catch</span> (Throwable t) &#123;</span><br><span class="line">        log.error(<span class="string">&quot;[MONITOR] startProcessorByHa failed when changing to master&quot;</span>, t);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">//if the operations above are totally successful, we change to master</span></span><br><span class="line">    brokerConfig.setBrokerId(<span class="number">0</span>); <span class="comment">//TO DO check                              // @4</span></span><br><span class="line">    messageStoreConfig.setBrokerRole(role);                               </span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        <span class="keyword">this</span>.registerBrokerAll(<span class="keyword">true</span>, <span class="keyword">true</span>, brokerConfig.isForceRegister()); <span class="comment">// @5</span></span><br><span class="line">    &#125; <span class="keyword">catch</span> (Throwable ignored) &#123;</span><br><span class="line">    &#125;</span><br><span class="line">    log.info(<span class="string">&quot;Finish to change to master brokerName=&#123;&#125;&quot;</span>, brokerConfig.getBrokerName());</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>该方法是 Broker 角色从从节点变更为主节点的处理逻辑，其实现要点如下：</p>
+<ul>
+<li>关闭元数据同步器，因为主节点无需同步。</li>
+<li>开启定时任务处理线程。</li>
+<li>开启事务状态回查处理线程。</li>
+<li>设置 brokerId 为 0。</li>
+<li>向 nameserver 立即发送心跳包以便告知 broker 服务器当前最新的状态。</li>
+</ul>
+<p>主从节点状态变更的核心方法就介绍到这里了，接下来看看如何触发主从切换。</p>
+<h2 id="2、如何触发主从切换"><a href="#2、如何触发主从切换" class="headerlink" title="2、如何触发主从切换"></a>2、如何触发主从切换</h2><p>从前面的文章我们可以得知，RocketMQ DLedger 是基于 raft 协议实现的，在该协议中就实现了主节点的选举与主节点失效后集群会自动进行重新选举，经过协商投票产生新的主节点，从而实现高可用。</p>
+<p>BrokerController#initialize</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (messageStoreConfig.isEnableDLegerCommitLog()) &#123;</span><br><span class="line">    DLedgerRoleChangeHandler roleChangeHandler = <span class="keyword">new</span> DLedgerRoleChangeHandler(<span class="keyword">this</span>, (DefaultMessageStore) messageStore);</span><br><span class="line">    ((DLedgerCommitLog)((DefaultMessageStore) messageStore).getCommitLog()).getdLedgerServer().getdLedgerLeaderElector().addRoleChangeHandler(roleChangeHandler);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>上述代码片段截取自 BrokerController 的 initialize 方法，我们可以得知在 Broker 启动时，如果开启了 多副本机制，即 enableDLedgerCommitLog 参数设置为 true，会为 集群节点选主器添加 roleChangeHandler 事件处理器，即节点发送变更后的事件处理器。</p>
+        
+          <p class="article-more-link">
+            <a href="/2020/12/08/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90%20RocketMQ%20DLedger%20%E5%A4%9A%E5%89%AF%E6%9C%AC%E5%8D%B3%E4%B8%BB%E4%BB%8E%E5%88%87%E6%8D%A2%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86/#more">Read More</a>
+          </p>
+        
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://example.com/2020/12/08/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90%20RocketMQ%20DLedger%20%E5%A4%9A%E5%89%AF%E6%9C%AC%E5%8D%B3%E4%B8%BB%E4%BB%8E%E5%88%87%E6%8D%A2%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86/" data-id="ckig4lifs003sm4rg2ar9cwl0" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/rocketmq/" rel="tag">rocketmq</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+
+
+  <nav id="page-nav">
+    
+    <a class="extend prev" rel="prev" href="/page/2/">&amp;laquo; 上一页</a><a class="page-number" href="/">1</a><a class="page-number" href="/page/2/">2</a><span class="page-number current">3</span><a class="page-number" href="/page/4/">4</a><a class="page-number" href="/page/5/">5</a><a class="extend next" rel="next" href="/page/4/">下一页 &amp;raquo;</a>
+  </nav>
+
+</section>
+        
+          <aside id="sidebar">
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">分类</h3>
+    <div class="widget">
+      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/kafka-rocketmq/">kafka rocketmq</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/rocketmq/">rocketmq</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/sentinel/">sentinel</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/%E7%A8%8B%E5%BA%8F%E4%BA%BA%E7%94%9F-%E9%80%86%E8%A2%AD-%E8%81%8C%E5%9C%BA%E5%8F%91%E5%B1%95/">程序人生 逆袭 职场发展</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">标签</h3>
+    <div class="widget">
+      <ul class="tag-list" itemprop="keywords"><li class="tag-list-item"><a class="tag-list-link" href="/tags/kafka-rocketmq/" rel="tag">kafka rocketmq</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rocketmq/" rel="tag">rocketmq</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rocketmq-broker-busy-TIMEOUT-CLEAN-QUEUE-PCBUSY-CLEAN-QUEUE/" rel="tag">rocketmq broker busy TIMEOUT_CLEAN_QUEUE PCBUSY_CLEAN_QUEUE</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rocketmq-%E4%B8%BB%E9%A2%98%E6%89%A9%E5%AE%B9-%E5%AE%9E%E6%88%98-%E5%9D%91/" rel="tag">rocketmq 主题扩容 实战 坑</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rocketmq-%E5%A4%9A%E5%89%AF%E6%9C%AC-raft-%E4%B8%BB%E4%BB%8E%E5%88%87%E6%8D%A2/" rel="tag">rocketmq 多副本 raft 主从切换</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rocketmq-%E5%A4%9A%E5%89%AF%E6%9C%AC-raft-%E9%80%89%E4%B8%BB/" rel="tag">rocketmq 多副本 raft 选主</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/sentinel/" rel="tag">sentinel</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E7%A8%8B%E5%BA%8F%E4%BA%BA%E7%94%9F/" rel="tag">程序人生</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">标签云</h3>
+    <div class="widget tagcloud">
+      <a href="/tags/kafka-rocketmq/" style="font-size: 10px;">kafka rocketmq</a> <a href="/tags/rocketmq/" style="font-size: 20px;">rocketmq</a> <a href="/tags/rocketmq-broker-busy-TIMEOUT-CLEAN-QUEUE-PCBUSY-CLEAN-QUEUE/" style="font-size: 10px;">rocketmq broker busy TIMEOUT_CLEAN_QUEUE PCBUSY_CLEAN_QUEUE</a> <a href="/tags/rocketmq-%E4%B8%BB%E9%A2%98%E6%89%A9%E5%AE%B9-%E5%AE%9E%E6%88%98-%E5%9D%91/" style="font-size: 10px;">rocketmq 主题扩容 实战 坑</a> <a href="/tags/rocketmq-%E5%A4%9A%E5%89%AF%E6%9C%AC-raft-%E4%B8%BB%E4%BB%8E%E5%88%87%E6%8D%A2/" style="font-size: 10px;">rocketmq 多副本 raft 主从切换</a> <a href="/tags/rocketmq-%E5%A4%9A%E5%89%AF%E6%9C%AC-raft-%E9%80%89%E4%B8%BB/" style="font-size: 10px;">rocketmq 多副本 raft 选主</a> <a href="/tags/sentinel/" style="font-size: 15px;">sentinel</a> <a href="/tags/%E7%A8%8B%E5%BA%8F%E4%BA%BA%E7%94%9F/" style="font-size: 10px;">程序人生</a>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">归档</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/12/">十二月 2020</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">最新文章</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2020/12/08/%E7%BB%93%E5%90%88%20Sentinel%20%E4%B8%93%E6%A0%8F%E8%B0%88%E8%B0%88%E6%88%91%E7%9A%84%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB%E6%8A%80%E5%B7%A7/">结合 Sentinel 专栏谈谈我的源码阅读技巧</a>
+          </li>
+        
+          <li>
+            <a href="/2020/12/08/Sentinel%20%E7%B3%BB%E7%BB%9F%E8%87%AA%E9%80%82%E5%BA%94%E9%99%90%E6%B5%81%E5%8E%9F%E7%90%86%E5%89%96%E6%9E%90%E4%B8%8E%E5%AE%9E%E6%88%98%E6%8C%87%E5%AF%BC/">Sentinel 系统自适应限流原理剖析与实战指导</a>
+          </li>
+        
+          <li>
+            <a href="/2020/12/08/Sentinel%20Dubbo%20%E9%80%82%E9%85%8D%E5%99%A8%E7%9C%8B%E9%99%90%E6%B5%81%E4%B8%8E%E7%86%94%E6%96%AD(%E5%AE%9E%E6%88%98%E6%80%9D%E8%80%83%E7%AF%87)/">Sentinel Dubbo 适配器看限流与熔断(实战思考篇)</a>
+          </li>
+        
+          <li>
+            <a href="/2020/12/08/Sentinel%20%E9%9B%86%E7%BE%A4%E9%99%90%E6%B5%81%E8%AE%BE%E8%AE%A1%E5%8E%9F%E7%90%86/">Sentinel 集群限流设计原理</a>
+          </li>
+        
+          <li>
+            <a href="/2020/12/08/Sentienl%20%E5%8A%A8%E6%80%81%E6%95%B0%E6%8D%AE%E6%BA%90%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1%E7%90%86%E5%BF%B5%E4%B8%8E%E6%94%B9%E9%80%A0%E5%AE%9E%E8%B7%B5/">Sentienl 动态数据源架构设计理念与改造实践</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2020 中间件兴趣圈<br>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+</nav>
+    
+
+<script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+
+
+  
+<link rel="stylesheet" href="/fancybox/jquery.fancybox.css">
+
+  
+<script src="/fancybox/jquery.fancybox.pack.js"></script>
+
+
+
+
+<script src="/js/script.js"></script>
+
+
+
+
+  </div>
+</body>
+</html>

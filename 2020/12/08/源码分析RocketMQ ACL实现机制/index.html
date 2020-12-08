@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+
+  
+  <title>源码分析RocketMQ ACL实现机制 | 中间件兴趣圈</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="有关RocketMQ ACL的使用请查看上一篇《RocketMQ ACL使用指南》，本文从源码的角度，分析一下RocketMQ ACL的实现原理。  备注：RocketMQ在4.4.0时引入了ACL机制，本文代码基于RocketMQ4.5.0版本。  @TOC根据RocketMQ ACL使用手册，我们应该首先看一下Broker服务器在开启ACL机制时如何加载配置文件，并如何工作的。 1、Broke">
+<meta property="og:type" content="article">
+<meta property="og:title" content="源码分析RocketMQ ACL实现机制">
+<meta property="og:url" content="http://example.com/2020/12/08/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90RocketMQ%20ACL%E5%AE%9E%E7%8E%B0%E6%9C%BA%E5%88%B6/index.html">
+<meta property="og:site_name" content="中间件兴趣圈">
+<meta property="og:description" content="有关RocketMQ ACL的使用请查看上一篇《RocketMQ ACL使用指南》，本文从源码的角度，分析一下RocketMQ ACL的实现原理。  备注：RocketMQ在4.4.0时引入了ACL机制，本文代码基于RocketMQ4.5.0版本。  @TOC根据RocketMQ ACL使用手册，我们应该首先看一下Broker服务器在开启ACL机制时如何加载配置文件，并如何工作的。 1、Broke">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/20190707120439720.png">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/20190707120505807.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/20190707120530560.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/20190707120741119.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/20190707121053922.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/20190707121507431.jpg?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/20190707121547164.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70">
+<meta property="article:published_time" content="2020-12-08T14:20:35.000Z">
+<meta property="article:modified_time" content="2020-12-08T14:21:15.635Z">
+<meta property="article:author" content="中间件兴趣圈">
+<meta property="article:tag" content="rocketmq">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://img-blog.csdnimg.cn/20190707120439720.png">
+  
+    <link rel="alternate" href="/atom.xml" title="中间件兴趣圈" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  
+    <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css">
+  
+  
+<link rel="stylesheet" href="/css/style.css">
+
+<meta name="generator" content="Hexo 5.2.0"></head>
+
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">中间件兴趣圈</a>
+      </h1>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="搜索"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://example.com"></form>
+      </div>
+    </div>
+  </div>
+</header>
+      <div class="outer">
+        <section id="main"><article id="post-源码分析RocketMQ ACL实现机制" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2020/12/08/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90RocketMQ%20ACL%E5%AE%9E%E7%8E%B0%E6%9C%BA%E5%88%B6/" class="article-date">
+  <time datetime="2020-12-08T14:20:35.000Z" itemprop="datePublished">2020-12-08</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/rocketmq/">rocketmq</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      源码分析RocketMQ ACL实现机制
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <div id="vip-container"><p>有关RocketMQ ACL的使用请查看上一篇<a target="_blank" rel="noopener" href="https://blog.csdn.net/prestigeding/article/details/94317946">《RocketMQ ACL使用指南》</a>，本文从源码的角度，分析一下RocketMQ ACL的实现原理。</p>
+<blockquote>
+<p>备注：RocketMQ在4.4.0时引入了ACL机制，本文代码基于RocketMQ4.5.0版本。</p>
+</blockquote>
+<p>@<a href="%E6%9C%AC%E8%8A%82%E7%9B%AE%E5%BD%95">TOC</a><br>根据RocketMQ ACL使用手册，我们应该首先看一下Broker服务器在开启ACL机制时如何加载配置文件，并如何工作的。</p>
+<h2 id="1、BrokerController-initialAcl"><a href="#1、BrokerController-initialAcl" class="headerlink" title="1、BrokerController#initialAcl"></a>1、BrokerController#initialAcl</h2><p>Broker端ACL的入口代码为：BrokerController#initialAcl</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">initialAcl</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (!<span class="keyword">this</span>.brokerConfig.isAclEnable()) &#123;                           <span class="comment">// @1</span></span><br><span class="line">        log.info(<span class="string">&quot;The broker dose not enable acl&quot;</span>);</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    List&lt;AccessValidator&gt; accessValidators = ServiceProvider.load(ServiceProvider.ACL_VALIDATOR_ID, AccessValidator.class);   <span class="comment">// @2</span></span><br><span class="line">    <span class="keyword">if</span> (accessValidators == <span class="keyword">null</span> || accessValidators.isEmpty()) &#123;</span><br><span class="line">        log.info(<span class="string">&quot;The broker dose not load the AccessValidator&quot;</span>);</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span> (AccessValidator accessValidator: accessValidators) &#123;                       <span class="comment">// @3</span></span><br><span class="line">        <span class="keyword">final</span> AccessValidator validator = accessValidator;</span><br><span class="line">        <span class="keyword">this</span>.registerServerRPCHook(<span class="keyword">new</span> RPCHook() &#123;</span><br><span class="line"></span><br><span class="line">            <span class="meta">@Override</span></span><br><span class="line">            <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">doBeforeRequest</span><span class="params">(String remoteAddr, RemotingCommand request)</span> </span>&#123;</span><br><span class="line">                <span class="comment">//Do not catch the exception</span></span><br><span class="line">                validator.validate(validator.parse(request, remoteAddr));                         <span class="comment">// @4</span></span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            <span class="meta">@Override</span></span><br><span class="line">            <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">doAfterResponse</span><span class="params">(String remoteAddr, RemotingCommand request, RemotingCommand response)</span> </span>&#123;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>本方法的实现共4个关键点。<br>代码@1：首先判断Broker是否开启了acl，通过配置参数aclEnable指定，默认为false。</p>
+<p>代码@2：使用类似SPI机制，加载配置的AccessValidator,该方法返回一个列表，其实现逻辑时读取META-INF/service/org.apache.rocketmq.acl.AccessValidator文件中配置的访问验证器，默认配置内容如下：<br><img src="https://img-blog.csdnimg.cn/20190707120439720.png" alt="在这里插入图片描述"><br>代码@3：遍历配置的访问验证器(AccessValidator),并向Broker处理服务器注册钩子函数，RPCHook的doBeforeRequest方法会在服务端接收到请求，将其请求解码后，执行处理请求之前被调用;RPCHook的doAfterResponse方法会在处理完请求后，将结果返回之前被调用，其调用如图所示：<br><img src="https://img-blog.csdnimg.cn/20190707120505807.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>代码@4：在RPCHook#doBeforeRequest方法中调用AccessValidator#validate, 在真实处理命令之前，先执行ACL的验证逻辑，如果拥有该操作的执行权限，则放行，否则抛出AclException。</p>
+<p>接下来，我们将重点放到Broker默认实现的访问验证器：PlainAccessValidator。</p>
+<h2 id="2、PlainAccessValidator"><a href="#2、PlainAccessValidator" class="headerlink" title="2、PlainAccessValidator"></a>2、PlainAccessValidator</h2><h3 id="2-1-类图"><a href="#2-1-类图" class="headerlink" title="2.1 类图"></a>2.1 类图</h3><p><img src="https://img-blog.csdnimg.cn/20190707120530560.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"></p>
+<ul>
+<li>AccessValidator<br>访问验证器接口，主要定义两个接口。<br>1）AccessResource parse(RemotingCommand request, String remoteAddr)<br>从请求头中解析本次请求对应的访问资源，即本次请求需要的访问权限。<br>2）void validate(AccessResource accessResource)<br>根据本次需要访问的权限，与请求用户拥有的权限进行对比验证，判断是拥有权限，如果没有访问该操作的权限，则抛出异常，否则放行。</li>
+<li>PlainAccessValidator<br>RocketMQ默认提供的基于yml配置格式的访问验证器。</li>
+</ul>
+<p>接下来我们重点看一下PlainAccessValidator的parse方法与validate方法的实现细节。在讲解该方法之前，我们首先认识一下RocketMQ封装访问资源的PlainAccessResource。</p>
+<a id="more"></a>
+
+<h4 id="2-1-2-PlainAccessResource类图"><a href="#2-1-2-PlainAccessResource类图" class="headerlink" title="2.1.2 PlainAccessResource类图"></a>2.1.2 PlainAccessResource类图</h4><p><img src="https://img-blog.csdnimg.cn/20190707120741119.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>我们对其属性一一做个介绍：</p>
+<ul>
+<li>private String accessKey<br>访问Key，用户名。</li>
+<li>private String secretKey<br>用户密码。</li>
+<li>private String whiteRemoteAddress<br>远程IP地址白名单。</li>
+<li>private boolean admin<br>是否是管理员角色。</li>
+<li>private byte defaultTopicPerm = 1<br>默认topic访问权限，即如果没有配置topic的权限，则Topic默认的访问权限为1，表示为DENY。</li>
+<li>private byte defaultGroupPerm = 1<br>默认的消费组访问权限，默认为DENY。</li>
+<li>private Map&lt;String, Byte&gt; resourcePermMap<br>资源需要的访问权限映射表。</li>
+<li>private RemoteAddressStrategy remoteAddressStrategy<br>远程IP地址验证策略。</li>
+<li>private int requestCode<br>当前请求的requestCode。</li>
+<li>private byte[] content<br>请求头与请求体的内容。</li>
+<li>private String signature<br>签名字符串，这是通常的套路，在客户端时，首先将请求参数排序，然后使用secretKey生成签名字符串，服务端重复这个步骤，然后对比签名字符串，如果相同，则认为登录成功，否则失败。</li>
+<li>private String secretToken<br>密钥token。</li>
+<li>private String recognition<br>目前作用未知，代码中目前未被使用。</li>
+</ul>
+<h3 id="2-2-构造方法"><a href="#2-2-构造方法" class="headerlink" title="2.2 构造方法"></a>2.2 构造方法</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="title">PlainAccessValidator</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    aclPlugEngine = <span class="keyword">new</span> PlainPermissionLoader();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>构造函数，直接创建PlainPermissionLoader对象，从命名上来看，应该是触发acl规则的加载，即解析plain_acl.yml，接下来会重点探讨，即acl启动流程之配置文件的解析。</p>
+<h3 id="2-3-parse方法"><a href="#2-3-parse方法" class="headerlink" title="2.3 parse方法"></a>2.3 parse方法</h3><p>该方法的作用就是从请求命令中解析出本次访问所需要的访问权限，最终构建AccessResource对象，为后续的校验权限做准备。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">PlainAccessResource accessResource = <span class="keyword">new</span> PlainAccessResource();</span><br><span class="line"><span class="keyword">if</span> (remoteAddr != <span class="keyword">null</span> &amp;&amp; remoteAddr.contains(<span class="string">&quot;:&quot;</span>)) &#123;</span><br><span class="line">    accessResource.setWhiteRemoteAddress(remoteAddr.split(<span class="string">&quot;:&quot;</span>)[<span class="number">0</span>]);</span><br><span class="line">&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">    accessResource.setWhiteRemoteAddress(remoteAddr);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>Step1：首先创建PlainAccessResource，从远程地址中提取出远程访问IP地址。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (request.getExtFields() == <span class="keyword">null</span>) &#123;</span><br><span class="line">    <span class="keyword">throw</span> <span class="keyword">new</span> AclException(<span class="string">&quot;request&#x27;s extFields value is null&quot;</span>);</span><br><span class="line">&#125;</span><br><span class="line">accessResource.setRequestCode(request.getCode());</span><br><span class="line">accessResource.setAccessKey(request.getExtFields().get(SessionCredentials.ACCESS_KEY));</span><br><span class="line">accessResource.setSignature(request.getExtFields().get(SessionCredentials.SIGNATURE));</span><br><span class="line">accessResource.setSecretToken(request.getExtFields().get(SessionCredentials.SECURITY_TOKEN));</span><br></pre></td></tr></table></figure>
+<p>Step2：如果请求头中的扩展字段为空，则抛出异常，如果不为空，则从请求头中读取requestCode、accessKey(请求用户名)、签名字符串(signature)、secretToken。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">try</span> &#123;</span><br><span class="line">            <span class="keyword">switch</span> (request.getCode()) &#123;</span><br><span class="line">                <span class="keyword">case</span> RequestCode.SEND_MESSAGE:</span><br><span class="line">                    accessResource.addResourceAndPerm(request.getExtFields().get(<span class="string">&quot;topic&quot;</span>), Permission.PUB);</span><br><span class="line">                    <span class="keyword">break</span>;</span><br><span class="line">                <span class="keyword">case</span> RequestCode.SEND_MESSAGE_V2:</span><br><span class="line">                    accessResource.addResourceAndPerm(request.getExtFields().get(<span class="string">&quot;b&quot;</span>), Permission.PUB);</span><br><span class="line">                    <span class="keyword">break</span>;</span><br><span class="line">                <span class="keyword">case</span> RequestCode.CONSUMER_SEND_MSG_BACK:</span><br><span class="line">                    accessResource.addResourceAndPerm(request.getExtFields().get(<span class="string">&quot;originTopic&quot;</span>), Permission.PUB);</span><br><span class="line">                    accessResource.addResourceAndPerm(getRetryTopic(request.getExtFields().get(<span class="string">&quot;group&quot;</span>)), Permission.SUB);</span><br><span class="line">                    <span class="keyword">break</span>;</span><br><span class="line">                <span class="keyword">case</span> RequestCode.PULL_MESSAGE:</span><br><span class="line">                    accessResource.addResourceAndPerm(request.getExtFields().get(<span class="string">&quot;topic&quot;</span>), Permission.SUB);</span><br><span class="line">                    accessResource.addResourceAndPerm(getRetryTopic(request.getExtFields().get(<span class="string">&quot;consumerGroup&quot;</span>)), Permission.SUB);</span><br><span class="line">                    <span class="keyword">break</span>;</span><br><span class="line">                <span class="keyword">case</span> RequestCode.QUERY_MESSAGE:</span><br><span class="line">                    accessResource.addResourceAndPerm(request.getExtFields().get(<span class="string">&quot;topic&quot;</span>), Permission.SUB);</span><br><span class="line">                    <span class="keyword">break</span>;</span><br><span class="line">                <span class="keyword">case</span> RequestCode.HEART_BEAT:</span><br><span class="line">                    HeartbeatData heartbeatData = HeartbeatData.decode(request.getBody(), HeartbeatData.class);</span><br><span class="line">                    <span class="keyword">for</span> (ConsumerData data : heartbeatData.getConsumerDataSet()) &#123;</span><br><span class="line">                        accessResource.addResourceAndPerm(getRetryTopic(data.getGroupName()), Permission.SUB);</span><br><span class="line">                        <span class="keyword">for</span> (SubscriptionData subscriptionData : data.getSubscriptionDataSet()) &#123;</span><br><span class="line">                            accessResource.addResourceAndPerm(subscriptionData.getTopic(), Permission.SUB);</span><br><span class="line">                        &#125;</span><br><span class="line">                    &#125;</span><br><span class="line">                    <span class="keyword">break</span>;</span><br><span class="line">                <span class="keyword">case</span> RequestCode.UNREGISTER_CLIENT:</span><br><span class="line">                    <span class="keyword">final</span> UnregisterClientRequestHeader unregisterClientRequestHeader =</span><br><span class="line">                        (UnregisterClientRequestHeader) request</span><br><span class="line">                            .decodeCommandCustomHeader(UnregisterClientRequestHeader.class);</span><br><span class="line">                    accessResource.addResourceAndPerm(getRetryTopic(unregisterClientRequestHeader.getConsumerGroup()), Permission.SUB);</span><br><span class="line">                    <span class="keyword">break</span>;</span><br><span class="line">                <span class="keyword">case</span> RequestCode.GET_CONSUMER_LIST_BY_GROUP:</span><br><span class="line">                    <span class="keyword">final</span> GetConsumerListByGroupRequestHeader getConsumerListByGroupRequestHeader =</span><br><span class="line">                        (GetConsumerListByGroupRequestHeader) request</span><br><span class="line">                            .decodeCommandCustomHeader(GetConsumerListByGroupRequestHeader.class);</span><br><span class="line">                    accessResource.addResourceAndPerm(getRetryTopic(getConsumerListByGroupRequestHeader.getConsumerGroup()), Permission.SUB);</span><br><span class="line">                    <span class="keyword">break</span>;</span><br><span class="line">                <span class="keyword">case</span> RequestCode.UPDATE_CONSUMER_OFFSET:</span><br><span class="line">                    <span class="keyword">final</span> UpdateConsumerOffsetRequestHeader updateConsumerOffsetRequestHeader =</span><br><span class="line">                        (UpdateConsumerOffsetRequestHeader) request</span><br><span class="line">                            .decodeCommandCustomHeader(UpdateConsumerOffsetRequestHeader.class);</span><br><span class="line">                    accessResource.addResourceAndPerm(getRetryTopic(updateConsumerOffsetRequestHeader.getConsumerGroup()), Permission.SUB);</span><br><span class="line">                    accessResource.addResourceAndPerm(updateConsumerOffsetRequestHeader.getTopic(), Permission.SUB);</span><br><span class="line">                    <span class="keyword">break</span>;</span><br><span class="line">                <span class="keyword">default</span>:</span><br><span class="line">                    <span class="keyword">break</span>;</span><br><span class="line"></span><br><span class="line">            &#125;</span><br><span class="line">        &#125; <span class="keyword">catch</span> (Throwable t) &#123;</span><br><span class="line">            <span class="keyword">throw</span> <span class="keyword">new</span> AclException(t.getMessage(), t);</span><br><span class="line">        &#125;</span><br></pre></td></tr></table></figure>
+<p>Step3：根据请求命令，设置本次请求需要拥有的权限，上述代码比较简单，就是从请求中得出本次操作的Topic、消息组名称，为了方便区分topic与消费组，消费组使用消费者对应的重试主题，当成资源的Key，从这里也可以看出，当前版本需要进行ACL权限验证的请求命令如下：</p>
+<ul>
+<li>SEND_MESSAGE</li>
+<li>SEND_MESSAGE_V2</li>
+<li>CONSUMER_SEND_MSG_BACK</li>
+<li>PULL_MESSAGE</li>
+<li>QUERY_MESSAGE</li>
+<li>HEART_BEAT</li>
+<li>UNREGISTER_CLIENT</li>
+<li>GET_CONSUMER_LIST_BY_GROUP</li>
+<li>UPDATE_CONSUMER_OFFSET</li>
+</ul>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Content</span></span><br><span class="line">SortedMap&lt;String, String&gt; map = <span class="keyword">new</span> TreeMap&lt;String, String&gt;();</span><br><span class="line"><span class="keyword">for</span> (Map.Entry&lt;String, String&gt; entry : request.getExtFields().entrySet()) &#123;</span><br><span class="line">    <span class="keyword">if</span> (!SessionCredentials.SIGNATURE.equals(entry.getKey())) &#123;</span><br><span class="line">        map.put(entry.getKey(), entry.getValue());</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line">accessResource.setContent(AclUtils.combineRequestContent(request, map));</span><br><span class="line"><span class="keyword">return</span> accessResource;</span><br></pre></td></tr></table></figure>
+<p>Step4：对扩展字段进行排序，便于生成签名字符串，然后将扩展字段与请求体(body)写入content字段。完成从请求头中解析出本次请求需要验证的权限。</p>
+<h3 id="2-4-validate-方法"><a href="#2-4-validate-方法" class="headerlink" title="2.4 validate 方法"></a>2.4 validate 方法</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">validate</span><span class="params">(AccessResource accessResource)</span> </span>&#123;</span><br><span class="line">    aclPlugEngine.validate((PlainAccessResource) accessResource);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>验证权限，即根据本次请求需要的权限与当前用户所拥有的权限进行对比，如果符合，则正常执行；否则抛出AclException。</p>
+<p>为了揭开配置文件的解析与验证，我们将目光投入到PlainPermissionLoader。</p>
+<h2 id="3、PlainPermissionLoader"><a href="#3、PlainPermissionLoader" class="headerlink" title="3、PlainPermissionLoader"></a>3、PlainPermissionLoader</h2><p>该类的主要职责：加载权限，即解析acl主要配置文件plain_acl.yml。</p>
+<h3 id="3-1-类图"><a href="#3-1-类图" class="headerlink" title="3.1 类图"></a>3.1 类图</h3><p><img src="https://img-blog.csdnimg.cn/20190707121053922.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>下面对其核心属性与核心方法一一介绍：</p>
+<ul>
+<li>DEFAULT_PLAIN_ACL_FILE<br>默认acl配置文件名称，默认值为conf/plain_acl.yml。</li>
+<li>String fileName<br>acl配置文件名称，默认为DEFAULT_PLAIN_ACL_FILE ,可以通过系统参数-Drocketmq.acl.plain.file=fileName指定。</li>
+<li>Map&lt;String, PlainAccessResource&gt; plainAccessResourceMap<br>解析出来的权限配置映射表，以用户名为键。</li>
+<li>RemoteAddressStrategyFactory remoteAddressStrategyFactory<br>远程IP解析策略工厂，用于解析白名单IP地址。</li>
+<li>boolean isWatchStart<br>是否开启了文件监听，即自动监听plain_acl.yml文件，一旦该文件改变，可在不重启服务器的情况下自动生效。</li>
+<li>public PlainPermissionLoader()<br>构造方法。</li>
+<li>public void load()<br>加载配置文件。</li>
+<li>public void validate(PlainAccessResource plainAccessResource)<br>验证是否有权限访问待访问资源。</li>
+</ul>
+<h3 id="3-2-PlainPermissionLoader构造方法"><a href="#3-2-PlainPermissionLoader构造方法" class="headerlink" title="3.2 PlainPermissionLoader构造方法"></a>3.2 PlainPermissionLoader构造方法</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="title">PlainPermissionLoader</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    load();</span><br><span class="line">    watch();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>在构造方法中调用load与watch方法。</p>
+<h3 id="3-3-load"><a href="#3-3-load" class="headerlink" title="3.3 load"></a>3.3 load</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">Map&lt;String, PlainAccessResource&gt; plainAccessResourceMap = <span class="keyword">new</span> HashMap&lt;&gt;();</span><br><span class="line">List&lt;RemoteAddressStrategy&gt; globalWhiteRemoteAddressStrategy = <span class="keyword">new</span> ArrayList&lt;&gt;();</span><br><span class="line">String path = fileHome + File.separator + fileName;</span><br><span class="line">JSONObject plainAclConfData = AclUtils.getYamlDataObject(path,JSONObject.class);</span><br></pre></td></tr></table></figure>
+<p>Step1：初始化plainAccessResourceMap(用户配置的访问资源，即权限容器)、globalWhiteRemoteAddressStrategy：全局IP白名单访问策略。配置文件，默认为${ROCKETMQ_HOME}/conf/plain_acl.yml。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">JSONArray globalWhiteRemoteAddressesList = plainAclConfData.getJSONArray(<span class="string">&quot;globalWhiteRemoteAddresses&quot;</span>);</span><br><span class="line"><span class="keyword">if</span> (globalWhiteRemoteAddressesList != <span class="keyword">null</span> &amp;&amp; !globalWhiteRemoteAddressesList.isEmpty()) &#123;</span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; globalWhiteRemoteAddressesList.size(); i++) &#123;</span><br><span class="line">        globalWhiteRemoteAddressStrategy.add(remoteAddressStrategyFactory.</span><br><span class="line">        getRemoteAddressStrategy(globalWhiteRemoteAddressesList.getString(i)));</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>Step2：globalWhiteRemoteAddresses：全局白名单，类型为数组。根据配置的规则，使用remoteAddressStrategyFactory获取一个访问策略，下文会重点介绍其配置规则。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">JSONArray accounts = plainAclConfData.getJSONArray(<span class="string">&quot;accounts&quot;</span>);</span><br><span class="line"><span class="keyword">if</span> (accounts != <span class="keyword">null</span> &amp;&amp; !accounts.isEmpty()) &#123;</span><br><span class="line">    List&lt;PlainAccessConfig&gt; plainAccessConfigList = accounts.toJavaList(PlainAccessConfig.class);</span><br><span class="line">    <span class="keyword">for</span> (PlainAccessConfig plainAccessConfig : plainAccessConfigList) &#123;</span><br><span class="line">        PlainAccessResource plainAccessResource = buildPlainAccessResource(plainAccessConfig);</span><br><span class="line">        plainAccessResourceMap.put(plainAccessResource.getAccessKey(),plainAccessResource);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">this</span>.globalWhiteRemoteAddressStrategy = globalWhiteRemoteAddressStrategy;</span><br><span class="line"><span class="keyword">this</span>.plainAccessResourceMap = plainAccessResourceMap;</span><br></pre></td></tr></table></figure>
+<p>Step3：解析plain_acl.yml文件中的另外一个根元素accounts，用户定义的权限信息。从PlainAccessConfig的定义来看，accounts标签下支持如下标签：</p>
+<ul>
+<li>accessKey</li>
+<li>secretKey</li>
+<li>whiteRemoteAddress</li>
+<li>admin</li>
+<li>defaultTopicPerm</li>
+<li>defaultGroupPerm</li>
+<li>topicPerms</li>
+<li>groupPerms<br>上述标签的说明，请参考：:<a target="_blank" rel="noopener" href="https://blog.csdn.net/prestigeding/article/details/94317946">《RocketMQ ACL使用指南》</a> 。具体的解析过程比较容易，就不再细说。</li>
+</ul>
+<p>load方法主要完成acl配置文件的解析，将用户定义的权限加载到内存中。</p>
+<h3 id="3-4-watch"><a href="#3-4-watch" class="headerlink" title="3.4 watch"></a>3.4 watch</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">watch</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        String watchFilePath = fileHome + fileName;</span><br><span class="line">        FileWatchService fileWatchService = <span class="keyword">new</span> FileWatchService(<span class="keyword">new</span> String[] &#123;watchFilePath&#125;, <span class="keyword">new</span> FileWatchService.Listener() &#123;</span><br><span class="line">                <span class="meta">@Override</span></span><br><span class="line">                <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">onChanged</span><span class="params">(String path)</span> </span>&#123;   </span><br><span class="line">                    log.info(<span class="string">&quot;The plain acl yml changed, reload the context&quot;</span>);</span><br><span class="line">                    load();</span><br><span class="line">                &#125;</span><br><span class="line">        &#125;);</span><br><span class="line">        fileWatchService.start();</span><br><span class="line">        log.info(<span class="string">&quot;Succeed to start AclWatcherService&quot;</span>);</span><br><span class="line">        <span class="keyword">this</span>.isWatchStart = <span class="keyword">true</span>;</span><br><span class="line">    &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">        log.error(<span class="string">&quot;Failed to start AclWatcherService&quot;</span>, e);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>监听器，默认以500ms的频率判断文件的内容是否变化。在文件内容发生变化后调用load()方法，重新加载配置文件。那FileWatchService是如何判断两个文件的内容发生了变化呢？</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">FileWatchService#hash</span><br><span class="line"><span class="function"><span class="keyword">private</span> String <span class="title">hash</span><span class="params">(String filePath)</span> <span class="keyword">throws</span> IOException, NoSuchAlgorithmException </span>&#123;</span><br><span class="line">    Path path = Paths.get(filePath);</span><br><span class="line">    md.update(Files.readAllBytes(path));</span><br><span class="line">    <span class="keyword">byte</span>[] hash = md.digest();</span><br><span class="line">    <span class="keyword">return</span> UtilAll.bytes2string(hash);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>获取文件md5签名来做对比，这里为什么不在启动时先记录上一次文件的修改时间，然后先判断其修改时间是否变化，再判断其内容是否真正发生变化。</p>
+<h3 id="3-5-validate"><a href="#3-5-validate" class="headerlink" title="3.5 validate"></a>3.5 validate</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Check the global white remote addr</span></span><br><span class="line"><span class="keyword">for</span> (RemoteAddressStrategy remoteAddressStrategy : globalWhiteRemoteAddressStrategy) &#123;</span><br><span class="line">    <span class="keyword">if</span> (remoteAddressStrategy.match(plainAccessResource)) &#123;</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>Step1：首先使用全局白名单对资源进行验证，只要一个规则匹配，则返回，表示认证成功。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (plainAccessResource.getAccessKey() == <span class="keyword">null</span>) &#123;</span><br><span class="line">    <span class="keyword">throw</span> <span class="keyword">new</span> AclException(String.format(<span class="string">&quot;No accessKey is configured&quot;</span>));</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">if</span> (!plainAccessResourceMap.containsKey(plainAccessResource.getAccessKey())) &#123;</span><br><span class="line">    <span class="keyword">throw</span> <span class="keyword">new</span> AclException(String.format(<span class="string">&quot;No acl config for %s&quot;</span>, plainAccessResource.getAccessKey()));</span><br><span class="line">&#125;</span><br><span class="line">Step2：如果请求信息中，没有设置用户名，则抛出未配置AccessKey异常；如果Broker中并为配置该用户的配置信息，则抛出AclException。</span><br><span class="line"></span><br><span class="line"><span class="comment">// Check the white addr for accesskey</span></span><br><span class="line">PlainAccessResource ownedAccess = plainAccessResourceMap.get(plainAccessResource.getAccessKey());</span><br><span class="line"><span class="keyword">if</span> (ownedAccess.getRemoteAddressStrategy().match(plainAccessResource)) &#123;</span><br><span class="line">    <span class="keyword">return</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>Step3：如果用户配置的白名单与待访问资源规则匹配的话，则直接发认证通过。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Check the signature</span></span><br><span class="line">String signature = AclUtils.calSignature(plainAccessResource.getContent(), ownedAccess.getSecretKey());</span><br><span class="line"><span class="keyword">if</span> (!signature.equals(plainAccessResource.getSignature())) &#123;</span><br><span class="line">    <span class="keyword">throw</span> <span class="keyword">new</span> AclException(String.format(<span class="string">&quot;Check signature failed for accessKey=%s&quot;</span>, plainAccessResource.getAccessKey()));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>Step4：验证签名。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">checkPerm(plainAccessResource, ownedAccess);</span><br></pre></td></tr></table></figure>
+<p>Step5：调用checkPerm方法，验证需要的权限与拥有的权限是否匹配。</p>
+<h4 id="3-5-1-checkPerm"><a href="#3-5-1-checkPerm" class="headerlink" title="3.5.1 checkPerm"></a>3.5.1 checkPerm</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (Permission.needAdminPerm(needCheckedAccess.getRequestCode()) &amp;&amp; !ownedAccess.isAdmin()) &#123;</span><br><span class="line">    <span class="keyword">throw</span> <span class="keyword">new</span> AclException(String.format(<span class="string">&quot;Need admin permission for request code=%d, but accessKey=%s is not&quot;</span>, needCheckedAccess.getRequestCode(), ownedAccess.getAccessKey()));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>Step6：如果当前的请求命令属于必须是Admin用户才能访问的权限，并且当前用户并不是管理员角色，则抛出异常，如下命令需要admin角色才能进行的操作：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">Map&lt;String, Byte&gt; needCheckedPermMap = needCheckedAccess.getResourcePermMap();</span><br><span class="line">Map&lt;String, Byte&gt; ownedPermMap = ownedAccess.getResourcePermMap();</span><br><span class="line"><span class="keyword">if</span> (needCheckedPermMap == <span class="keyword">null</span>) &#123;</span><br><span class="line">    <span class="comment">// If the needCheckedPermMap is null,then return</span></span><br><span class="line">    <span class="keyword">return</span>;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">if</span> (ownedPermMap == <span class="keyword">null</span> &amp;&amp; ownedAccess.isAdmin()) &#123;</span><br><span class="line">    <span class="comment">// If the ownedPermMap is null and it is an admin user, then return</span></span><br><span class="line">    <span class="keyword">return</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>Step7：如果该请求不需要进行权限验证，则通过认证，如果当前用户的角色是管理员，并且没有配置用户权限，则认证通过，返回。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">for</span> (Map.Entry&lt;String, Byte&gt; needCheckedEntry : needCheckedPermMap.entrySet()) &#123;</span><br><span class="line">    String resource = needCheckedEntry.getKey();</span><br><span class="line">    Byte neededPerm = needCheckedEntry.getValue();</span><br><span class="line">    <span class="keyword">boolean</span> isGroup = PlainAccessResource.isRetryTopic(resource);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (ownedPermMap == <span class="keyword">null</span> || !ownedPermMap.containsKey(resource)) &#123;</span><br><span class="line">        <span class="comment">// Check the default perm</span></span><br><span class="line">        <span class="keyword">byte</span> ownedPerm = isGroup ? ownedAccess.getDefaultGroupPerm() : ownedAccess.getDefaultTopicPerm();</span><br><span class="line">        <span class="keyword">if</span> (!Permission.checkPermission(neededPerm, ownedPerm)) &#123;</span><br><span class="line">            <span class="keyword">throw</span> <span class="keyword">new</span> AclException(String.format(<span class="string">&quot;No default permission for %s&quot;</span>, PlainAccessResource.printStr(resource, isGroup)));</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">continue</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (!Permission.checkPermission(neededPerm, ownedPermMap.get(resource))) &#123;</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> AclException(String.format(<span class="string">&quot;No default permission for %s&quot;</span>, PlainAccessResource.printStr(resource, isGroup)));</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>Step8：遍历需要权限与拥有的权限进行对比，如果配置对应的权限，则判断是否匹配；如果未配置权限，则判断默认权限时是否允许，不允许，则抛出AclException。</p>
+<p>验证逻辑就介绍到这里了，下面给出其匹配流程图：<br><img src="https://img-blog.csdnimg.cn/20190707121507431.jpg?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>上述阐述了从Broker服务器启动、加载acl配置文件流程、动态监听配置文件、服务端权限验证流程，接下来我们看一下客户端关于ACL需要处理的事情。</p>
+<h2 id="4、AclClientRPCHook"><a href="#4、AclClientRPCHook" class="headerlink" title="4、AclClientRPCHook"></a>4、AclClientRPCHook</h2><p>回顾一下，我们引入ACL机制后，客户端的代码示例如下：<br><img src="https://img-blog.csdnimg.cn/20190707121547164.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>其在创建DefaultMQProducer时，注册AclClientRPCHook钩子，会在向服务端发送远程命令前后执行其钩子函数，接下来我们重点分析一下AclClientRPCHook。</p>
+<h3 id="4-1-doBeforeRequest"><a href="#4-1-doBeforeRequest" class="headerlink" title="4.1 doBeforeRequest"></a>4.1 doBeforeRequest</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">doBeforeRequest</span><span class="params">(String remoteAddr, RemotingCommand request)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">byte</span>[] total = AclUtils.combineRequestContent(request,</span><br><span class="line">           parseRequestContent(request, sessionCredentials.getAccessKey(), sessionCredentials.getSecurityToken()));   <span class="comment">// @1</span></span><br><span class="line">    String signature = AclUtils.calSignature(total, sessionCredentials.getSecretKey());                                                      <span class="comment">// @2</span></span><br><span class="line">    request.addExtField(SIGNATURE, signature);                                                                                                               <span class="comment">// @3</span></span><br><span class="line">    request.addExtField(ACCESS_KEY, sessionCredentials.getAccessKey());         </span><br><span class="line">    <span class="comment">// The SecurityToken value is unneccessary,user can choose this one.</span></span><br><span class="line">    <span class="keyword">if</span> (sessionCredentials.getSecurityToken() != <span class="keyword">null</span>) &#123;</span><br><span class="line">        request.addExtField(SECURITY_TOKEN, sessionCredentials.getSecurityToken());</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>代码@1：将Request请求参数进行排序，并加入accessKey。</p>
+<p>代码@2：对排好序的请参数，使用用户配置的密码生成签名，并最近到扩展字段Signature，然后服务端也会按照相同的算法生成Signature，如果相同，则表示签名验证成功(类似于实现登录的效果)。</p>
+<p>代码@3：将Signature、AccessKey等加入到请求头的扩展字段中，服务端拿到这些元数据，结合请求头中的信息，根据配置的权限，进行权限校验。</p>
+<p>关于ACL客户端生成签名是一种通用套路，就不在细讲了。</p>
+</div>
+
+			<script src="https://my.openwrite.cn/js/readmore.js" type="text/javascript"></script>
+			<script>
+			var isMobile = navigator.userAgent.match(/(phone|pad|pod|iPhone|iPod|ios|iPad|Android|Mobile|BlackBerry|IEMobile|MQQBrowser|JUC|Fennec|wOSBrowser|BrowserNG|WebOS|Symbian|Windows Phone)/i);
+			if (!isMobile) {
+			    var btw = new BTWPlugin();
+			    btw.init({
+			        "id": "vip-container",
+			        "blogId": "18019-1573088808868-542",
+			        "name": "中间件兴趣圈",
+			        "qrcode": "https://img-blog.csdnimg.cn/20190314214003962.jpg",
+			        "keyword": "more"
+			    });
+			}
+			</script>
+		
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://example.com/2020/12/08/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90RocketMQ%20ACL%E5%AE%9E%E7%8E%B0%E6%9C%BA%E5%88%B6/" data-id="ckig4lify0044m4rgfq9d42xi" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/rocketmq/" rel="tag">rocketmq</a></li></ul>
+
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+    <a href="/2020/12/08/RocketMQ%20HA%E6%9C%BA%E5%88%B6(%E4%B8%BB%E4%BB%8E%E5%90%8C%E6%AD%A5)/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Newer</strong>
+      <div class="article-nav-title">
+        
+          RocketMQ HA机制(主从同步)
+        
+      </div>
+    </a>
+  
+  
+    <a href="/2020/12/08/RocketMQ%20ACL%E4%BD%BF%E7%94%A8%E6%8C%87%E5%8D%97NEW/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">RocketMQ ACL 使用指南</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+</section>
+        
+          <aside id="sidebar">
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">分类</h3>
+    <div class="widget">
+      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/kafka-rocketmq/">kafka rocketmq</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/rocketmq/">rocketmq</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/sentinel/">sentinel</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/%E7%A8%8B%E5%BA%8F%E4%BA%BA%E7%94%9F-%E9%80%86%E8%A2%AD-%E8%81%8C%E5%9C%BA%E5%8F%91%E5%B1%95/">程序人生 逆袭 职场发展</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">标签</h3>
+    <div class="widget">
+      <ul class="tag-list" itemprop="keywords"><li class="tag-list-item"><a class="tag-list-link" href="/tags/kafka-rocketmq/" rel="tag">kafka rocketmq</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rocketmq/" rel="tag">rocketmq</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rocketmq-broker-busy-TIMEOUT-CLEAN-QUEUE-PCBUSY-CLEAN-QUEUE/" rel="tag">rocketmq broker busy TIMEOUT_CLEAN_QUEUE PCBUSY_CLEAN_QUEUE</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rocketmq-%E4%B8%BB%E9%A2%98%E6%89%A9%E5%AE%B9-%E5%AE%9E%E6%88%98-%E5%9D%91/" rel="tag">rocketmq 主题扩容 实战 坑</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rocketmq-%E5%A4%9A%E5%89%AF%E6%9C%AC-raft-%E4%B8%BB%E4%BB%8E%E5%88%87%E6%8D%A2/" rel="tag">rocketmq 多副本 raft 主从切换</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rocketmq-%E5%A4%9A%E5%89%AF%E6%9C%AC-raft-%E9%80%89%E4%B8%BB/" rel="tag">rocketmq 多副本 raft 选主</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/sentinel/" rel="tag">sentinel</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E7%A8%8B%E5%BA%8F%E4%BA%BA%E7%94%9F/" rel="tag">程序人生</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">标签云</h3>
+    <div class="widget tagcloud">
+      <a href="/tags/kafka-rocketmq/" style="font-size: 10px;">kafka rocketmq</a> <a href="/tags/rocketmq/" style="font-size: 20px;">rocketmq</a> <a href="/tags/rocketmq-broker-busy-TIMEOUT-CLEAN-QUEUE-PCBUSY-CLEAN-QUEUE/" style="font-size: 10px;">rocketmq broker busy TIMEOUT_CLEAN_QUEUE PCBUSY_CLEAN_QUEUE</a> <a href="/tags/rocketmq-%E4%B8%BB%E9%A2%98%E6%89%A9%E5%AE%B9-%E5%AE%9E%E6%88%98-%E5%9D%91/" style="font-size: 10px;">rocketmq 主题扩容 实战 坑</a> <a href="/tags/rocketmq-%E5%A4%9A%E5%89%AF%E6%9C%AC-raft-%E4%B8%BB%E4%BB%8E%E5%88%87%E6%8D%A2/" style="font-size: 10px;">rocketmq 多副本 raft 主从切换</a> <a href="/tags/rocketmq-%E5%A4%9A%E5%89%AF%E6%9C%AC-raft-%E9%80%89%E4%B8%BB/" style="font-size: 10px;">rocketmq 多副本 raft 选主</a> <a href="/tags/sentinel/" style="font-size: 15px;">sentinel</a> <a href="/tags/%E7%A8%8B%E5%BA%8F%E4%BA%BA%E7%94%9F/" style="font-size: 10px;">程序人生</a>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">归档</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/12/">十二月 2020</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">最新文章</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2020/12/08/%E7%BB%93%E5%90%88%20Sentinel%20%E4%B8%93%E6%A0%8F%E8%B0%88%E8%B0%88%E6%88%91%E7%9A%84%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB%E6%8A%80%E5%B7%A7/">结合 Sentinel 专栏谈谈我的源码阅读技巧</a>
+          </li>
+        
+          <li>
+            <a href="/2020/12/08/Sentinel%20%E7%B3%BB%E7%BB%9F%E8%87%AA%E9%80%82%E5%BA%94%E9%99%90%E6%B5%81%E5%8E%9F%E7%90%86%E5%89%96%E6%9E%90%E4%B8%8E%E5%AE%9E%E6%88%98%E6%8C%87%E5%AF%BC/">Sentinel 系统自适应限流原理剖析与实战指导</a>
+          </li>
+        
+          <li>
+            <a href="/2020/12/08/Sentinel%20Dubbo%20%E9%80%82%E9%85%8D%E5%99%A8%E7%9C%8B%E9%99%90%E6%B5%81%E4%B8%8E%E7%86%94%E6%96%AD(%E5%AE%9E%E6%88%98%E6%80%9D%E8%80%83%E7%AF%87)/">Sentinel Dubbo 适配器看限流与熔断(实战思考篇)</a>
+          </li>
+        
+          <li>
+            <a href="/2020/12/08/Sentinel%20%E9%9B%86%E7%BE%A4%E9%99%90%E6%B5%81%E8%AE%BE%E8%AE%A1%E5%8E%9F%E7%90%86/">Sentinel 集群限流设计原理</a>
+          </li>
+        
+          <li>
+            <a href="/2020/12/08/Sentienl%20%E5%8A%A8%E6%80%81%E6%95%B0%E6%8D%AE%E6%BA%90%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1%E7%90%86%E5%BF%B5%E4%B8%8E%E6%94%B9%E9%80%A0%E5%AE%9E%E8%B7%B5/">Sentienl 动态数据源架构设计理念与改造实践</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2020 中间件兴趣圈<br>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+</nav>
+    
+
+<script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+
+
+  
+<link rel="stylesheet" href="/fancybox/jquery.fancybox.css">
+
+  
+<script src="/fancybox/jquery.fancybox.pack.js"></script>
+
+
+
+
+<script src="/js/script.js"></script>
+
+
+
+
+  </div>
+</body>
+</html>
