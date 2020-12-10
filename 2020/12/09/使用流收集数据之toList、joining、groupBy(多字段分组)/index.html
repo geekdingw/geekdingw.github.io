@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+
+  
+  <title>使用流收集数据之toList、joining、groupBy(多字段分组) | 中间件兴趣圈</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="本文将从Collectos中构建收集器入手，详细介绍java8提供了哪些收集器，重点介绍:toList、toSet、toCollection、joining、groupBy(包含多级分组)、reducing的核心实现原理与使用示例。 1、toList、toSet、toCollection首先对流中的数据进行计算，最终返回的数据类型为集合。Collectors中定义了如下3集合类收集器，其声明如下：">
+<meta property="og:type" content="article">
+<meta property="og:title" content="使用流收集数据之toList、joining、groupBy(多字段分组)">
+<meta property="og:url" content="http://example.com/2020/12/09/%E4%BD%BF%E7%94%A8%E6%B5%81%E6%94%B6%E9%9B%86%E6%95%B0%E6%8D%AE%E4%B9%8BtoList%E3%80%81joining%E3%80%81groupBy(%E5%A4%9A%E5%AD%97%E6%AE%B5%E5%88%86%E7%BB%84)/index.html">
+<meta property="og:site_name" content="中间件兴趣圈">
+<meta property="og:description" content="本文将从Collectos中构建收集器入手，详细介绍java8提供了哪些收集器，重点介绍:toList、toSet、toCollection、joining、groupBy(包含多级分组)、reducing的核心实现原理与使用示例。 1、toList、toSet、toCollection首先对流中的数据进行计算，最终返回的数据类型为集合。Collectors中定义了如下3集合类收集器，其声明如下：">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/20190609173712998.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/20190609173901452.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/20190609174021453.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/20190609174540775.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/20190609174846127.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70">
+<meta property="article:published_time" content="2020-12-09T14:45:35.000Z">
+<meta property="article:modified_time" content="2020-12-09T14:46:38.779Z">
+<meta property="article:author" content="中间件兴趣圈">
+<meta property="article:tag" content="java8 Lambda 流计算">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://img-blog.csdnimg.cn/20190609173712998.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70">
+  
+    <link rel="alternate" href="/atom.xml" title="中间件兴趣圈" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  
+    <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css">
+  
+  
+<link rel="stylesheet" href="/css/style.css">
+
+<meta name="generator" content="Hexo 5.2.0"></head>
+
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">中间件兴趣圈</a>
+      </h1>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="搜索"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://example.com"></form>
+      </div>
+    </div>
+  </div>
+</header>
+      <div class="outer">
+        <section id="main"><article id="post-使用流收集数据之toList、joining、groupBy(多字段分组)" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2020/12/09/%E4%BD%BF%E7%94%A8%E6%B5%81%E6%94%B6%E9%9B%86%E6%95%B0%E6%8D%AE%E4%B9%8BtoList%E3%80%81joining%E3%80%81groupBy(%E5%A4%9A%E5%AD%97%E6%AE%B5%E5%88%86%E7%BB%84)/" class="article-date">
+  <time datetime="2020-12-09T14:45:35.000Z" itemprop="datePublished">2020-12-09</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/java8/">java8</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      使用流收集数据之toList、joining、groupBy(多字段分组)
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <div id="vip-container"><p>本文将从Collectos中构建收集器入手，详细介绍java8提供了哪些收集器，重点介绍:toList、toSet、toCollection、joining、groupBy(包含多级分组)、reducing的核心实现原理与使用示例。</p>
+<h2 id="1、toList、toSet、toCollection"><a href="#1、toList、toSet、toCollection" class="headerlink" title="1、toList、toSet、toCollection"></a>1、toList、toSet、toCollection</h2><p>首先对流中的数据进行计算，最终返回的数据类型为集合。Collectors中定义了如下3集合类收集器，其声明如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> &lt;T&gt; Collector&lt;T, ?, List&lt;T&gt;&gt; toList()</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> &lt;T&gt; Collector&lt;T, ?, Set&lt;T&gt;&gt; toSet()</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> &lt;T, C extends Collection&lt;T&gt;&gt; Collector&lt;T, ?, C&gt; toCollection(Supplier&lt;C&gt; collectionFactory)</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>温馨提示：建议根据上篇的理论，再来反推一下这些Collector中的核心属性的值，例如supplier、accumulator、combiner、characteristics。不过特别注意，toList、toCollection是不支持并行运行的，但toSet()方法支持并行运行。</p>
+</blockquote>
+<p>我们首先来看一个一直使用的示例，返回菜单中所有菜品的名称：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">test_toList</span><span class="params">(List&lt;Dish&gt; menu)</span> </span>&#123;</span><br><span class="line">    List&lt;String&gt; names = menu.stream().map(Dish::getName)</span><br><span class="line">                        .collect(Collectors.toList());</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>由于toList方法的实现原理已经在 <a target="_blank" rel="noopener" href="https://blog.csdn.net/prestigeding/article/details/90813819">java8读书笔记：探究java8流收集数据原理</a>中也详细介绍，故本篇不再重点介绍。</p>
+<h2 id="2、joining"><a href="#2、joining" class="headerlink" title="2、joining"></a>2、joining</h2><p>Collectors定义了如下3个重载方法。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> Collector&lt;CharSequence, ?, String&gt; joining()</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> Collector&lt;CharSequence, ?, String&gt; joining(CharSequence delimiter)</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> Collector&lt;CharSequence, ?, String&gt; joining(CharSequence delimiter,</span><br><span class="line">    CharSequence prefix, CharSequence suffix)</span><br></pre></td></tr></table></figure>
+<h3 id="2-1-joining"><a href="#2-1-joining" class="headerlink" title="2.1 joining"></a>2.1 joining</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> Collector&lt;CharSequence, ?, String&gt; joining() &#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">new</span> CollectorImpl&lt;CharSequence, StringBuilder, String&gt;(</span><br><span class="line">        StringBuilder::<span class="keyword">new</span>, StringBuilder::append,</span><br><span class="line">        (r1, r2) -&gt; &#123; r1.append(r2); <span class="keyword">return</span> r1; &#125;,</span><br><span class="line">        StringBuilder::toString, CH_NOID);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<ul>
+<li>Supplier&lt; A&gt; supplier()<br>其函数为StringBuilder::new，即通过该方法创建一个StringBuilder方法，作为累积器的初始值。</li>
+<li>BiConsumer&lt;A, T&gt; accumulator<br>累积器：StringBuilder::append，即会对流中的元素执行追加。</li>
+<li>BinaryOperator&lt; A&gt; combiner<br>组合器，也是调用append方法，进行字符串的规约。</li>
+<li>Function&lt;A,R&gt; finisher<br>转换器：由于累积器返回的最终对象为StringBuilder，并不是目标String类型，故需要调用StringBuilder#toString方法进行转换</li>
+<li>Set&lt; Characteristics&gt; characteristics<br>无任何行为。</li>
+</ul>
+<p>从上面的函数定义我们可以得出该方法的作用：针对字符串流，会对流中的元素执行字符的追加动作，流元素之间没有分隔符号，示例如下：<br><img src="https://img-blog.csdnimg.cn/20190609173712998.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"></p>
+<h3 id="2-2-joining-CharSequence-delimiter"><a href="#2-2-joining-CharSequence-delimiter" class="headerlink" title="2.2 joining(CharSequence delimiter)"></a>2.2 joining(CharSequence delimiter)</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> Collector&lt;CharSequence, ?, String&gt; joining(CharSequence delimiter) &#123;</span><br><span class="line">    <span class="keyword">return</span> joining(delimiter, <span class="string">&quot;&quot;</span>, <span class="string">&quot;&quot;</span>);</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> Collector&lt;CharSequence, ?, String&gt; joining(CharSequence delimiter,</span><br><span class="line">                                                         CharSequence prefix,</span><br><span class="line">                                                         CharSequence suffix) &#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">new</span> CollectorImpl&lt;&gt;(</span><br><span class="line">            () -&gt; <span class="keyword">new</span> StringJoiner(delimiter, prefix, suffix),</span><br><span class="line">            StringJoiner::add, StringJoiner::merge,</span><br><span class="line">            StringJoiner::toString, CH_NOID);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<ul>
+<li>Supplier&lt; A&gt; supplier()<br>其函数为() -&gt; new StringJoiner(delimiter, prefix, suffix)，累积器的初始值为StringJoiner。</li>
+<li>BiConsumer&lt;A, T&gt; accumulator<br>累积器：StringJoiner::append，即会对流中的元素执行追加。</li>
+<li>BinaryOperator&lt; A&gt; combiner<br>组合器，StringJoiner::merge。</li>
+<li>Function&lt;A,R&gt; finisher<br>转换器：由于累积器返回的最终对象为StringBuilder，并不是目标String类型，故需要调用StringBuilder#toString方法进行转换</li>
+<li>Set&lt; Characteristics&gt; characteristics<br>无任何行为。</li>
+</ul>
+<p>其示例如下：<br><img src="https://img-blog.csdnimg.cn/20190609173901452.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"></p>
+<a id="more"></a>
+
+<h2 id="3、聚合相关收集器"><a href="#3、聚合相关收集器" class="headerlink" title="3、聚合相关收集器"></a>3、聚合相关收集器</h2><p>聚合相关收集器，主要包括minBy、maxBy、sum、avg等相关函数，其主要方法声明如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> &lt;T&gt; Collector&lt;T, ?, Optional&lt;T&gt;&gt; minBy(Comparator&lt;? <span class="keyword">super</span> T&gt; comparator)</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> &lt;T&gt; Collector&lt;T, ?, Optional&lt;T&gt;&gt; maxBy(Comparator&lt;? <span class="keyword">super</span> T&gt; comparator)</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> &lt;T&gt; Collector&lt;T, ?, Integer&gt; summingInt(ToIntFunction&lt;? <span class="keyword">super</span> T&gt; mapper)</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> &lt;T&gt; Collector&lt;T, ?, Long&gt; summingLong(ToLongFunction&lt;? <span class="keyword">super</span> T&gt; mapper)</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> &lt;T&gt; Collector&lt;T, ?, Double&gt; summingDouble(ToDoubleFunction&lt;? <span class="keyword">super</span> T&gt; mapper)</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> &lt;T&gt; Collector&lt;T, ?, Double&gt; averagingInt(ToIntFunction&lt;? <span class="keyword">super</span> T&gt; mapper)</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> &lt;T&gt; Collector&lt;T, ?, Double&gt; averagingLong(ToLongFunction&lt;? <span class="keyword">super</span> T&gt; mapper)</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> &lt;T&gt; Collector&lt;T, ?, Double&gt; averagingDouble(ToDoubleFunction&lt;? <span class="keyword">super</span> T&gt; mapper)</span><br></pre></td></tr></table></figure>
+<p>上面这些方法比较简单，下面举个简单的例子介绍其使用：<br><img src="https://img-blog.csdnimg.cn/20190609174021453.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"></p>
+<h2 id="4-分组"><a href="#4-分组" class="headerlink" title="4 分组"></a>4 分组</h2><p>Collectors提供了3个groupingBy重载方法，我们一个一个来理解。</p>
+<h3 id="4-1-从示例入手"><a href="#4-1-从示例入手" class="headerlink" title="4.1 从示例入手"></a>4.1 从示例入手</h3><p>我们从其中一个最简单的函数说起，从而慢慢引出</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> &lt;T, K&gt; Collector&lt;T, ?, Map&lt;K, List&lt;T&gt;&gt;&gt; groupingBy(</span><br><span class="line">             Function&lt;? <span class="keyword">super</span> T, ? extends K&gt; classifier)</span><br></pre></td></tr></table></figure>
+<ul>
+<li>Collector&lt;T, ?, Map&lt;K, List&lt; T&gt;&gt;&gt;<br>首先我们先来关注该方法的返回值Collector&lt;T, ?, Map&lt;K,List&lt; T&gt;&gt;，其最终返回的数据类型为：Map&lt;K, List&lt; T&gt;&gt;</li>
+<li>Function&lt;? super T, ? extends K&gt; classifier<br>分类函数。</li>
+</ul>
+<p>示例如下：例如如下是购物车实体类，并且初始化数据如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">ShopCar</span> </span>&#123;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">int</span> id;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">int</span> sellerId;</span><br><span class="line">    <span class="keyword">private</span> String sellerName;</span><br><span class="line">    <span class="keyword">private</span> String goodsName;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">int</span> buyerId;</span><br><span class="line">    <span class="keyword">private</span> String buyerName;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">int</span> num;</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// 初始化数据如下：</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> List&lt;ShopCar&gt; <span class="title">initShopCar</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> Arrays.asList(</span><br><span class="line">            <span class="keyword">new</span> ShopCar(<span class="number">1</span>, <span class="number">1</span>, <span class="string">&quot;天猫&quot;</span> , <span class="string">&quot;华为手机&quot;</span>, <span class="number">1</span> , <span class="string">&quot;dingw&quot;</span>, <span class="number">5</span>),</span><br><span class="line">            <span class="keyword">new</span> ShopCar(<span class="number">1</span>, <span class="number">2</span>, <span class="string">&quot;京东&quot;</span> , <span class="string">&quot;华为手机&quot;</span>, <span class="number">2</span> , <span class="string">&quot;ly&quot;</span>, <span class="number">2</span>),</span><br><span class="line">            <span class="keyword">new</span> ShopCar(<span class="number">1</span>, <span class="number">1</span>, <span class="string">&quot;京东&quot;</span> , <span class="string">&quot;小米手机&quot;</span>, <span class="number">3</span> , <span class="string">&quot;zhl&quot;</span>, <span class="number">3</span>),</span><br><span class="line">            <span class="keyword">new</span> ShopCar(<span class="number">1</span>, <span class="number">2</span>, <span class="string">&quot;1号店&quot;</span> , <span class="string">&quot;华为手机&quot;</span>, <span class="number">1</span> , <span class="string">&quot;dingw&quot;</span>, <span class="number">5</span>),</span><br><span class="line">            <span class="keyword">new</span> ShopCar(<span class="number">1</span>, <span class="number">2</span>, <span class="string">&quot;天猫&quot;</span> , <span class="string">&quot;苹果手机&quot;</span>, <span class="number">1</span> , <span class="string">&quot;dingw&quot;</span>, <span class="number">2</span>)</span><br><span class="line">    );</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>首先我们看一下java8之前的写法：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">test_group_jdk7</span><span class="params">(List&lt;ShopCar&gt; shopCars)</span> </span>&#123;</span><br><span class="line">    Map&lt;String, List&lt;ShopCar&gt;&gt; shopBySellerNameMap = <span class="keyword">new</span> HashMap&lt;&gt;();</span><br><span class="line">    <span class="keyword">for</span>(ShopCar c : shopCars ) &#123;</span><br><span class="line">        <span class="keyword">if</span>(shopBySellerNameMap.containsKey( c.getSellerName() )) &#123;</span><br><span class="line">            shopBySellerNameMap.get(c.getSellerName()).add(c);</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            List&lt;ShopCar&gt; aList = <span class="keyword">new</span> ArrayList&lt;&gt;();</span><br><span class="line">            shopBySellerNameMap.put(c.getSellerName(), aList);</span><br><span class="line">            aList.add(c);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    print(shopBySellerNameMap);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>上面的代码应该很容易理解，根据商家名称进行分组，拥有相同商家的名称的购物车项组成一个集合，最终返回Map&lt;String, List&lt; ShopCar &gt;&gt;类型的数据。</p>
+<p>那如何使用java8的流分组特性来编写对应的代码呢？下面的思考过程非常关键，经过前面的学习，我想大家应该也具备了如下分析与编写的能力？</p>
+<p>首先其声明如下：public static &lt;T, K&gt; Collector&lt;T, ?, Map&lt;K, List&lt; T&gt;&gt;&gt; groupingBy(Function&lt;? super T, ? extends K&gt; classifier)，那在本例中，T,K这两个参数代表什么意思呢？</p>
+<ul>
+<li>T : ShopCar</li>
+<li>K : String (sellerName的类型)<br>其判断的主要依据为groupingBy方法返回的参数Collector&lt;T, ?, Map&lt;K, List&lt; T&gt;&gt;&gt;，代表&lt;T, A, R&gt;，其中最后一个泛型参数R对应的就是本例需要返回的Map&lt;K, List&lt; T&gt;&gt;，故分析出T,K代表的含义。</li>
+</ul>
+<p>然后再看其参数：Function&lt;? super T, ? extends K&gt; classifier,即接受的函数式编程接口为T -&gt; K，即通过ShopCar 返回一个String，又根据其名称可知，该函数为一个分类函数，故基本可以写成如下代码：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">test_group_jdk8</span><span class="params">(List&lt;ShopCar&gt; shopCars)</span> </span>&#123;</span><br><span class="line">    Map&lt;String, List&lt;ShopCar&gt;&gt; shopBySellerNameMap =  </span><br><span class="line">                 shopCars</span><br><span class="line">                     .stream()</span><br><span class="line">                     .collect(Collectors.groupingBy(ShopCar::getSellerName));</span><br><span class="line">                   <span class="comment">//.collect(Collectors.groupingBy( (ShopCar c) -&gt; c.getSellerName() ))</span></span><br><span class="line">    print(shopBySellerNameMap);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>其运行效果如下：<br><img src="https://img-blog.csdnimg.cn/20190609174540775.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述">为了加深对groupingBy方法的理解，接下来我们重点分析一下其源码的实现。</p>
+<h3 id="4-2-源码分析groupingBy方法"><a href="#4-2-源码分析groupingBy方法" class="headerlink" title="4.2 源码分析groupingBy方法"></a>4.2 源码分析groupingBy方法</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> &lt;T, K&gt; Collector&lt;T, ?, Map&lt;K, List&lt;T&gt;&gt;&gt; groupingBy(Function&lt;? <span class="keyword">super</span> T, ? extends K&gt; classifier) &#123;  <span class="comment">// @1</span></span><br><span class="line">    <span class="keyword">return</span> groupingBy(classifier, toList());                                                                     <span class="comment">// @2</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>代码@1：分类参数，已经在上文中详细介绍。<br>代码@2：调用groupingBy重载方法，传入的参数为toList()，有点意思，传入的参数为Collectors.toList()，结合上文中的示例，需要返回值类型为：Map&lt;String, List&lt; ShopCar&gt;&gt;，与这里的List对应起来了。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> &lt;T, K, A, D&gt; Collector&lt;T, ?, Map&lt;K, D&gt;&gt; groupingBy(Function&lt;? <span class="keyword">super</span> T, ? extends K&gt; classifier, Collector&lt;? <span class="keyword">super</span> T, A, D&gt; downstream) &#123;</span><br><span class="line">    <span class="keyword">return</span> groupingBy(classifier, HashMap::<span class="keyword">new</span>, downstream);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>该重载方法，再次调用3个参数的groupingBy方法，其中第二个参数为HashMap::new，即创建一个Map对象，我们重点关注3个参数的groupingBy。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> &lt;T, K, D, A, M extends Map&lt;K, D&gt;&gt; Collector&lt;T, ?, M&gt; groupingBy(</span><br><span class="line">                          Function&lt;? <span class="keyword">super</span> T, ? extends K&gt; classifier, </span><br><span class="line">Supplier&lt;M&gt; mapFactory,</span><br><span class="line">Collector&lt;? <span class="keyword">super</span> T, A, D&gt; downstream) &#123; <span class="comment">// @1</span></span><br><span class="line">    Supplier&lt;A&gt; downstreamSupplier = downstream.supplier();        <span class="comment">// @2 start</span></span><br><span class="line">    BiConsumer&lt;A, ? <span class="keyword">super</span> T&gt; downstreamAccumulator = downstream.accumulator();</span><br><span class="line">    BiConsumer&lt;Map&lt;K, A&gt;, T&gt; accumulator = (m, t) -&gt; &#123;</span><br><span class="line">        K key = Objects.requireNonNull(classifier.apply(t), <span class="string">&quot;element cannot be mapped to a null key&quot;</span>);</span><br><span class="line">        A container = m.computeIfAbsent(key, k -&gt; downstreamSupplier.get());</span><br><span class="line">        downstreamAccumulator.accept(container, t);</span><br><span class="line">    &#125;; <span class="comment">// @2 end</span></span><br><span class="line"></span><br><span class="line">    BinaryOperator&lt;Map&lt;K, A&gt;&gt; merger = Collectors.&lt;K, A, Map&lt;K, A&gt;&gt;mapMerger(downstream.combiner());   <span class="comment">// @3</span></span><br><span class="line">    <span class="meta">@SuppressWarnings(&quot;unchecked&quot;)</span></span><br><span class="line">    Supplier&lt;Map&lt;K, A&gt;&gt; mangledFactory = (Supplier&lt;Map&lt;K, A&gt;&gt;) mapFactory;                            </span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (downstream.characteristics().contains(Collector.Characteristics.IDENTITY_FINISH)) &#123;           <span class="comment">// @4</span></span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">new</span> CollectorImpl&lt;&gt;(mangledFactory, accumulator, merger, CH_ID);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">else</span> &#123;                                                                                            <span class="comment">// @5</span></span><br><span class="line">        <span class="meta">@SuppressWarnings(&quot;unchecked&quot;)</span></span><br><span class="line">        Function&lt;A, A&gt; downstreamFinisher = (Function&lt;A, A&gt;) downstream.finisher();</span><br><span class="line">        Function&lt;Map&lt;K, A&gt;, M&gt; finisher = intermediate -&gt; &#123;</span><br><span class="line">            intermediate.replaceAll((k, v) -&gt; downstreamFinisher.apply(v));</span><br><span class="line">            <span class="meta">@SuppressWarnings(&quot;unchecked&quot;)</span></span><br><span class="line">            M castResult = (M) intermediate;</span><br><span class="line">            <span class="keyword">return</span> castResult;</span><br><span class="line">        &#125;;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">new</span> CollectorImpl&lt;&gt;(mangledFactory, accumulator, merger, finisher, CH_NOID);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>代码@1：参数介绍：</p>
+<ul>
+<li>Function&lt;? super T, ? extends K&gt; classifier<br>分类函数。</li>
+<li>Supplier&lt; M&gt; mapFactory<br>map构建函数。（）-&gt; Map</li>
+<li>Collector&lt;? super T, A, D&gt; downstream<br>下游收集器，在上面的示例中，该参数为Collectos.toList()。</li>
+</ul>
+<p>代码@2：构建最终的累积器。其实现要点如下：</p>
+<ul>
+<li>对流中的元素，使用Function&lt;? super T, ? extends K&gt; classifier，获取对应的分类键值。</li>
+<li>使用mangledFactory创建累积初始值，并调用Map#computeIfAbsent方法，放入的值为：downstreamSupplier.get()。可以类比上例中Map&lt;String, List&lt; T&gt;&gt;，请结合如下代码进行理解：<br><img src="https://img-blog.csdnimg.cn/20190609174846127.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"></li>
+</ul>
+<p>代码@3：构建最终的组合器，这里使用的是Collectos.mapMerger，其内部的实现就是对每个元素，执行map#merge方法。</p>
+<p>代码@4：如果收集器的行为为IDENTITY_FINISH，直接根据上面已创建的累积器、组合器，创建一个最终的收集器。</p>
+<p>代码@5：如果收集器的行为不包含IDENTITY_FINISH，则需要最终调用原收集器的finisher方法。才能最终需要返回的类型。</p>
+<p>groupingBy的原理就讲解到这里，我们接下来思考如下场景：<br>还是上面的购物车场景，现在要求先按照供应商名称分组，然后按照购买人分组（即多级分组），类似于SQL group by sellerId,buyerId。</p>
+<p>思考过程：首先二级分类需要返回的数据类型为Map&lt;String /** sellerName*/,   Map&lt;String、/** buyerId*/，List&lt; ShopCar&gt;&gt; &gt;,而只有一个参数的groupingBy(Function&lt;? super T, ? extends K&gt; classifier)，只接受一个分类参数，其内部会调用两个参数的groupingBy(Function&lt;? super T, ? extends K&gt; classifier,Collector&lt;? super T, A, D&gt; downstream)，默认第二个参数为Collectors.toList()，故我们可以做的文章是改变这个默认值，传入符合业务场景的收集器，结合目前的需求，很显然，该参数应该是支持分组的收集器，即应该可以通过嵌套groupingBy方法，实现二级分组，其具体代码如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 二级分组示例</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@param</span> shopCars</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">test_level_group</span><span class="params">(List&lt;ShopCar&gt; shopCars)</span> </span>&#123;</span><br><span class="line">    Map&lt;String, Map&lt;String, List&lt;ShopCar&gt;&gt;&gt;  result = </span><br><span class="line">        shopCars.stream().collect(Collectors.groupingBy(ShopCar::getSellerName,</span><br><span class="line">                                    Collectors.groupingBy(ShopCar::getBuyerName)));</span><br><span class="line">    System.out.println(result);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>温馨提示：上面介绍的分组，主要的Map存储结构为HashMap，java8为ConcurrentMap对应类继承体系提供了对应的分组函数：groupingByConcurrent，其使用方法与groupingBy方法类型，故不重复介绍。</p>
+<h2 id="5、-partitioningBy"><a href="#5、-partitioningBy" class="headerlink" title="5、 partitioningBy"></a>5、 partitioningBy</h2><p>分区，分区可以看出是分组的特殊化，接受的分类函数返回boolean类型，即是谓词Predicate&lt;? super T&gt; predicate。其声明如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> &lt;T&gt; Collector&lt;T, ?, Map&lt;Boolean, List&lt;T&gt;&gt;&gt; partitioningBy(Predicate&lt;? <span class="keyword">super</span> T&gt; predicate)</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> &lt;T, D, A&gt; Collector&lt;T, ?, Map&lt;Boolean, D&gt;&gt; partitioningBy(Predicate&lt;? <span class="keyword">super</span> T&gt; predicate, Collector&lt;? <span class="keyword">super</span> T, A, D&gt; downstream) </span><br></pre></td></tr></table></figure>
+<p>由于其用法与分组类似，故这里就一笔带过了。</p>
+<h2 id="6、-reducing"><a href="#6、-reducing" class="headerlink" title="6、 reducing"></a>6、 reducing</h2><p>规约。其函数声明如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> &lt;T, U&gt; Collector&lt;T, ?, U&gt; reducing(U identity, Function&lt;? <span class="keyword">super</span> T, ? extends U&gt; mapper, BinaryOperator&lt;U&gt; op)</span><br></pre></td></tr></table></figure>
+<p>其参数如下：</p>
+<ul>
+<li>U identity<br>规约初始值。</li>
+<li>Function&lt;? super T, ? extends U&gt; mapper<br>累加器函数。</li>
+<li>BinaryOperator<U> op<br>组合器函数。<br>关于Collectors.reducing，建议可以直接使用Stream自身提供的reducing方法。</li>
+</ul>
+</div>
+
+			<script src="https://my.openwrite.cn/js/readmore.js" type="text/javascript"></script>
+			<script>
+			var isMobile = navigator.userAgent.match(/(phone|pad|pod|iPhone|iPod|ios|iPad|Android|Mobile|BlackBerry|IEMobile|MQQBrowser|JUC|Fennec|wOSBrowser|BrowserNG|WebOS|Symbian|Windows Phone)/i);
+			if (!isMobile) {
+			    var btw = new BTWPlugin();
+			    btw.init({
+			        "id": "vip-container",
+			        "blogId": "18019-1573088808868-542",
+			        "name": "中间件兴趣圈",
+			        "qrcode": "https://img-blog.csdnimg.cn/20190314214003962.jpg",
+			        "keyword": "more"
+			    });
+			}
+			</script>
+		
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://example.com/2020/12/09/%E4%BD%BF%E7%94%A8%E6%B5%81%E6%94%B6%E9%9B%86%E6%95%B0%E6%8D%AE%E4%B9%8BtoList%E3%80%81joining%E3%80%81groupBy(%E5%A4%9A%E5%AD%97%E6%AE%B5%E5%88%86%E7%BB%84)/" data-id="ckiibfosf0022pkrge96oak8v" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/java8-Lambda-%E6%B5%81%E8%AE%A1%E7%AE%97/" rel="tag">java8 Lambda 流计算</a></li></ul>
+
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+    <a href="/2020/12/09/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90Mybatis%20MapperProxy%E5%88%9D%E5%A7%8B%E5%8C%96%E4%B9%8BMapper%E5%AF%B9%E8%B1%A1%E7%9A%84%E6%89%AB%E6%8F%8F%E4%B8%8E%E6%9E%84%E5%BB%BA/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Newer</strong>
+      <div class="article-nav-title">
+        
+          源码分析Mybatis MapperProxy初始化之Mapper对象的扫描与构建
+        
+      </div>
+    </a>
+  
+  
+    <a href="/2020/12/09/%E6%8E%A2%E7%A9%B6java8%E6%B5%81%E6%94%B6%E9%9B%86%E6%95%B0%E6%8D%AE%E5%8E%9F%E7%90%86/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">探究java8流收集数据原理</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+</section>
+        
+          <aside id="sidebar">
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">分类</h3>
+    <div class="widget">
+      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/java/">java</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/java8/">java8</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/kafka-rocketmq/">kafka rocketmq</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/mybatis/">mybatis</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/rocketmq/">rocketmq</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/sentinel/">sentinel</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/%E7%A8%8B%E5%BA%8F%E4%BA%BA%E7%94%9F-%E9%80%86%E8%A2%AD-%E8%81%8C%E5%9C%BA%E5%8F%91%E5%B1%95/">程序人生 逆袭 职场发展</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">标签</h3>
+    <div class="widget">
+      <ul class="tag-list" itemprop="keywords"><li class="tag-list-item"><a class="tag-list-link" href="/tags/java-reference/" rel="tag">java reference</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/java-%E7%AE%97%E6%B3%95/" rel="tag">java 算法</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/java8-Lambda-%E5%87%BD%E6%95%B0%E5%BC%8F%E7%BC%96%E7%A8%8B/" rel="tag">java8 Lambda 函数式编程</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/java8-Lambda-%E6%B5%81%E8%AE%A1%E7%AE%97/" rel="tag">java8 Lambda 流计算</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/kafka-rocketmq/" rel="tag">kafka rocketmq</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/mybatis/" rel="tag">mybatis</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rocketmq/" rel="tag">rocketmq</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rocketmq-broker-busy-TIMEOUT-CLEAN-QUEUE-PCBUSY-CLEAN-QUEUE/" rel="tag">rocketmq broker busy TIMEOUT_CLEAN_QUEUE PCBUSY_CLEAN_QUEUE</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rocketmq-%E4%B8%BB%E9%A2%98%E6%89%A9%E5%AE%B9-%E5%AE%9E%E6%88%98-%E5%9D%91/" rel="tag">rocketmq 主题扩容 实战 坑</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rocketmq-%E5%A4%9A%E5%89%AF%E6%9C%AC-raft-%E4%B8%BB%E4%BB%8E%E5%88%87%E6%8D%A2/" rel="tag">rocketmq 多副本 raft 主从切换</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rocketmq-%E5%A4%9A%E5%89%AF%E6%9C%AC-raft-%E9%80%89%E4%B8%BB/" rel="tag">rocketmq 多副本 raft 选主</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/sentinel/" rel="tag">sentinel</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E7%A8%8B%E5%BA%8F%E4%BA%BA%E7%94%9F/" rel="tag">程序人生</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">标签云</h3>
+    <div class="widget tagcloud">
+      <a href="/tags/java-reference/" style="font-size: 10px;">java reference</a> <a href="/tags/java-%E7%AE%97%E6%B3%95/" style="font-size: 12px;">java 算法</a> <a href="/tags/java8-Lambda-%E5%87%BD%E6%95%B0%E5%BC%8F%E7%BC%96%E7%A8%8B/" style="font-size: 12px;">java8 Lambda 函数式编程</a> <a href="/tags/java8-Lambda-%E6%B5%81%E8%AE%A1%E7%AE%97/" style="font-size: 14px;">java8 Lambda 流计算</a> <a href="/tags/kafka-rocketmq/" style="font-size: 10px;">kafka rocketmq</a> <a href="/tags/mybatis/" style="font-size: 16px;">mybatis</a> <a href="/tags/rocketmq/" style="font-size: 20px;">rocketmq</a> <a href="/tags/rocketmq-broker-busy-TIMEOUT-CLEAN-QUEUE-PCBUSY-CLEAN-QUEUE/" style="font-size: 10px;">rocketmq broker busy TIMEOUT_CLEAN_QUEUE PCBUSY_CLEAN_QUEUE</a> <a href="/tags/rocketmq-%E4%B8%BB%E9%A2%98%E6%89%A9%E5%AE%B9-%E5%AE%9E%E6%88%98-%E5%9D%91/" style="font-size: 10px;">rocketmq 主题扩容 实战 坑</a> <a href="/tags/rocketmq-%E5%A4%9A%E5%89%AF%E6%9C%AC-raft-%E4%B8%BB%E4%BB%8E%E5%88%87%E6%8D%A2/" style="font-size: 10px;">rocketmq 多副本 raft 主从切换</a> <a href="/tags/rocketmq-%E5%A4%9A%E5%89%AF%E6%9C%AC-raft-%E9%80%89%E4%B8%BB/" style="font-size: 10px;">rocketmq 多副本 raft 选主</a> <a href="/tags/sentinel/" style="font-size: 18px;">sentinel</a> <a href="/tags/%E7%A8%8B%E5%BA%8F%E4%BA%BA%E7%94%9F/" style="font-size: 10px;">程序人生</a>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">归档</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/12/">十二月 2020</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">最新文章</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2020/12/09/%E5%BF%AB%E9%80%9F%E6%8E%92%E5%BA%8F%E7%AE%97%E6%B3%95java%E7%89%88%E5%AE%9E%E7%8E%B0/">快速排序算法java版实现</a>
+          </li>
+        
+          <li>
+            <a href="/2020/12/09/%E6%8E%92%E5%BA%8F%E4%BA%8C%E5%8F%89%E6%A0%91JAVA%E7%89%88%E5%AE%9E%E7%8E%B0/">排序二叉树JAVA版实现</a>
+          </li>
+        
+          <li>
+            <a href="/2020/12/09/java%20Reference%20%E5%BC%95%E7%94%A8%E5%AD%A6%E4%B9%A0%E6%80%BB%E7%BB%93/">java Reference 引用学习总结</a>
+          </li>
+        
+          <li>
+            <a href="/2020/12/09/Mybatis%E4%B8%80%E4%BA%8C%E7%BA%A7%E7%BC%93%E5%AD%98%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86%E4%B8%8E%E4%BD%BF%E7%94%A8%E6%8C%87%E5%8D%97/">Mybatis一二级缓存实现原理与使用指南</a>
+          </li>
+        
+          <li>
+            <a href="/2020/12/09/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90Mybatis%E6%8F%92%E4%BB%B6(Plugin)%E6%9C%BA%E5%88%B6%E4%B8%8E%E5%AE%9E%E6%88%98/">源码分析Mybatis插件(Plugin)机制与实战</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2020 中间件兴趣圈<br>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+</nav>
+    
+
+<script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+
+
+  
+<link rel="stylesheet" href="/fancybox/jquery.fancybox.css">
+
+  
+<script src="/fancybox/jquery.fancybox.pack.js"></script>
+
+
+
+
+<script src="/js/script.js"></script>
+
+
+
+
+  </div>
+</body>
+</html>

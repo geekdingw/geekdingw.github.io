@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+
+  
+  <title>源码分析Mybatis MappedStatement的创建流程 | 中间件兴趣圈</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="上文源码分析Mybatis MapperProxy创建流程重点阐述MapperProxy的创建流程，但并没有介绍*.Mapper.java(UserMapper.java)是如何与*Mapper.xml文件中的SQL语句是如何建立关联的。本文将重点接开这个谜团。 接下来重点从源码的角度分析Mybatis MappedStatement的创建流程。 1、上节回顾我们注意到这里有两三个与Mapper相">
+<meta property="og:type" content="article">
+<meta property="og:title" content="源码分析Mybatis MappedStatement的创建流程">
+<meta property="og:url" content="http://example.com/2020/12/09/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90Mybatis%20MappedStatement%E7%9A%84%E5%88%9B%E5%BB%BA%E6%B5%81%E7%A8%8B/index.html">
+<meta property="og:site_name" content="中间件兴趣圈">
+<meta property="og:description" content="上文源码分析Mybatis MapperProxy创建流程重点阐述MapperProxy的创建流程，但并没有介绍*.Mapper.java(UserMapper.java)是如何与*Mapper.xml文件中的SQL语句是如何建立关联的。本文将重点接开这个谜团。 接下来重点从源码的角度分析Mybatis MappedStatement的创建流程。 1、上节回顾我们注意到这里有两三个与Mapper相">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/2019052321283257.jpg?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70">
+<meta property="article:published_time" content="2020-12-09T14:51:35.000Z">
+<meta property="article:modified_time" content="2020-12-09T14:52:35.928Z">
+<meta property="article:author" content="中间件兴趣圈">
+<meta property="article:tag" content="mybatis">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://img-blog.csdnimg.cn/2019052321283257.jpg?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70">
+  
+    <link rel="alternate" href="/atom.xml" title="中间件兴趣圈" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  
+    <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css">
+  
+  
+<link rel="stylesheet" href="/css/style.css">
+
+<meta name="generator" content="Hexo 5.2.0"></head>
+
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">中间件兴趣圈</a>
+      </h1>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="搜索"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://example.com"></form>
+      </div>
+    </div>
+  </div>
+</header>
+      <div class="outer">
+        <section id="main"><article id="post-源码分析Mybatis MappedStatement的创建流程" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2020/12/09/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90Mybatis%20MappedStatement%E7%9A%84%E5%88%9B%E5%BB%BA%E6%B5%81%E7%A8%8B/" class="article-date">
+  <time datetime="2020-12-09T14:51:35.000Z" itemprop="datePublished">2020-12-09</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/mybatis/">mybatis</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      源码分析Mybatis MappedStatement的创建流程
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <div id="vip-container"><p>上文<a target="_blank" rel="noopener" href="https://blog.csdn.net/prestigeding/article/details/90415680">源码分析Mybatis MapperProxy创建流程</a>重点阐述MapperProxy的创建流程，但并没有介绍*.Mapper.java(UserMapper.java)是如何与*Mapper.xml文件中的SQL语句是如何建立关联的。本文将重点接开这个谜团。</p>
+<p>接下来重点从源码的角度分析Mybatis MappedStatement的创建流程。</p>
+<h2 id="1、上节回顾"><a href="#1、上节回顾" class="headerlink" title="1、上节回顾"></a>1、上节回顾</h2><p>我们注意到这里有两三个与Mapper相关的配置：</p>
+<ol>
+<li>SqlSessionFactory#mapperLocations，指定xml文件的配置路径。</li>
+<li>SqlSessionFactory#configLocation，指定mybaits的配置文件，该配置文件也可以配置mapper.xml的配置路径信息。</li>
+<li>MapperScannerConfigurer，扫描Mapper的java类(DAO)。</li>
+</ol>
+<p>我们已经详细介绍了Mybatis Mapper对象的扫描与构建，那接下来我们将重点介绍MaperProxy与mapper.xml文件是如何建立关联关系的。</p>
+<p>根据上面的罗列以及上文的讲述，Mapper.xml与Mapper建立联系主要的入口有三：<br>1）MapperScannerConfigurer扫描Bean流程中，在调用MapperReigistry#addMapper时如果Mapper对应的映射文件(Mapper.xml)未加载到内存，会触发加载。<br>2）实例化SqlSessionFactory时，如果配置了mapperLocations。<br>3）示例化SqlSessionFactory时，如果配置了configLocation。</p>
+<p>本节的行文思路：从SqlSessionFacotry的初始化开始讲起，因为mapperLocations、configLocation都是是SqlSessionFactory的属性。</p>
+<blockquote>
+<p>温馨提示：下面开始从源码的角度对其进行介绍，大家可以先跳到文末看看其调用序列图。</p>
+</blockquote>
+<a id="more"></a>
+
+<h2 id="2、SqlSessionFacotry"><a href="#2、SqlSessionFacotry" class="headerlink" title="2、SqlSessionFacotry"></a>2、SqlSessionFacotry</h2><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (xmlConfigBuilder != <span class="keyword">null</span>) &#123;  <span class="comment">// XMLConfigBuilder   // @1</span></span><br><span class="line">      <span class="keyword">try</span> &#123;</span><br><span class="line">        xmlConfigBuilder.parse();</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (logger.isDebugEnabled()) &#123;</span><br><span class="line">          logger.debug(<span class="string">&quot;Parsed configuration file: &#x27;&quot;</span> + <span class="keyword">this</span>.configLocation + <span class="string">&quot;&#x27;&quot;</span>);</span><br><span class="line">        &#125;</span><br><span class="line">      &#125; <span class="keyword">catch</span> (Exception ex) &#123;</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> NestedIOException(<span class="string">&quot;Failed to parse config resource: &quot;</span> + <span class="keyword">this</span>.configLocation, ex);</span><br><span class="line">      &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">        ErrorContext.instance().reset();</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> (!isEmpty(<span class="keyword">this</span>.mapperLocations)) &#123;   <span class="comment">// @2</span></span><br><span class="line">      <span class="keyword">for</span> (Resource mapperLocation : <span class="keyword">this</span>.mapperLocations) &#123;</span><br><span class="line">        <span class="keyword">if</span> (mapperLocation == <span class="keyword">null</span>) &#123;</span><br><span class="line">          <span class="keyword">continue</span>;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">          XMLMapperBuilder xmlMapperBuilder = <span class="keyword">new</span> XMLMapperBuilder(mapperLocation.getInputStream(),</span><br><span class="line">              configuration, mapperLocation.toString(), configuration.getSqlFragments());</span><br><span class="line">          xmlMapperBuilder.parse();</span><br><span class="line">        &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">          <span class="keyword">throw</span> <span class="keyword">new</span> NestedIOException(<span class="string">&quot;Failed to parse mapping resource: &#x27;&quot;</span> + mapperLocation + <span class="string">&quot;&#x27;&quot;</span>, e);</span><br><span class="line">        &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">          ErrorContext.instance().reset();</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (logger.isDebugEnabled()) &#123;</span><br><span class="line">          logger.debug(<span class="string">&quot;Parsed mapper file: &#x27;&quot;</span> + mapperLocation + <span class="string">&quot;&#x27;&quot;</span>);</span><br><span class="line">        &#125;</span><br><span class="line">      &#125;</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">      <span class="keyword">if</span> (logger.isDebugEnabled()) &#123;</span><br><span class="line">        logger.debug(<span class="string">&quot;Property &#x27;mapperLocations&#x27; was not specified or no matching resources found&quot;</span>);</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+<p>上文有两个入口：<br>代码@1：处理configLocation属性。<br>代码@2：处理mapperLocations属性。</p>
+<p>我们先从XMLConfigBuilder#parse开始进行追踪。该方法主要是解析configLocation指定的配置路径，对其进行解析，具体调用parseConfiguration方法。</p>
+<h3 id="2-1-XMLConfigBuilder"><a href="#2-1-XMLConfigBuilder" class="headerlink" title="2.1 XMLConfigBuilder"></a>2.1 XMLConfigBuilder</h3><p>我们直接查看其parseConfiguration方法。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">parseConfiguration</span><span class="params">(XNode root)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">      propertiesElement(root.evalNode(<span class="string">&quot;properties&quot;</span>)); <span class="comment">//issue #117 read properties first</span></span><br><span class="line">      typeAliasesElement(root.evalNode(<span class="string">&quot;typeAliases&quot;</span>));</span><br><span class="line">      pluginElement(root.evalNode(<span class="string">&quot;plugins&quot;</span>));</span><br><span class="line">      objectFactoryElement(root.evalNode(<span class="string">&quot;objectFactory&quot;</span>));</span><br><span class="line">      objectWrapperFactoryElement(root.evalNode(<span class="string">&quot;objectWrapperFactory&quot;</span>));</span><br><span class="line">      settingsElement(root.evalNode(<span class="string">&quot;settings&quot;</span>));</span><br><span class="line">      environmentsElement(root.evalNode(<span class="string">&quot;environments&quot;</span>)); <span class="comment">// read it after objectFactory and objectWrapperFactory issue #631</span></span><br><span class="line">      databaseIdProviderElement(root.evalNode(<span class="string">&quot;databaseIdProvider&quot;</span>));</span><br><span class="line">      typeHandlerElement(root.evalNode(<span class="string">&quot;typeHandlers&quot;</span>));</span><br><span class="line">      mapperElement(root.evalNode(<span class="string">&quot;mappers&quot;</span>));   <span class="comment">// @1</span></span><br><span class="line">    &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">      <span class="keyword">throw</span> <span class="keyword">new</span> BuilderException(<span class="string">&quot;Error parsing SQL Mapper Configuration. Cause: &quot;</span> + e, e);</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure>
+<p>重点关注mapperElement，从名称与参数即可以看出，该方法主要是处理中mappers的定义，即mapper sql语句的解析与处理。如果使用过Mapper的人应该不难知道，我们使用mapper节点，通过resource标签定义具体xml文件的位置。</p>
+<h4 id="2-1-1XMLConfigBuilder-mapperElement"><a href="#2-1-1XMLConfigBuilder-mapperElement" class="headerlink" title="2.1.1XMLConfigBuilder#mapperElement"></a>2.1.1XMLConfigBuilder#mapperElement</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">mapperElement</span><span class="params">(XNode parent)</span> <span class="keyword">throws</span> Exception </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (parent != <span class="keyword">null</span>) &#123;</span><br><span class="line">      <span class="keyword">for</span> (XNode child : parent.getChildren()) &#123;</span><br><span class="line">        <span class="keyword">if</span> (<span class="string">&quot;package&quot;</span>.equals(child.getName())) &#123;</span><br><span class="line">          String mapperPackage = child.getStringAttribute(<span class="string">&quot;name&quot;</span>);</span><br><span class="line">          configuration.addMappers(mapperPackage);</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">          String resource = child.getStringAttribute(<span class="string">&quot;resource&quot;</span>);</span><br><span class="line">          String url = child.getStringAttribute(<span class="string">&quot;url&quot;</span>);</span><br><span class="line">          String mapperClass = child.getStringAttribute(<span class="string">&quot;class&quot;</span>);</span><br><span class="line">          <span class="keyword">if</span> (resource != <span class="keyword">null</span> &amp;&amp; url == <span class="keyword">null</span> &amp;&amp; mapperClass == <span class="keyword">null</span>) &#123;</span><br><span class="line">            ErrorContext.instance().resource(resource);</span><br><span class="line">            InputStream inputStream = Resources.getResourceAsStream(resource);</span><br><span class="line">            XMLMapperBuilder mapperParser = <span class="keyword">new</span> XMLMapperBuilder(inputStream, configuration, resource, configuration.getSqlFragments());    <span class="comment">// @1</span></span><br><span class="line">            mapperParser.parse();</span><br><span class="line">          &#125; <span class="keyword">else</span> <span class="keyword">if</span> (resource == <span class="keyword">null</span> &amp;&amp; url != <span class="keyword">null</span> &amp;&amp; mapperClass == <span class="keyword">null</span>) &#123;</span><br><span class="line">            ErrorContext.instance().resource(url);</span><br><span class="line">            InputStream inputStream = Resources.getUrlAsStream(url);</span><br><span class="line">            XMLMapperBuilder mapperParser = <span class="keyword">new</span> XMLMapperBuilder(inputStream, configuration, url, configuration.getSqlFragments());</span><br><span class="line">            mapperParser.parse();</span><br><span class="line">          &#125; <span class="keyword">else</span> <span class="keyword">if</span> (resource == <span class="keyword">null</span> &amp;&amp; url == <span class="keyword">null</span> &amp;&amp; mapperClass != <span class="keyword">null</span>) &#123;</span><br><span class="line">            Class&lt;?&gt; mapperInterface = Resources.classForName(mapperClass);</span><br><span class="line">            configuration.addMapper(mapperInterface);</span><br><span class="line">          &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            <span class="keyword">throw</span> <span class="keyword">new</span> BuilderException(<span class="string">&quot;A mapper element may only specify a url, resource or class, but not more than one.&quot;</span>);</span><br><span class="line">          &#125;</span><br><span class="line">        &#125;</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure>
+<p>上面的代码比较简单，不难看出，解析出Mapper标签，解析出resource标签的属性，创建对应的文件流，通过构建XMLMapperBuilder来解析对应的mapper.xml文件。此时大家会惊讶的发现，在SqlSessionFacotry的初始化代码中，处理mapperLocations时就是通过构建XMLMapperBuilder来解析mapper文件，其实也不难理解，因为这是mybatis支持的两个地方可以使用mapper标签来定义mapper映射文件，具体解析代码当然是一样的逻辑。那我们解析来重点把目光投向XMLMapperBuilder。</p>
+<h3 id="2-2-XMLMapperBuilder"><a href="#2-2-XMLMapperBuilder" class="headerlink" title="2.2 XMLMapperBuilder"></a>2.2 XMLMapperBuilder</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">XMLMapperBuilder#parse</span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">parse</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (!configuration.isResourceLoaded(resource)) &#123;     <span class="comment">// @1</span></span><br><span class="line">      configurationElement(parser.evalNode(<span class="string">&quot;/mapper&quot;</span>));</span><br><span class="line">      configuration.addLoadedResource(resource);</span><br><span class="line">      bindMapperForNamespace();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    parsePendingResultMaps();                                    <span class="comment">// @2</span></span><br><span class="line">    parsePendingChacheRefs();                                   <span class="comment">// @3</span></span><br><span class="line">    parsePendingStatements();                                     <span class="comment">// @4</span></span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure>
+<p>代码@1：如果该映射文件(*.Mapper.xml)文件未加载，则首先先加载，完成xml文件的解析，提取xml中与mybatis相关的数据，例如sql、resultMap等等。<br>代码@2：处理mybatis xml中ResultMap。<br>代码@3：处理mybatis缓存相关的配置。<br>代码@4：处理mybatis statment相关配置，这里就是本篇关注的，Sql语句如何与Mapper进行关联的核心实现。</p>
+<p>接下来我们重点探讨parsePendingStatements()方法，解析statement(对应SQL语句)。</p>
+<h4 id="2-2-1-XMLMapperBuilder-parsePendingStatements"><a href="#2-2-1-XMLMapperBuilder-parsePendingStatements" class="headerlink" title="2.2.1 XMLMapperBuilder#parsePendingStatements"></a>2.2.1 XMLMapperBuilder#parsePendingStatements</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">parsePendingStatements</span><span class="params">()</span> </span>&#123;</span><br><span class="line">	  Collection&lt;XMLStatementBuilder&gt; incompleteStatements = configuration.getIncompleteStatements();</span><br><span class="line">	  <span class="keyword">synchronized</span> (incompleteStatements) &#123;</span><br><span class="line">		  Iterator&lt;XMLStatementBuilder&gt; iter = incompleteStatements.iterator();    <span class="comment">// @1</span></span><br><span class="line">		  <span class="keyword">while</span> (iter.hasNext()) &#123;</span><br><span class="line">			  <span class="keyword">try</span> &#123;</span><br><span class="line">				  iter.next().parseStatementNode();   <span class="comment">// @2</span></span><br><span class="line">				  iter.remove();</span><br><span class="line">			  &#125; <span class="keyword">catch</span> (IncompleteElementException e) &#123;</span><br><span class="line">				  <span class="comment">// Statement is still missing a resource...</span></span><br><span class="line">			  &#125;</span><br><span class="line">		  &#125;</span><br><span class="line">	  &#125;</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure>
+<p>代码@1：遍历解析出来的所有SQL语句，用的是XMLStatementBuilder对象封装的，故接下来重点看一下代码@2，如果解析statmentNode。</p>
+<h4 id="2-2-2-XMLStatementBuilder-parseStatementNode"><a href="#2-2-2-XMLStatementBuilder-parseStatementNode" class="headerlink" title="2.2.2 XMLStatementBuilder#parseStatementNode"></a>2.2.2 XMLStatementBuilder#parseStatementNode</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">parseStatementNode</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    String id = context.getStringAttribute(<span class="string">&quot;id&quot;</span>);                                                                  <span class="comment">// @1 start</span></span><br><span class="line">    String databaseId = context.getStringAttribute(<span class="string">&quot;databaseId&quot;</span>);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (!databaseIdMatchesCurrent(id, databaseId, <span class="keyword">this</span>.requiredDatabaseId)) <span class="keyword">return</span>;</span><br><span class="line"></span><br><span class="line">    Integer fetchSize = context.getIntAttribute(<span class="string">&quot;fetchSize&quot;</span>);</span><br><span class="line">    Integer timeout = context.getIntAttribute(<span class="string">&quot;timeout&quot;</span>);</span><br><span class="line">    String parameterMap = context.getStringAttribute(<span class="string">&quot;parameterMap&quot;</span>);</span><br><span class="line">    String parameterType = context.getStringAttribute(<span class="string">&quot;parameterType&quot;</span>);</span><br><span class="line">    Class&lt;?&gt; parameterTypeClass = resolveClass(parameterType);</span><br><span class="line">    String resultMap = context.getStringAttribute(<span class="string">&quot;resultMap&quot;</span>);</span><br><span class="line">    String resultType = context.getStringAttribute(<span class="string">&quot;resultType&quot;</span>);</span><br><span class="line">    String lang = context.getStringAttribute(<span class="string">&quot;lang&quot;</span>);</span><br><span class="line">    LanguageDriver langDriver = getLanguageDriver(lang);</span><br><span class="line"></span><br><span class="line">    Class&lt;?&gt; resultTypeClass = resolveClass(resultType);</span><br><span class="line">    String resultSetType = context.getStringAttribute(<span class="string">&quot;resultSetType&quot;</span>);</span><br><span class="line">    StatementType statementType = StatementType.valueOf(context.getStringAttribute(<span class="string">&quot;statementType&quot;</span>, StatementType.PREPARED.toString()));</span><br><span class="line">    ResultSetType resultSetTypeEnum = resolveResultSetType(resultSetType);</span><br><span class="line"></span><br><span class="line">    String nodeName = context.getNode().getNodeName();</span><br><span class="line">    SqlCommandType sqlCommandType = SqlCommandType.valueOf(nodeName.toUpperCase(Locale.ENGLISH));</span><br><span class="line">    <span class="keyword">boolean</span> isSelect = sqlCommandType == SqlCommandType.SELECT;</span><br><span class="line">    <span class="keyword">boolean</span> flushCache = context.getBooleanAttribute(<span class="string">&quot;flushCache&quot;</span>, !isSelect);</span><br><span class="line">    <span class="keyword">boolean</span> useCache = context.getBooleanAttribute(<span class="string">&quot;useCache&quot;</span>, isSelect);</span><br><span class="line">    <span class="keyword">boolean</span> resultOrdered = context.getBooleanAttribute(<span class="string">&quot;resultOrdered&quot;</span>, <span class="keyword">false</span>);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Include Fragments before parsing</span></span><br><span class="line">    XMLIncludeTransformer includeParser = <span class="keyword">new</span> XMLIncludeTransformer(configuration, builderAssistant);</span><br><span class="line">    includeParser.applyIncludes(context.getNode());</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Parse selectKey after includes and remove them.</span></span><br><span class="line">    processSelectKeyNodes(id, parameterTypeClass, langDriver);             <span class="comment">// @1 end</span></span><br><span class="line">    </span><br><span class="line">    <span class="comment">// Parse the SQL (pre: &lt;selectKey&gt; and &lt;include&gt; were parsed and removed)</span></span><br><span class="line">    SqlSource sqlSource = langDriver.createSqlSource(configuration, context, parameterTypeClass);                <span class="comment">// @2</span></span><br><span class="line">    String resultSets = context.getStringAttribute(<span class="string">&quot;resultSets&quot;</span>);</span><br><span class="line">    String keyProperty = context.getStringAttribute(<span class="string">&quot;keyProperty&quot;</span>);</span><br><span class="line">    String keyColumn = context.getStringAttribute(<span class="string">&quot;keyColumn&quot;</span>);</span><br><span class="line">    KeyGenerator keyGenerator;</span><br><span class="line">    String keyStatementId = id + SelectKeyGenerator.SELECT_KEY_SUFFIX;</span><br><span class="line">    keyStatementId = builderAssistant.applyCurrentNamespace(keyStatementId, <span class="keyword">true</span>);</span><br><span class="line">    <span class="keyword">if</span> (configuration.hasKeyGenerator(keyStatementId)) &#123;</span><br><span class="line">      keyGenerator = configuration.getKeyGenerator(keyStatementId);</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">      keyGenerator = context.getBooleanAttribute(<span class="string">&quot;useGeneratedKeys&quot;</span>,</span><br><span class="line">          configuration.isUseGeneratedKeys() &amp;&amp; SqlCommandType.INSERT.equals(sqlCommandType))</span><br><span class="line">          ? <span class="keyword">new</span> Jdbc3KeyGenerator() : <span class="keyword">new</span> NoKeyGenerator();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    builderAssistant.addMappedStatement(id, sqlSource, statementType, sqlCommandType,                             <span class="comment">// @3</span></span><br><span class="line">        fetchSize, timeout, parameterMap, parameterTypeClass, resultMap, resultTypeClass,</span><br><span class="line">        resultSetTypeEnum, flushCache, useCache, resultOrdered, </span><br><span class="line">        keyGenerator, keyProperty, keyColumn, databaseId, langDriver, resultSets);</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure>
+<p>这个方法有点长，其关注点主要有3个：<br>代码@1：构建基本属性，其实就是构建MappedStatement的属性，因为MappedStatement对象就是用来描述Mapper-SQL映射的对象。</p>
+<p>代码@2：根据xml配置的内容，解析出实际的SQL语句，使用SqlSource对象来表示。</p>
+<p>代码@3：使用MapperBuilderAssistant对象，根据准备好的属性，构建MappedStatement对象，最终将其存储在Configuration中。</p>
+<h4 id="2-2-3-Configuration-addMappedStatement"><a href="#2-2-3-Configuration-addMappedStatement" class="headerlink" title="2.2.3 Configuration#addMappedStatement"></a>2.2.3 Configuration#addMappedStatement</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">addMappedStatement</span><span class="params">(MappedStatement ms)</span> </span>&#123;</span><br><span class="line">   mappedStatements.put(ms.getId(), ms);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>MappedStatement的id为：mapperInterface + methodName，例如com.demo.dao.UserMapper.findUser。</p>
+<p>即上述流程完成了xml的解析与初始化，对终极目标是创建MappedStatement对象，上一篇文章介绍了mapperInterface的初始化，最终会初始化为MapperProxy对象，那这两个对象如何关联起来呢？</p>
+<p>从下文可知，MapperProxy与MappedStatement是在调用具Mapper方法时，可以根据mapperInterface.getName + methodName构建出MappedStatement的id，然后就可以从Configuration的mappedStatements容器中根据id获取到对应的MappedStatement对象，这样就建立起联系了。</p>
+<p>其对应的代码：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// MapperMethod 构造器</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="title">MapperMethod</span><span class="params">(Class&lt;?&gt; mapperInterface, Method method, Configuration config)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">this</span>.command = <span class="keyword">new</span> SqlCommand(config, mapperInterface, method);</span><br><span class="line">    <span class="keyword">this</span>.method = <span class="keyword">new</span> MethodSignature(config, method);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// SqlCommand 构造器</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="title">SqlCommand</span><span class="params">(Configuration configuration, Class&lt;?&gt; mapperInterface, Method method)</span> <span class="keyword">throws</span> BindingException </span>&#123;</span><br><span class="line">      String statementName = mapperInterface.getName() + <span class="string">&quot;.&quot;</span> + method.getName();</span><br><span class="line">      MappedStatement ms = <span class="keyword">null</span>;</span><br><span class="line">      <span class="keyword">if</span> (configuration.hasStatement(statementName)) &#123;</span><br><span class="line">        ms = configuration.getMappedStatement(statementName);</span><br><span class="line">      &#125; <span class="keyword">else</span> <span class="keyword">if</span> (!mapperInterface.equals(method.getDeclaringClass().getName())) &#123; <span class="comment">// issue #35</span></span><br><span class="line">        String parentStatementName = method.getDeclaringClass().getName() + <span class="string">&quot;.&quot;</span> + method.getName();</span><br><span class="line">        <span class="keyword">if</span> (configuration.hasStatement(parentStatementName)) &#123;</span><br><span class="line">          ms = configuration.getMappedStatement(parentStatementName);</span><br><span class="line">        &#125;</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">if</span> (ms == <span class="keyword">null</span>) &#123;</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> BindingException(<span class="string">&quot;Invalid bound statement (not found): &quot;</span> + statementName);</span><br><span class="line">      &#125;</span><br><span class="line">      name = ms.getId();</span><br><span class="line">      type = ms.getSqlCommandType();</span><br><span class="line">      <span class="keyword">if</span> (type == SqlCommandType.UNKNOWN) &#123;</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> BindingException(<span class="string">&quot;Unknown execution method for: &quot;</span> + name);</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+
+<p>怎么样，从上面的源码分析中，大家是否已经了解MapperProxy与Xml中的SQL语句是怎样建立的关系了吗？为了让大家更清晰的了解上述过程，现给出其调用时序图：<br><img src="https://img-blog.csdnimg.cn/2019052321283257.jpg?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"></p>
+</div>
+
+			<script src="https://my.openwrite.cn/js/readmore.js" type="text/javascript"></script>
+			<script>
+			var isMobile = navigator.userAgent.match(/(phone|pad|pod|iPhone|iPod|ios|iPad|Android|Mobile|BlackBerry|IEMobile|MQQBrowser|JUC|Fennec|wOSBrowser|BrowserNG|WebOS|Symbian|Windows Phone)/i);
+			if (!isMobile) {
+			    var btw = new BTWPlugin();
+			    btw.init({
+			        "id": "vip-container",
+			        "blogId": "18019-1573088808868-542",
+			        "name": "中间件兴趣圈",
+			        "qrcode": "https://img-blog.csdnimg.cn/20190314214003962.jpg",
+			        "keyword": "more"
+			    });
+			}
+			</script>
+		
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://example.com/2020/12/09/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90Mybatis%20MappedStatement%E7%9A%84%E5%88%9B%E5%BB%BA%E6%B5%81%E7%A8%8B/" data-id="ckiibfot4003ppkrgg53vd2e9" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/mybatis/" rel="tag">mybatis</a></li></ul>
+
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+    <a href="/2020/12/09/Mybatis%E6%89%A7%E8%A1%8CSQL%E7%9A%844%E5%A4%A7%E5%9F%BA%E7%A1%80%E7%BB%84%E4%BB%B6%E8%AF%A6%E8%A7%A3/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Newer</strong>
+      <div class="article-nav-title">
+        
+          Mybatis执行SQL的4大基础组件详解
+        
+      </div>
+    </a>
+  
+  
+    <a href="/2020/12/09/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90Mybatis%20MapperProxy%E5%88%9D%E5%A7%8B%E5%8C%96%E4%B9%8BMapper%E5%AF%B9%E8%B1%A1%E7%9A%84%E6%89%AB%E6%8F%8F%E4%B8%8E%E6%9E%84%E5%BB%BA/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">源码分析Mybatis MapperProxy初始化之Mapper对象的扫描与构建</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+</section>
+        
+          <aside id="sidebar">
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">分类</h3>
+    <div class="widget">
+      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/java/">java</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/java8/">java8</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/kafka-rocketmq/">kafka rocketmq</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/mybatis/">mybatis</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/rocketmq/">rocketmq</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/sentinel/">sentinel</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/%E7%A8%8B%E5%BA%8F%E4%BA%BA%E7%94%9F-%E9%80%86%E8%A2%AD-%E8%81%8C%E5%9C%BA%E5%8F%91%E5%B1%95/">程序人生 逆袭 职场发展</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">标签</h3>
+    <div class="widget">
+      <ul class="tag-list" itemprop="keywords"><li class="tag-list-item"><a class="tag-list-link" href="/tags/java-reference/" rel="tag">java reference</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/java-%E7%AE%97%E6%B3%95/" rel="tag">java 算法</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/java8-Lambda-%E5%87%BD%E6%95%B0%E5%BC%8F%E7%BC%96%E7%A8%8B/" rel="tag">java8 Lambda 函数式编程</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/java8-Lambda-%E6%B5%81%E8%AE%A1%E7%AE%97/" rel="tag">java8 Lambda 流计算</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/kafka-rocketmq/" rel="tag">kafka rocketmq</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/mybatis/" rel="tag">mybatis</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rocketmq/" rel="tag">rocketmq</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rocketmq-broker-busy-TIMEOUT-CLEAN-QUEUE-PCBUSY-CLEAN-QUEUE/" rel="tag">rocketmq broker busy TIMEOUT_CLEAN_QUEUE PCBUSY_CLEAN_QUEUE</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rocketmq-%E4%B8%BB%E9%A2%98%E6%89%A9%E5%AE%B9-%E5%AE%9E%E6%88%98-%E5%9D%91/" rel="tag">rocketmq 主题扩容 实战 坑</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rocketmq-%E5%A4%9A%E5%89%AF%E6%9C%AC-raft-%E4%B8%BB%E4%BB%8E%E5%88%87%E6%8D%A2/" rel="tag">rocketmq 多副本 raft 主从切换</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rocketmq-%E5%A4%9A%E5%89%AF%E6%9C%AC-raft-%E9%80%89%E4%B8%BB/" rel="tag">rocketmq 多副本 raft 选主</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/sentinel/" rel="tag">sentinel</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E7%A8%8B%E5%BA%8F%E4%BA%BA%E7%94%9F/" rel="tag">程序人生</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">标签云</h3>
+    <div class="widget tagcloud">
+      <a href="/tags/java-reference/" style="font-size: 10px;">java reference</a> <a href="/tags/java-%E7%AE%97%E6%B3%95/" style="font-size: 12px;">java 算法</a> <a href="/tags/java8-Lambda-%E5%87%BD%E6%95%B0%E5%BC%8F%E7%BC%96%E7%A8%8B/" style="font-size: 12px;">java8 Lambda 函数式编程</a> <a href="/tags/java8-Lambda-%E6%B5%81%E8%AE%A1%E7%AE%97/" style="font-size: 14px;">java8 Lambda 流计算</a> <a href="/tags/kafka-rocketmq/" style="font-size: 10px;">kafka rocketmq</a> <a href="/tags/mybatis/" style="font-size: 16px;">mybatis</a> <a href="/tags/rocketmq/" style="font-size: 20px;">rocketmq</a> <a href="/tags/rocketmq-broker-busy-TIMEOUT-CLEAN-QUEUE-PCBUSY-CLEAN-QUEUE/" style="font-size: 10px;">rocketmq broker busy TIMEOUT_CLEAN_QUEUE PCBUSY_CLEAN_QUEUE</a> <a href="/tags/rocketmq-%E4%B8%BB%E9%A2%98%E6%89%A9%E5%AE%B9-%E5%AE%9E%E6%88%98-%E5%9D%91/" style="font-size: 10px;">rocketmq 主题扩容 实战 坑</a> <a href="/tags/rocketmq-%E5%A4%9A%E5%89%AF%E6%9C%AC-raft-%E4%B8%BB%E4%BB%8E%E5%88%87%E6%8D%A2/" style="font-size: 10px;">rocketmq 多副本 raft 主从切换</a> <a href="/tags/rocketmq-%E5%A4%9A%E5%89%AF%E6%9C%AC-raft-%E9%80%89%E4%B8%BB/" style="font-size: 10px;">rocketmq 多副本 raft 选主</a> <a href="/tags/sentinel/" style="font-size: 18px;">sentinel</a> <a href="/tags/%E7%A8%8B%E5%BA%8F%E4%BA%BA%E7%94%9F/" style="font-size: 10px;">程序人生</a>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">归档</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/12/">十二月 2020</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">最新文章</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2020/12/09/%E5%BF%AB%E9%80%9F%E6%8E%92%E5%BA%8F%E7%AE%97%E6%B3%95java%E7%89%88%E5%AE%9E%E7%8E%B0/">快速排序算法java版实现</a>
+          </li>
+        
+          <li>
+            <a href="/2020/12/09/%E6%8E%92%E5%BA%8F%E4%BA%8C%E5%8F%89%E6%A0%91JAVA%E7%89%88%E5%AE%9E%E7%8E%B0/">排序二叉树JAVA版实现</a>
+          </li>
+        
+          <li>
+            <a href="/2020/12/09/java%20Reference%20%E5%BC%95%E7%94%A8%E5%AD%A6%E4%B9%A0%E6%80%BB%E7%BB%93/">java Reference 引用学习总结</a>
+          </li>
+        
+          <li>
+            <a href="/2020/12/09/Mybatis%E4%B8%80%E4%BA%8C%E7%BA%A7%E7%BC%93%E5%AD%98%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86%E4%B8%8E%E4%BD%BF%E7%94%A8%E6%8C%87%E5%8D%97/">Mybatis一二级缓存实现原理与使用指南</a>
+          </li>
+        
+          <li>
+            <a href="/2020/12/09/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90Mybatis%E6%8F%92%E4%BB%B6(Plugin)%E6%9C%BA%E5%88%B6%E4%B8%8E%E5%AE%9E%E6%88%98/">源码分析Mybatis插件(Plugin)机制与实战</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2020 中间件兴趣圈<br>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+</nav>
+    
+
+<script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+
+
+  
+<link rel="stylesheet" href="/fancybox/jquery.fancybox.css">
+
+  
+<script src="/fancybox/jquery.fancybox.pack.js"></script>
+
+
+
+
+<script src="/js/script.js"></script>
+
+
+
+
+  </div>
+</body>
+</html>

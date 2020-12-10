@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+
+  
+  <title>源码解析MyBatis Sharding-Jdbc SQL语句执行流程详解 | 中间件兴趣圈</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="本文将详细介绍Mybatis SQL语句执行的全流程，本文与上篇具有一定的关联性，建议先阅读该系列中的前面3篇文章，重点掌握Mybatis Mapper类的初始化过程，因为在Mybatis中，Mapper是执行SQL语句的入口，类似下面这段代码： 12345678@Servicepublic UserService implements IUserService &amp;#123; 	@Autowire">
+<meta property="og:type" content="article">
+<meta property="og:title" content="源码解析MyBatis Sharding-Jdbc SQL语句执行流程详解">
+<meta property="og:url" content="http://example.com/2020/12/09/%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90MyBatis%20Sharding-Jdbc%20SQL%E8%AF%AD%E5%8F%A5%E6%89%A7%E8%A1%8C%E6%B5%81%E7%A8%8B%E8%AF%A6%E8%A7%A3/index.html">
+<meta property="og:site_name" content="中间件兴趣圈">
+<meta property="og:description" content="本文将详细介绍Mybatis SQL语句执行的全流程，本文与上篇具有一定的关联性，建议先阅读该系列中的前面3篇文章，重点掌握Mybatis Mapper类的初始化过程，因为在Mybatis中，Mapper是执行SQL语句的入口，类似下面这段代码： 12345678@Servicepublic UserService implements IUserService &amp;#123; 	@Autowire">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/20190528210928807.jpg?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/20190528211610596.png">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/20190528212019407.png">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/20190528212039288.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/20190528212138293.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/20190528212729690.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/2019052821331476.jpg?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70">
+<meta property="article:published_time" content="2020-12-09T15:04:35.000Z">
+<meta property="article:modified_time" content="2020-12-09T15:04:31.898Z">
+<meta property="article:author" content="中间件兴趣圈">
+<meta property="article:tag" content="mybatis">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://img-blog.csdnimg.cn/20190528210928807.jpg?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70">
+  
+    <link rel="alternate" href="/atom.xml" title="中间件兴趣圈" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  
+    <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css">
+  
+  
+<link rel="stylesheet" href="/css/style.css">
+
+<meta name="generator" content="Hexo 5.2.0"></head>
+
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">中间件兴趣圈</a>
+      </h1>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="搜索"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://example.com"></form>
+      </div>
+    </div>
+  </div>
+</header>
+      <div class="outer">
+        <section id="main"><article id="post-源码解析MyBatis Sharding-Jdbc SQL语句执行流程详解" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2020/12/09/%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90MyBatis%20Sharding-Jdbc%20SQL%E8%AF%AD%E5%8F%A5%E6%89%A7%E8%A1%8C%E6%B5%81%E7%A8%8B%E8%AF%A6%E8%A7%A3/" class="article-date">
+  <time datetime="2020-12-09T15:04:35.000Z" itemprop="datePublished">2020-12-09</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/mybatis/">mybatis</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      源码解析MyBatis Sharding-Jdbc SQL语句执行流程详解
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <div id="vip-container"><p>本文将详细介绍Mybatis SQL语句执行的全流程，本文与上篇具有一定的关联性，建议先阅读该系列中的前面3篇文章，重点掌握Mybatis Mapper类的初始化过程，因为在Mybatis中，Mapper是执行SQL语句的入口，类似下面这段代码：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Service</span></span><br><span class="line"><span class="keyword">public</span> UserService implements IUserService &#123;</span><br><span class="line"> 	<span class="meta">@Autowired</span></span><br><span class="line">    <span class="keyword">private</span> UserMapper userMapper;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> User <span class="title">findUser</span><span class="params">(Integer id)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> userMapper.find(id);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>开始进入本文的主题，以源码为手段，分析Mybatis执行SQL语句的流行，并且使用了数据库分库分表中间件sharding-jdbc,其版本为sharding-jdbc1.4.1。</p>
+<p>为了方便大家对本文的源码分析，先给出Mybatis层面核心类的方法调用序列图。</p>
+<h2 id="1、SQL执行序列图"><a href="#1、SQL执行序列图" class="headerlink" title="1、SQL执行序列图"></a>1、SQL执行序列图</h2><p><img src="https://img-blog.csdnimg.cn/20190528210928807.jpg?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"></p>
+<a id="more"></a>
+
+<h2 id="2、源码解析SQL执行流程"><a href="#2、源码解析SQL执行流程" class="headerlink" title="2、源码解析SQL执行流程"></a>2、源码解析SQL执行流程</h2><p>接下来从从源码的角度对其进行剖析。</p>
+<blockquote>
+<p>温馨提示：在本文的末尾，还会给出一张详细的Mybatis Shardingjdbc语句执行流程图。（请勿错过哦）。</p>
+</blockquote>
+<h3 id="2-1-MapperProxy-invoker"><a href="#2-1-MapperProxy-invoker" class="headerlink" title="2.1 MapperProxy#invoker"></a>2.1 MapperProxy#invoker</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> Object <span class="title">invoke</span><span class="params">(Object proxy, Method method, Object[] args)</span> <span class="keyword">throws</span> Throwable </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (Object.class.equals(method.getDeclaringClass())) &#123;</span><br><span class="line">      <span class="keyword">try</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> method.invoke(<span class="keyword">this</span>, args);</span><br><span class="line">      &#125; <span class="keyword">catch</span> (Throwable t) &#123;</span><br><span class="line">        <span class="keyword">throw</span> ExceptionUtil.unwrapThrowable(t);</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">final</span> MapperMethod mapperMethod = cachedMapperMethod(method);   <span class="comment">// @1</span></span><br><span class="line">    <span class="keyword">return</span> mapperMethod.execute(sqlSession, args);                                     <span class="comment">// @2</span></span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure>
+<p>代码@1：创建并缓存MapperMethod对象。</p>
+<p>代码@2：调用MapperMethod对象的execute方法，即mapperInterface中定义的每一个方法最终会对应一个MapperMethod。</p>
+<h3 id="2-2-MapperMethod-execute"><a href="#2-2-MapperMethod-execute" class="headerlink" title="2.2 MapperMethod#execute"></a>2.2 MapperMethod#execute</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> Object <span class="title">execute</span><span class="params">(SqlSession sqlSession, Object[] args)</span> </span>&#123;</span><br><span class="line">    Object result;</span><br><span class="line">    <span class="keyword">if</span> (SqlCommandType.INSERT == command.getType()) &#123; </span><br><span class="line">      Object param = method.convertArgsToSqlCommandParam(args);</span><br><span class="line">      result = rowCountResult(sqlSession.insert(command.getName(), param));</span><br><span class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> (SqlCommandType.UPDATE == command.getType()) &#123;</span><br><span class="line">      Object param = method.convertArgsToSqlCommandParam(args);</span><br><span class="line">      result = rowCountResult(sqlSession.update(command.getName(), param));</span><br><span class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> (SqlCommandType.DELETE == command.getType()) &#123;</span><br><span class="line">      Object param = method.convertArgsToSqlCommandParam(args);</span><br><span class="line">      result = rowCountResult(sqlSession.delete(command.getName(), param));</span><br><span class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> (SqlCommandType.SELECT == command.getType()) &#123;</span><br><span class="line">      <span class="keyword">if</span> (method.returnsVoid() &amp;&amp; method.hasResultHandler()) &#123;</span><br><span class="line">        executeWithResultHandler(sqlSession, args);</span><br><span class="line">        result = <span class="keyword">null</span>;</span><br><span class="line">      &#125; <span class="keyword">else</span> <span class="keyword">if</span> (method.returnsMany()) &#123;</span><br><span class="line">        result = executeForMany(sqlSession, args);</span><br><span class="line">      &#125; <span class="keyword">else</span> <span class="keyword">if</span> (method.returnsMap()) &#123;</span><br><span class="line">        result = executeForMap(sqlSession, args);</span><br><span class="line">      &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        Object param = method.convertArgsToSqlCommandParam(args);</span><br><span class="line">        result = sqlSession.selectOne(command.getName(), param);</span><br><span class="line">      &#125;</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">      <span class="keyword">throw</span> <span class="keyword">new</span> BindingException(<span class="string">&quot;Unknown execution method for: &quot;</span> + command.getName());</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (result == <span class="keyword">null</span> &amp;&amp; method.getReturnType().isPrimitive() &amp;&amp; !method.returnsVoid()) &#123;</span><br><span class="line">      <span class="keyword">throw</span> <span class="keyword">new</span> BindingException(<span class="string">&quot;Mapper method &#x27;&quot;</span> + command.getName() </span><br><span class="line">          + <span class="string">&quot; attempted to return null from a method with a primitive return type (&quot;</span> + method.getReturnType() + <span class="string">&quot;).&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> result;</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure>
+<p>该方法主要是根据SQL类型，insert、update、select等操作，执行对应的逻辑，本文我们以查询语句，进行跟踪，进入executeForMany(sqlSession, args)方法。</p>
+<h3 id="2-3-MapperMethod-executeForMany"><a href="#2-3-MapperMethod-executeForMany" class="headerlink" title="2.3 MapperMethod#executeForMany"></a>2.3 MapperMethod#executeForMany</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> &lt;E&gt; <span class="function">Object <span class="title">executeForMany</span><span class="params">(SqlSession sqlSession, Object[] args)</span> </span>&#123;</span><br><span class="line">    List&lt;E&gt; result;</span><br><span class="line">    Object param = method.convertArgsToSqlCommandParam(args);</span><br><span class="line">    <span class="keyword">if</span> (method.hasRowBounds()) &#123;</span><br><span class="line">      RowBounds rowBounds = method.extractRowBounds(args);</span><br><span class="line">      result = sqlSession.&lt;E&gt;selectList(command.getName(), param, rowBounds);</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">      result = sqlSession.&lt;E&gt;selectList(command.getName(), param);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// issue #510 Collections &amp; arrays support</span></span><br><span class="line">    <span class="keyword">if</span> (!method.getReturnType().isAssignableFrom(result.getClass())) &#123;</span><br><span class="line">      <span class="keyword">if</span> (method.getReturnType().isArray()) &#123;</span><br><span class="line">        <span class="keyword">return</span> convertToArray(result);</span><br><span class="line">      &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> convertToDeclaredCollection(sqlSession.getConfiguration(), result);</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> result;</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure>
+<p>该方法也比较简单，最终通过SqlSession调用selectList方法。</p>
+<h3 id="2-4-DefaultSqlSession-selectList"><a href="#2-4-DefaultSqlSession-selectList" class="headerlink" title="2.4 DefaultSqlSession#selectList"></a>2.4 DefaultSqlSession#selectList</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> &lt;E&gt; <span class="function">List&lt;E&gt; <span class="title">selectList</span><span class="params">(String statement, Object parameter, RowBounds rowBounds)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">      MappedStatement ms = configuration.getMappedStatement(statement);   <span class="comment">// @1</span></span><br><span class="line">      List&lt;E&gt; result = executor.query(ms, wrapCollection(parameter), rowBounds, Executor.NO_RESULT_HANDLER);   <span class="comment">// @2</span></span><br><span class="line">      <span class="keyword">return</span> result;</span><br><span class="line">    &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">      <span class="keyword">throw</span> ExceptionFactory.wrapException(<span class="string">&quot;Error querying database.  Cause: &quot;</span> + e, e);</span><br><span class="line">    &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">      ErrorContext.instance().reset();</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure>
+<p>代码@1：根据资源名称获取对应的MappedStatement对象，此时的statement为资源名称，例如com.demo.UserMapper.findUser。至于MappedStatement对象的生成在上一节初始化时已详细介绍过，此处不再重复介绍。</p>
+<p>代码@2：调用Executor的query方法。这里说明一下，其实一开始会进入到CachingExecutor#query方法，由于CachingExecutor的Executor delegate属性默认是SimpleExecutor，故最终还是会进入到SimpleExecutor#query中。</p>
+<p>接下来我们进入到SimpleExecutor的父类BaseExecutor的query方法中。</p>
+<h3 id="2-5-BaseExecutor-query"><a href="#2-5-BaseExecutor-query" class="headerlink" title="2.5 BaseExecutor#query"></a>2.5 BaseExecutor#query</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> &lt;E&gt; <span class="function">List&lt;E&gt; <span class="title">query</span><span class="params">(MappedStatement ms, Object parameter, RowBounds rowBounds, ResultHandler resultHandler, CacheKey key, BoundSql boundSql)</span> <span class="keyword">throws</span> SQLException </span>&#123;   <span class="comment">// @1</span></span><br><span class="line">    ErrorContext.instance().resource(ms.getResource()).activity(<span class="string">&quot;executing a query&quot;</span>).object(ms.getId());</span><br><span class="line">    <span class="keyword">if</span> (closed) <span class="keyword">throw</span> <span class="keyword">new</span> ExecutorException(<span class="string">&quot;Executor was closed.&quot;</span>);</span><br><span class="line">    <span class="keyword">if</span> (queryStack == <span class="number">0</span> &amp;&amp; ms.isFlushCacheRequired()) &#123;</span><br><span class="line">      clearLocalCache();</span><br><span class="line">    &#125;</span><br><span class="line">    List&lt;E&gt; list;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">      queryStack++;</span><br><span class="line">      list = resultHandler == <span class="keyword">null</span> ? (List&lt;E&gt;) localCache.getObject(key) : <span class="keyword">null</span>;                                            <span class="comment">// @2</span></span><br><span class="line">      <span class="keyword">if</span> (list != <span class="keyword">null</span>) &#123;</span><br><span class="line">        handleLocallyCachedOutputParameters(ms, key, parameter, boundSql);</span><br><span class="line">      &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        list = queryFromDatabase(ms, parameter, rowBounds, resultHandler, key, boundSql);                   <span class="comment">// @3</span></span><br><span class="line">      &#125;</span><br><span class="line">    &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">      queryStack--;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (queryStack == <span class="number">0</span>) &#123;</span><br><span class="line">      <span class="keyword">for</span> (DeferredLoad deferredLoad : deferredLoads) &#123;</span><br><span class="line">        deferredLoad.load();</span><br><span class="line">      &#125;</span><br><span class="line">      deferredLoads.clear(); <span class="comment">// issue #601</span></span><br><span class="line">      <span class="keyword">if</span> (configuration.getLocalCacheScope() == LocalCacheScope.STATEMENT) &#123;                         <span class="comment">// @4</span></span><br><span class="line">        clearLocalCache(); <span class="comment">// issue #482</span></span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> list;</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure>
+<p>代码@1：首先介绍一下该方法的入参，这些类都是Mybatis的重要类：</p>
+<ul>
+<li>MappedStatement ms<br>映射语句，一个MappedStatemnet对象代表一个Mapper中的一个方法，是映射的最基本对象。</li>
+<li>Object parameter<br>SQL语句的参数列表。</li>
+<li>RowBounds rowBounds<br>行边界对象，其实就是分页参数limit与size。</li>
+<li>ResultHandler resultHandler<br>结果处理Handler。</li>
+<li>CacheKey key<br>Mybatis缓存Key</li>
+<li>BoundSql boundSql<br>SQL与参数绑定信息，从该对象可以获取在映射文件中的SQL语句。</li>
+</ul>
+<p>代码@2：首先从缓存中获取，Mybatis支持一级缓存（SqlSession）与二级缓存（多个SqlSession共享）。</p>
+<p>代码@3：从数据库查询结果，然后进入到doQuery方法，执行真正的查询动作。</p>
+<p>代码@4：如果一级缓存是语句级别的，则语句执行完毕后，删除缓存。</p>
+<h3 id="2-6-SimpleExecutor-doQuery"><a href="#2-6-SimpleExecutor-doQuery" class="headerlink" title="2.6 SimpleExecutor#doQuery"></a>2.6 SimpleExecutor#doQuery</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> &lt;E&gt; <span class="function">List&lt;E&gt; <span class="title">doQuery</span><span class="params">(MappedStatement ms, Object parameter, RowBounds rowBounds, ResultHandler resultHandler, BoundSql boundSql)</span> <span class="keyword">throws</span> SQLException </span>&#123;</span><br><span class="line">    Statement stmt = <span class="keyword">null</span>;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">      Configuration configuration = ms.getConfiguration();</span><br><span class="line">      StatementHandler handler = configuration.newStatementHandler(wrapper, ms, parameter, rowBounds, resultHandler, boundSql);   <span class="comment">// @1</span></span><br><span class="line">      stmt = prepareStatement(handler, ms.getStatementLog());                                                                                                                   <span class="comment">// @2</span></span><br><span class="line">      <span class="keyword">return</span> handler.&lt;E&gt;query(stmt, resultHandler);                                                                                                                                        <span class="comment">// @3</span></span><br><span class="line">    &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">      closeStatement(stmt);</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure>
+<p>代码@1：创建StatementHandler，这里会加入Mybatis的插件扩展机制(将在下篇详细介绍)，如图所示：<br><img src="https://img-blog.csdnimg.cn/20190528211610596.png" alt="在这里插入图片描述"><br>代码@2：创建Statement对象，注意，这里就是JDBC协议的java.sql.Statement对象了。</p>
+<p>代码@3：使用Statment对象执行SQL语句。</p>
+<p>接下来详细介绍Statement对象的创建过程与执行过程，即分布详细跟踪代码@2与代码@3。</p>
+<h2 id="3、Statement对象创建流程"><a href="#3、Statement对象创建流程" class="headerlink" title="3、Statement对象创建流程"></a>3、Statement对象创建流程</h2><h3 id="3-1-java-sql-Connection对象创建"><a href="#3-1-java-sql-Connection对象创建" class="headerlink" title="3.1 java.sql.Connection对象创建"></a>3.1 java.sql.Connection对象创建</h3><h4 id="3-1-1-SimpleExecutor-prepareStatement"><a href="#3-1-1-SimpleExecutor-prepareStatement" class="headerlink" title="3.1.1 SimpleExecutor#prepareStatement"></a>3.1.1 SimpleExecutor#prepareStatement</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> Statement <span class="title">prepareStatement</span><span class="params">(StatementHandler handler, Log statementLog)</span> <span class="keyword">throws</span> SQLException </span>&#123;</span><br><span class="line">    Statement stmt;</span><br><span class="line">    Connection connection = getConnection(statementLog);  <span class="comment">// @1</span></span><br><span class="line">    stmt = handler.prepare(connection);                                  <span class="comment">// @2</span></span><br><span class="line">    handler.parameterize(stmt);                                               <span class="comment">// @3</span></span><br><span class="line">    <span class="keyword">return</span> stmt;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>创建Statement对象，分成三步：<br>代码@1：创建java.sql.Connection对象。</p>
+<p>代码@2：使用Connection对象创建Statment对象。</p>
+<p>代码@3：对Statement进行额外处理，特别是PrepareStatement的参数设置(ParameterHandler)。</p>
+<h4 id="3-1-2-SimpleExecutor-getConnection"><a href="#3-1-2-SimpleExecutor-getConnection" class="headerlink" title="3.1.2 SimpleExecutor#getConnection"></a>3.1.2 SimpleExecutor#getConnection</h4><p>getConnection方法，根据上面流程图所示，先是进入到org.mybatis.spring.transaction.SpringManagedTransaction，再通过spring-jdbc框架，利用DataSourceUtils获取连接，其代码如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> Connection <span class="title">doGetConnection</span><span class="params">(DataSource dataSource)</span> <span class="keyword">throws</span> SQLException </span>&#123;  </span><br><span class="line">		Assert.notNull(dataSource, <span class="string">&quot;No DataSource specified&quot;</span>);</span><br><span class="line">		ConnectionHolder conHolder = (ConnectionHolder) TransactionSynchronizationManager.getResource(dataSource); </span><br><span class="line">		<span class="keyword">if</span> (conHolder != <span class="keyword">null</span> &amp;&amp; (conHolder.hasConnection() || conHolder.isSynchronizedWithTransaction())) &#123;</span><br><span class="line">			conHolder.requested();</span><br><span class="line">			<span class="keyword">if</span> (!conHolder.hasConnection()) &#123;</span><br><span class="line">				conHolder.setConnection(dataSource.getConnection());</span><br><span class="line">			&#125;</span><br><span class="line">			<span class="keyword">return</span> conHolder.getConnection();</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="comment">// Else we either got no holder or an empty thread-bound holder here.</span></span><br><span class="line"></span><br><span class="line">		logger.debug(<span class="string">&quot;Fetching JDBC Connection from DataSource&quot;</span>);</span><br><span class="line">		Connection con = dataSource.getConnection();      <span class="comment">// @1</span></span><br><span class="line"></span><br><span class="line">        <span class="comment">// 这里省略与事务处理相关的代码</span></span><br><span class="line">		<span class="keyword">return</span> con;</span><br><span class="line">	&#125;</span><br></pre></td></tr></table></figure>
+<p>代码@1：通过DataSource获取connection，那此处的DataSource是“谁”呢？看一下我们工程的配置：<br><img src="https://img-blog.csdnimg.cn/20190528212019407.png" alt="在这里插入图片描述"><br><img src="https://img-blog.csdnimg.cn/20190528212039288.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"></p>
+<p>故最终dataSouce.getConnection获取的连接，是从SpringShardingDataSource中获取连接。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">com.dangdang.ddframe.rdb.sharding.jdbc.ShardingDataSource#getConnection</span><br><span class="line"><span class="function"><span class="keyword">public</span> ShardingConnection <span class="title">getConnection</span><span class="params">()</span> <span class="keyword">throws</span> SQLException </span>&#123;</span><br><span class="line">        MetricsContext.init(shardingProperties);</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">new</span> ShardingConnection(shardingContext);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>返回的结果如下：<br><img src="https://img-blog.csdnimg.cn/20190528212138293.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>备注：这里只是返回了一个ShardingConnection对象，该对象包含了分库分表上下文，但此时并没有执行具体的分库操作（切换数据源）。</p>
+<p>Connection的获取流程清楚后，我们继续来看一下Statemnet对象的创建。</p>
+<h3 id="3-2-java-sql-Statement对象创建"><a href="#3-2-java-sql-Statement对象创建" class="headerlink" title="3.2 java.sql.Statement对象创建"></a>3.2 java.sql.Statement对象创建</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">stmt = prepareStatement(handler, ms.getStatementLog());            </span><br></pre></td></tr></table></figure>
+<p>上面语句的调用链：RoutingStatementHandler -》BaseStatementHandler</p>
+<h4 id="3-2-1-BaseStatementHandler-prepare"><a href="#3-2-1-BaseStatementHandler-prepare" class="headerlink" title="3.2.1 BaseStatementHandler#prepare"></a>3.2.1 BaseStatementHandler#prepare</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> Statement <span class="title">prepare</span><span class="params">(Connection connection)</span> <span class="keyword">throws</span> SQLException </span>&#123;</span><br><span class="line">    ErrorContext.instance().sql(boundSql.getSql());</span><br><span class="line">    Statement statement = <span class="keyword">null</span>;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">      statement = instantiateStatement(connection);    <span class="comment">// @1</span></span><br><span class="line">      setStatementTimeout(statement);                         <span class="comment">// @2</span></span><br><span class="line">      setFetchSize(statement);                                      <span class="comment">// @3</span></span><br><span class="line">      <span class="keyword">return</span> statement;</span><br><span class="line">    &#125; <span class="keyword">catch</span> (SQLException e) &#123;</span><br><span class="line">      closeStatement(statement);</span><br><span class="line">      <span class="keyword">throw</span> e;</span><br><span class="line">    &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">      closeStatement(statement);</span><br><span class="line">      <span class="keyword">throw</span> <span class="keyword">new</span> ExecutorException(<span class="string">&quot;Error preparing statement.  Cause: &quot;</span> + e, e);</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure>
+<p>代码@1：根据Connection对象（本文中是ShardingConnection)来创建Statement对象，其默认实现类：PreparedStatementHandler#instantiateStatement方法。</p>
+<p>代码@2：为Statement设置超时时间。</p>
+<p>代码@3：设置fetchSize。</p>
+<h4 id="3-2-2-PreparedStatementHandler-instantiateStatement"><a href="#3-2-2-PreparedStatementHandler-instantiateStatement" class="headerlink" title="3.2.2 PreparedStatementHandler#instantiateStatement"></a>3.2.2 PreparedStatementHandler#instantiateStatement</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">protected</span> Statement <span class="title">instantiateStatement</span><span class="params">(Connection connection)</span> <span class="keyword">throws</span> SQLException </span>&#123;</span><br><span class="line">    String sql = boundSql.getSql();</span><br><span class="line">    <span class="keyword">if</span> (mappedStatement.getKeyGenerator() <span class="keyword">instanceof</span> Jdbc3KeyGenerator) &#123;</span><br><span class="line">      String[] keyColumnNames = mappedStatement.getKeyColumns();</span><br><span class="line">      <span class="keyword">if</span> (keyColumnNames == <span class="keyword">null</span>) &#123;</span><br><span class="line">        <span class="keyword">return</span> connection.prepareStatement(sql, PreparedStatement.RETURN_GENERATED_KEYS);</span><br><span class="line">      &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> connection.prepareStatement(sql, keyColumnNames);</span><br><span class="line">      &#125;</span><br><span class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> (mappedStatement.getResultSetType() != <span class="keyword">null</span>) &#123;</span><br><span class="line">      <span class="keyword">return</span> connection.prepareStatement(sql, mappedStatement.getResultSetType().getValue(), ResultSet.CONCUR_READ_ONLY);</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">      <span class="keyword">return</span> connection.prepareStatement(sql);</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure>
+<p>其实Statement对象的创建，就比较简单了，既然Connection是ShardingConnection，那就看一下其对应的prepareStatement方法即可。</p>
+<h4 id="3-2-2-ShardingConnection-prepareStatement"><a href="#3-2-2-ShardingConnection-prepareStatement" class="headerlink" title="3.2.2 ShardingConnection#prepareStatement"></a>3.2.2 ShardingConnection#prepareStatement</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> PreparedStatement <span class="title">prepareStatement</span><span class="params">(<span class="keyword">final</span> String sql)</span> <span class="keyword">throws</span> SQLException </span>&#123;   <span class="comment">// sql，为配置在mybatis xml文件中的sql语句</span></span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">new</span> ShardingPreparedStatement(<span class="keyword">this</span>, sql);</span><br><span class="line">&#125;</span><br><span class="line">ShardingPreparedStatement(<span class="keyword">final</span> ShardingConnection shardingConnection, </span><br><span class="line">            <span class="keyword">final</span> String sql, <span class="keyword">final</span> <span class="keyword">int</span> resultSetType, <span class="keyword">final</span> <span class="keyword">int</span> resultSetConcurrency, <span class="keyword">final</span> <span class="keyword">int</span> resultSetHoldability) &#123;</span><br><span class="line">        <span class="keyword">super</span>(shardingConnection, resultSetType, resultSetConcurrency, resultSetHoldability);</span><br><span class="line">        preparedSQLRouter = shardingConnection.getShardingContext().getSqlRouteEngine().prepareSQL(sql);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>在构建ShardingPreparedStatement对象的时候，会根据SQL语句创建解析SQL路由的解析器对象，但此时并不会执行相关的路由计算，PreparedStatement对象创建完成后，就开始进入SQL执行流程中。</p>
+<h2 id="4、SQL执行流程"><a href="#4、SQL执行流程" class="headerlink" title="4、SQL执行流程"></a>4、SQL执行流程</h2><p>接下来我们继续看SimpleExecutor#doQuery方法的第3步，执行SQL语句：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">handler.&lt;E&gt;query(stmt, resultHandler)。</span><br></pre></td></tr></table></figure>
+<p>首先会进入RoutingStatementHandler这个类中，进行Mybatis层面的路由（主要是根据Statement类型）<br><img src="https://img-blog.csdnimg.cn/20190528212729690.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>然后进入到PreparedStatementHandler#query中。</p>
+<h3 id="4-1-PreparedStatementHandler-query"><a href="#4-1-PreparedStatementHandler-query" class="headerlink" title="4.1 PreparedStatementHandler#query"></a>4.1 PreparedStatementHandler#query</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> &lt;E&gt; <span class="function">List&lt;E&gt; <span class="title">query</span><span class="params">(Statement statement, ResultHandler resultHandler)</span> <span class="keyword">throws</span> SQLException </span>&#123;</span><br><span class="line">    PreparedStatement ps = (PreparedStatement) statement;</span><br><span class="line">    ps.execute();  <span class="comment">// @1</span></span><br><span class="line">    <span class="keyword">return</span> resultSetHandler.&lt;E&gt; handleResultSets(ps);  <span class="comment">// @2</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>代码@1：调用PreparedStatement的execute方法，由于本例是使用了Sharding-jdbc分库分表，此时调用的具体实现为：ShardingPreparedStatement。</p>
+<p>代码@2：处理结果。</p>
+<p>我们接下来分别来跟进execute与结果处理方法。</p>
+<h3 id="4-2-ShardingPreparedStatement-execute"><a href="#4-2-ShardingPreparedStatement-execute" class="headerlink" title="4.2 ShardingPreparedStatement#execute"></a>4.2 ShardingPreparedStatement#execute</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">boolean</span> <span class="title">execute</span><span class="params">()</span> <span class="keyword">throws</span> SQLException </span>&#123;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">new</span> PreparedStatementExecutor(getShardingConnection().getShardingContext().getExecutorEngine(), routeSQL()).execute(); <span class="comment">// @1</span></span><br><span class="line">    &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">        clearRouteContext();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这里奥妙无穷，其关键点如下：<br>1）创造PreparedStatementExecutor对象，其两个核心参数：</p>
+<ul>
+<li>ExecutorEngine executorEngine：shardingjdbc执行引擎。</li>
+<li>Collection&lt; PreparedStatementExecutorWrapper&gt; preparedStatemenWrappers<br>一个集合，每一个集合是PreparedStatement的包装类，这个集合如何而来？</li>
+</ul>
+<p>2）preparedStatemenWrappers是通过routeSQL方法产生的。</p>
+<p>3）最终调用PreparedStatementExecutor方法的execute来执行。</p>
+<p>接下来分别看一下routeSQL与execute方法。</p>
+<h3 id="4-3-ShardingPreparedStatement-routeSQL"><a href="#4-3-ShardingPreparedStatement-routeSQL" class="headerlink" title="4.3 ShardingPreparedStatement#routeSQL"></a>4.3 ShardingPreparedStatement#routeSQL</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> List&lt;PreparedStatementExecutorWrapper&gt; <span class="title">routeSQL</span><span class="params">()</span> <span class="keyword">throws</span> SQLException </span>&#123;</span><br><span class="line">        List&lt;PreparedStatementExecutorWrapper&gt; result = <span class="keyword">new</span> ArrayList&lt;&gt;();</span><br><span class="line">        SQLRouteResult sqlRouteResult = preparedSQLRouter.route(getParameters());   <span class="comment">// @1</span></span><br><span class="line">        MergeContext mergeContext = sqlRouteResult.getMergeContext();                      </span><br><span class="line">        setMergeContext(mergeContext);</span><br><span class="line">        setGeneratedKeyContext(sqlRouteResult.getGeneratedKeyContext());</span><br><span class="line">        <span class="keyword">for</span> (SQLExecutionUnit each : sqlRouteResult.getExecutionUnits()) &#123;                      <span class="comment">// @2          </span></span><br><span class="line">            PreparedStatement preparedStatement = (PreparedStatement) getStatement(getShardingConnection().getConnection(each.getDataSource(), sqlRouteResult.getSqlStatementType()), each.getSql());     <span class="comment">// @3</span></span><br><span class="line">            replayMethodsInvocation(preparedStatement);</span><br><span class="line">            getParameters().replayMethodsInvocation(preparedStatement);</span><br><span class="line">            result.add(wrap(preparedStatement, each));</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> result;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>代码@1：根据SQL参数进行路由计算，本文暂不关注其具体实现细节，这些将在具体分析Sharding-jdbc时具体详解，在这里就直观看一下其结果：</p>
+<p>代码@2、@3：对分库分表的结果进行遍历，然后使用底层Datasource来创建Connection，创建PreparedStatement 对象。</p>
+<p>routeSQL就暂时讲到这，从这里我们得知，会在这里根据路由结果，使用底层的具体数据源创建对应的Connection与PreparedStatement 对象。</p>
+<h3 id="4-4-PreparedStatementExecutor-execute"><a href="#4-4-PreparedStatementExecutor-execute" class="headerlink" title="4.4 PreparedStatementExecutor#execute"></a>4.4 PreparedStatementExecutor#execute</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">boolean</span> <span class="title">execute</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    Context context = MetricsContext.start(<span class="string">&quot;ShardingPreparedStatement-execute&quot;</span>);</span><br><span class="line">    eventPostman.postExecutionEvents();</span><br><span class="line">    <span class="keyword">final</span> <span class="keyword">boolean</span> isExceptionThrown = ExecutorExceptionHandler.isExceptionThrown();</span><br><span class="line">    <span class="keyword">final</span> Map&lt;String, Object&gt; dataMap = ExecutorDataMap.getDataMap();</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        <span class="keyword">if</span> (<span class="number">1</span> == preparedStatementExecutorWrappers.size()) &#123;     <span class="comment">// @1</span></span><br><span class="line">            PreparedStatementExecutorWrapper preparedStatementExecutorWrapper = preparedStatementExecutorWrappers.iterator().next();</span><br><span class="line">            <span class="keyword">return</span> executeInternal(preparedStatementExecutorWrapper, isExceptionThrown, dataMap);</span><br><span class="line">        &#125;</span><br><span class="line">        List&lt;Boolean&gt; result = executorEngine.execute(preparedStatementExecutorWrappers, <span class="keyword">new</span> ExecuteUnit&lt;PreparedStatementExecutorWrapper, Boolean&gt;() &#123;    <span class="comment">// @2</span></span><br><span class="line">        </span><br><span class="line">            <span class="meta">@Override</span></span><br><span class="line">            <span class="function"><span class="keyword">public</span> Boolean <span class="title">execute</span><span class="params">(<span class="keyword">final</span> PreparedStatementExecutorWrapper input)</span> <span class="keyword">throws</span> Exception </span>&#123;</span><br><span class="line">                <span class="keyword">synchronized</span> (input.getPreparedStatement().getConnection()) &#123;</span><br><span class="line">                    <span class="keyword">return</span> executeInternal(input, isExceptionThrown, dataMap);</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;);</span><br><span class="line">        <span class="keyword">return</span> (<span class="keyword">null</span> == result || result.isEmpty()) ? <span class="keyword">false</span> : result.get(<span class="number">0</span>);</span><br><span class="line">    &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">        MetricsContext.stop(context);</span><br><span class="line">    &#125;</span><br><span class="line"> &#125;</span><br></pre></td></tr></table></figure>
+<p>代码@1：如果计算出来的路由信息为1个，则同步执行。</p>
+<p>代码@2：如果计算出来的路由信息有多个，则使用线程池异步执行。</p>
+<p>那还有一个问题，通过PreparedStatement#execute方法执行后，如何返回结果呢？特别是异步执行的。</p>
+<p>在上文其实已经谈到：</p>
+<h3 id="4-4-DefaultResultSetHandler-handleResultSets"><a href="#4-4-DefaultResultSetHandler-handleResultSets" class="headerlink" title="4.4 DefaultResultSetHandler#handleResultSets"></a>4.4 DefaultResultSetHandler#handleResultSets</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> List&lt;Object&gt; <span class="title">handleResultSets</span><span class="params">(Statement stmt)</span> <span class="keyword">throws</span> SQLException </span>&#123;</span><br><span class="line">    ErrorContext.instance().activity(<span class="string">&quot;handling results&quot;</span>).object(mappedStatement.getId());</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">final</span> List&lt;Object&gt; multipleResults = <span class="keyword">new</span> ArrayList&lt;Object&gt;();</span><br><span class="line"></span><br><span class="line">    <span class="keyword">int</span> resultSetCount = <span class="number">0</span>;</span><br><span class="line">    ResultSetWrapper rsw = getFirstResultSet(stmt);         <span class="comment">// @1</span></span><br><span class="line">    <span class="comment">//省略部分代码，完整代码可以查看DefaultResultSetHandler方法。</span></span><br><span class="line">    <span class="keyword">return</span> collapseSingleResultList(multipleResults);</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">private</span> ResultSetWrapper <span class="title">getFirstResultSet</span><span class="params">(Statement stmt)</span> <span class="keyword">throws</span> SQLException </span>&#123;</span><br><span class="line">    ResultSet rs = stmt.getResultSet();              <span class="comment">// @2</span></span><br><span class="line">    <span class="keyword">while</span> (rs == <span class="keyword">null</span>) &#123;</span><br><span class="line">      <span class="comment">// move forward to get the first resultset in case the driver</span></span><br><span class="line">      <span class="comment">// doesn&#x27;t return the resultset as the first result (HSQLDB 2.1)</span></span><br><span class="line">      <span class="keyword">if</span> (stmt.getMoreResults()) &#123;</span><br><span class="line">        rs = stmt.getResultSet();</span><br><span class="line">      &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="keyword">if</span> (stmt.getUpdateCount() == -<span class="number">1</span>) &#123;</span><br><span class="line">          <span class="comment">// no more results. Must be no resultset</span></span><br><span class="line">          <span class="keyword">break</span>;</span><br><span class="line">        &#125;</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> rs != <span class="keyword">null</span> ? <span class="keyword">new</span> ResultSetWrapper(rs, configuration) : <span class="keyword">null</span>;</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure>
+<p>我们看一下其关键代码如下：<br>代码@1：调用Statement#getResultSet()方法，如果使用shardingJdbc，则会调用ShardingStatement#getResultSet()，并会处理分库分表结果集的合并，在这里就不详细进行介绍，该部分会在shardingjdbc专栏详细分析。</p>
+<p>代码@2：jdbc statement中获取结果集的通用写法，这里也不过多的介绍。</p>
+<p>mybatis shardingjdbc SQL执行流程就介绍到这里了，为了方便大家对上述流程的理解，最后给出SQL执行的流程图：<br><img src="https://img-blog.csdnimg.cn/2019052821331476.jpg?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"></p>
+<p>Mybatis Sharding-Jdbc的SQL执行流程就介绍到这里了，从图中也能清晰看到Mybatis的拆件机制，将在下文详细介绍。</p>
+</div>
+
+			<script src="https://my.openwrite.cn/js/readmore.js" type="text/javascript"></script>
+			<script>
+			var isMobile = navigator.userAgent.match(/(phone|pad|pod|iPhone|iPod|ios|iPad|Android|Mobile|BlackBerry|IEMobile|MQQBrowser|JUC|Fennec|wOSBrowser|BrowserNG|WebOS|Symbian|Windows Phone)/i);
+			if (!isMobile) {
+			    var btw = new BTWPlugin();
+			    btw.init({
+			        "id": "vip-container",
+			        "blogId": "18019-1573088808868-542",
+			        "name": "中间件兴趣圈",
+			        "qrcode": "https://img-blog.csdnimg.cn/20190314214003962.jpg",
+			        "keyword": "more"
+			    });
+			}
+			</script>
+		
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://example.com/2020/12/09/%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90MyBatis%20Sharding-Jdbc%20SQL%E8%AF%AD%E5%8F%A5%E6%89%A7%E8%A1%8C%E6%B5%81%E7%A8%8B%E8%AF%A6%E8%A7%A3/" data-id="ckiibfotv005lpkrg8abo8ey2" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/mybatis/" rel="tag">mybatis</a></li></ul>
+
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+    <a href="/2020/12/09/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90Mybatis%E6%8F%92%E4%BB%B6(Plugin)%E6%9C%BA%E5%88%B6%E4%B8%8E%E5%AE%9E%E6%88%98/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Newer</strong>
+      <div class="article-nav-title">
+        
+          源码分析Mybatis插件(Plugin)机制与实战
+        
+      </div>
+    </a>
+  
+  
+    <a href="/2020/12/09/Mybatis%E6%89%A7%E8%A1%8CSQL%E7%9A%844%E5%A4%A7%E5%9F%BA%E7%A1%80%E7%BB%84%E4%BB%B6%E8%AF%A6%E8%A7%A3/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">Mybatis执行SQL的4大基础组件详解</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+</section>
+        
+          <aside id="sidebar">
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">分类</h3>
+    <div class="widget">
+      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/java/">java</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/java8/">java8</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/kafka-rocketmq/">kafka rocketmq</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/mybatis/">mybatis</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/rocketmq/">rocketmq</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/sentinel/">sentinel</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/%E7%A8%8B%E5%BA%8F%E4%BA%BA%E7%94%9F-%E9%80%86%E8%A2%AD-%E8%81%8C%E5%9C%BA%E5%8F%91%E5%B1%95/">程序人生 逆袭 职场发展</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">标签</h3>
+    <div class="widget">
+      <ul class="tag-list" itemprop="keywords"><li class="tag-list-item"><a class="tag-list-link" href="/tags/java-reference/" rel="tag">java reference</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/java-%E7%AE%97%E6%B3%95/" rel="tag">java 算法</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/java8-Lambda-%E5%87%BD%E6%95%B0%E5%BC%8F%E7%BC%96%E7%A8%8B/" rel="tag">java8 Lambda 函数式编程</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/java8-Lambda-%E6%B5%81%E8%AE%A1%E7%AE%97/" rel="tag">java8 Lambda 流计算</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/kafka-rocketmq/" rel="tag">kafka rocketmq</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/mybatis/" rel="tag">mybatis</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rocketmq/" rel="tag">rocketmq</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rocketmq-broker-busy-TIMEOUT-CLEAN-QUEUE-PCBUSY-CLEAN-QUEUE/" rel="tag">rocketmq broker busy TIMEOUT_CLEAN_QUEUE PCBUSY_CLEAN_QUEUE</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rocketmq-%E4%B8%BB%E9%A2%98%E6%89%A9%E5%AE%B9-%E5%AE%9E%E6%88%98-%E5%9D%91/" rel="tag">rocketmq 主题扩容 实战 坑</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rocketmq-%E5%A4%9A%E5%89%AF%E6%9C%AC-raft-%E4%B8%BB%E4%BB%8E%E5%88%87%E6%8D%A2/" rel="tag">rocketmq 多副本 raft 主从切换</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rocketmq-%E5%A4%9A%E5%89%AF%E6%9C%AC-raft-%E9%80%89%E4%B8%BB/" rel="tag">rocketmq 多副本 raft 选主</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/sentinel/" rel="tag">sentinel</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E7%A8%8B%E5%BA%8F%E4%BA%BA%E7%94%9F/" rel="tag">程序人生</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">标签云</h3>
+    <div class="widget tagcloud">
+      <a href="/tags/java-reference/" style="font-size: 10px;">java reference</a> <a href="/tags/java-%E7%AE%97%E6%B3%95/" style="font-size: 12px;">java 算法</a> <a href="/tags/java8-Lambda-%E5%87%BD%E6%95%B0%E5%BC%8F%E7%BC%96%E7%A8%8B/" style="font-size: 12px;">java8 Lambda 函数式编程</a> <a href="/tags/java8-Lambda-%E6%B5%81%E8%AE%A1%E7%AE%97/" style="font-size: 14px;">java8 Lambda 流计算</a> <a href="/tags/kafka-rocketmq/" style="font-size: 10px;">kafka rocketmq</a> <a href="/tags/mybatis/" style="font-size: 16px;">mybatis</a> <a href="/tags/rocketmq/" style="font-size: 20px;">rocketmq</a> <a href="/tags/rocketmq-broker-busy-TIMEOUT-CLEAN-QUEUE-PCBUSY-CLEAN-QUEUE/" style="font-size: 10px;">rocketmq broker busy TIMEOUT_CLEAN_QUEUE PCBUSY_CLEAN_QUEUE</a> <a href="/tags/rocketmq-%E4%B8%BB%E9%A2%98%E6%89%A9%E5%AE%B9-%E5%AE%9E%E6%88%98-%E5%9D%91/" style="font-size: 10px;">rocketmq 主题扩容 实战 坑</a> <a href="/tags/rocketmq-%E5%A4%9A%E5%89%AF%E6%9C%AC-raft-%E4%B8%BB%E4%BB%8E%E5%88%87%E6%8D%A2/" style="font-size: 10px;">rocketmq 多副本 raft 主从切换</a> <a href="/tags/rocketmq-%E5%A4%9A%E5%89%AF%E6%9C%AC-raft-%E9%80%89%E4%B8%BB/" style="font-size: 10px;">rocketmq 多副本 raft 选主</a> <a href="/tags/sentinel/" style="font-size: 18px;">sentinel</a> <a href="/tags/%E7%A8%8B%E5%BA%8F%E4%BA%BA%E7%94%9F/" style="font-size: 10px;">程序人生</a>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">归档</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/12/">十二月 2020</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">最新文章</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2020/12/09/%E5%BF%AB%E9%80%9F%E6%8E%92%E5%BA%8F%E7%AE%97%E6%B3%95java%E7%89%88%E5%AE%9E%E7%8E%B0/">快速排序算法java版实现</a>
+          </li>
+        
+          <li>
+            <a href="/2020/12/09/%E6%8E%92%E5%BA%8F%E4%BA%8C%E5%8F%89%E6%A0%91JAVA%E7%89%88%E5%AE%9E%E7%8E%B0/">排序二叉树JAVA版实现</a>
+          </li>
+        
+          <li>
+            <a href="/2020/12/09/java%20Reference%20%E5%BC%95%E7%94%A8%E5%AD%A6%E4%B9%A0%E6%80%BB%E7%BB%93/">java Reference 引用学习总结</a>
+          </li>
+        
+          <li>
+            <a href="/2020/12/09/Mybatis%E4%B8%80%E4%BA%8C%E7%BA%A7%E7%BC%93%E5%AD%98%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86%E4%B8%8E%E4%BD%BF%E7%94%A8%E6%8C%87%E5%8D%97/">Mybatis一二级缓存实现原理与使用指南</a>
+          </li>
+        
+          <li>
+            <a href="/2020/12/09/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90Mybatis%E6%8F%92%E4%BB%B6(Plugin)%E6%9C%BA%E5%88%B6%E4%B8%8E%E5%AE%9E%E6%88%98/">源码分析Mybatis插件(Plugin)机制与实战</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2020 中间件兴趣圈<br>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+</nav>
+    
+
+<script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+
+
+  
+<link rel="stylesheet" href="/fancybox/jquery.fancybox.css">
+
+  
+<script src="/fancybox/jquery.fancybox.pack.js"></script>
+
+
+
+
+<script src="/js/script.js"></script>
+
+
+
+
+  </div>
+</body>
+</html>

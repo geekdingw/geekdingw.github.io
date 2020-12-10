@@ -66,14 +66,14 @@
       <div class="outer">
         <section id="main">
   
-    <article id="post-结合 Sentinel 专栏谈谈我的源码阅读技巧" class="article article-type-post" itemscope itemprop="blogPost">
+    <article id="post-快速排序算法java版实现" class="article article-type-post" itemscope itemprop="blogPost">
   <div class="article-meta">
-    <a href="/2020/12/08/%E7%BB%93%E5%90%88%20Sentinel%20%E4%B8%93%E6%A0%8F%E8%B0%88%E8%B0%88%E6%88%91%E7%9A%84%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB%E6%8A%80%E5%B7%A7/" class="article-date">
-  <time datetime="2020-12-08T15:05:35.000Z" itemprop="datePublished">2020-12-08</time>
+    <a href="/2020/12/09/%E5%BF%AB%E9%80%9F%E6%8E%92%E5%BA%8F%E7%AE%97%E6%B3%95java%E7%89%88%E5%AE%9E%E7%8E%B0/" class="article-date">
+  <time datetime="2020-12-09T15:26:35.000Z" itemprop="datePublished">2020-12-09</time>
 </a>
     
   <div class="article-category">
-    <a class="article-category-link" href="/categories/sentinel/">sentinel</a>
+    <a class="article-category-link" href="/categories/java/">java</a>
   </div>
 
   </div>
@@ -84,7 +84,7 @@
         
   
     <h1 itemprop="name">
-      <a class="article-title" href="/2020/12/08/%E7%BB%93%E5%90%88%20Sentinel%20%E4%B8%93%E6%A0%8F%E8%B0%88%E8%B0%88%E6%88%91%E7%9A%84%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB%E6%8A%80%E5%B7%A7/">结合 Sentinel 专栏谈谈我的源码阅读技巧</a>
+      <a class="article-title" href="/2020/12/09/%E5%BF%AB%E9%80%9F%E6%8E%92%E5%BA%8F%E7%AE%97%E6%B3%95java%E7%89%88%E5%AE%9E%E7%8E%B0/">快速排序算法java版实现</a>
     </h1>
   
 
@@ -92,53 +92,26 @@
     
     <div class="article-entry" itemprop="articleBody">
       
-        <blockquote>
-<p>本文行文思路：先抛出源码阅读方法，然后结合Sentinel创作过程谈谈具体是如何运用这些技巧，最后解答几个源码阅读的误区。</p>
-</blockquote>
-<p>Sentinel 系列共包含15篇文章，主要以源码分析为手段，图文并茂的方式对 Sentinel 的架构设计理念、核心实现要点进行了一一剖析，并加以实战分析与思考。</p>
-<p><strong>很多朋友都在询我是如何阅读源码的。对此可归纳为如下几个要点，然后结合 Sentienl 源码分析专栏对各个要点进行拆解，对源码阅读方法进行一次“实战”。</strong></p>
-<ul>
-<li>阅读官方文档，从全局了解待学习框架能解决什么样的问题，整体架构设计与思想是什么，主要包含哪些要点。</li>
-<li>从官方提供的 Demo 程序开始，学习基本的使用方法，进一步加深其理解，并伺机寻找入口（突破口）。</li>
-<li>寻找突破口，逐一突破，先主干再旁支，适度分解，各个击破。</li>
-</ul>
-<p>接下来将展示我是如何使用这套方法论来学习 Sentinel 的。</p>
-<p>在准备深入学习 Sentinel 之前，首先认真看了一遍 Sentinel 的官方文档，从而形成了对 Sentinel 的基本认识，我们可以从官方文档了解到 Sentinel 主要涉及的核心内容，正如下图所示：<br><img src="https://img-blog.csdnimg.cn/2020053015083815.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述">这些内容可以简单的当成一个学习的提纲，可以从里面挑选自己感兴趣的进行重点学习。</p>
-<p>在看完官方文档后，我就踏上创作 Sentinel 系列的征途。</p>
+        <p>快速排序思想：从待排序序列中找到一个关键字（默认为第一个元素） 然后将比关键字少的数据排列在左边，大于关键字的排在右边，然后对关键字左右两边的序列继续上面步骤，直至关键字两边的序列都已经排好序。具体算法如下：</p>
+<p>设要排序的数组是A[0]……A[N-1]，首先任意选取一个数据（通常选用数组的第一个数）作为关键数据，</p>
+<p> 然后将所有比它小的数都放到它前面，所有比它大的数都放到它后面，这个过程称为一趟快速排序。<br> 值得注意的是，快速排序不是一种稳定的排序算法，也就是说，多个相同的值的相对位置也许会在算法结束时产生变动。<br> 一趟快速排序的算法是：<br> 1）设置两个变量i、j，排序开始的时候：i=0，j=N-1；<br> 2）以第一个数组元素作为关键数据，赋值给key，即key=A[0]；<br> 3）从j开始向前搜索，即由后开始向前搜索(j–)，找到第一个小于key的值A[j]，将A[j]和A[i]互换；<br> 4）从i开始向后搜索，即由前开始向后搜索(i++)，找到第一个大于key的A[i]，将A[i]和A[j]互换；<br> 5）重复第3、4步，直到i=j； (3,4步中，没找到符合条件的值，即3中A[j]不小于key,<br> 4中A[i]不大于key的时候改变j、i的值，使得j=j-1，i=i+1，直至找到为止。</p>
+<p> 找到符合条件的值，进行交换的时候i， j指针位置不变。另外，i==j这一过程一定正好是i+或j-完成的时候，此时令循环结束）。</p>
 <blockquote>
-<p>本文不会再详细介绍每一个知识点的细节，有关各个知识点的具体讲解，大家可以点击感兴趣的链接中进行深入研究，本文主要是点到为止，重在介绍笔者是如何学习源码的。</p>
+<p>温馨提示：上述算法的描述来源与百度，大家也可以按照上面的算法，用自己熟悉的语言尝试实现一遍。</p>
 </blockquote>
-<p>1、<a target="_blank" rel="noopener" href="https://blog.csdn.net/prestigeding/article/details/103544443">Alibaba Sentinel 限流与熔断初探</a><br>该文章主要从如下几个点进行展开：</p>
-<ul>
-<li>Sentinel 是什么 ？主要能解决什么问题？</li>
-<li>限流与熔断的使用场景</li>
-<li>Sentinel 源码结构</li>
-<li>在 IntelliJ IDEA 中运行 Sentine Demo</li>
-</ul>
-<p>其实第三点并不是特别必须，不过要得出这些结论也并不难，因为对 Sentinel 有了全局的认识后并根据各个模块的命名很容易能得出该模块的作用。这里第四点非常关键，通常一个优秀的开源框架都会提供完备的演示 Demo，大家可以看到 Sentinel 的演示 demo 非常丰富，在本文中我特意选择了 Dubbo 来做示例，主要是我们公司大量使用 dubbo 来实现公司的微服务，这样会更加贴近实战，更有利于寻找突破口。</p>
-<p>通过跑通 Demo 的主要目的有三个：</p>
-<ul>
-<li>通过运行 Demo，了解框架的基本使用方法。</li>
-<li>搭建一个可 Debug 的环境，为后续看不懂代码的情况下进行调试，根据运行时数据，可加快代码的理解速度，但千万不要一开始就 debug。</li>
-<li>寻找源码阅读的入口。</li>
-</ul>
-<p>2、<a target="_blank" rel="noopener" href="https://blog.csdn.net/prestigeding/article/details/103654590">源码分析 Sentinel 之 Dubbo 适配原理</a><br>紧跟第一篇文章，既然使用的是 Dubbo 作为其示例代码，自然而然的思考 Sentinel 是如何做到对 Dubbo 的适配并对业务无侵入性。</p>
-<p>通过该篇文章的学习我们了解到可以通过 Dubbo 的扩展机制实现对 Dubbo 的适配，在 Dubbo Filter 中我们能看到了与 Sentinel 相关的核心 API SphU.entry，从而找到深入学习 Sentinel 的核心入口，也就是后续文章会通过对该方法的研究，从而打开进入 Sentinel 内核世界的大门。</p>
-<blockquote>
-<p>备注：在阅读这篇文章的时候，我觉得 Dubbo 的适配感觉非常简单，但随着我对这个系列的深入学习，发现了该方法没有那么简单，当时很多点都没有理解到位，这个在后续会有重点阐述，这也是不断学习、不断思考带来的好处。</p>
-</blockquote>
+<p>一言不合继续用代码说话。</p>
         
           <p class="article-more-link">
-            <a href="/2020/12/08/%E7%BB%93%E5%90%88%20Sentinel%20%E4%B8%93%E6%A0%8F%E8%B0%88%E8%B0%88%E6%88%91%E7%9A%84%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB%E6%8A%80%E5%B7%A7/#more">Read More</a>
+            <a href="/2020/12/09/%E5%BF%AB%E9%80%9F%E6%8E%92%E5%BA%8F%E7%AE%97%E6%B3%95java%E7%89%88%E5%AE%9E%E7%8E%B0/#more">Read More</a>
           </p>
         
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://example.com/2020/12/08/%E7%BB%93%E5%90%88%20Sentinel%20%E4%B8%93%E6%A0%8F%E8%B0%88%E8%B0%88%E6%88%91%E7%9A%84%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB%E6%8A%80%E5%B7%A7/" data-id="ckig4liff0030m4rggehzcd7v" class="article-share-link">Share</a>
+      <a data-url="http://example.com/2020/12/09/%E5%BF%AB%E9%80%9F%E6%8E%92%E5%BA%8F%E7%AE%97%E6%B3%95java%E7%89%88%E5%AE%9E%E7%8E%B0/" data-id="ckiibfosp002qpkrg2wto1j89" class="article-share-link">Share</a>
       
       
-  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/sentinel/" rel="tag">sentinel</a></li></ul>
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/java-%E7%AE%97%E6%B3%95/" rel="tag">java 算法</a></li></ul>
 
     </footer>
   </div>
@@ -147,14 +120,14 @@
 
 
   
-    <article id="post-Sentinel 系统自适应限流原理剖析与实战指导" class="article article-type-post" itemscope itemprop="blogPost">
+    <article id="post-排序二叉树JAVA版实现" class="article article-type-post" itemscope itemprop="blogPost">
   <div class="article-meta">
-    <a href="/2020/12/08/Sentinel%20%E7%B3%BB%E7%BB%9F%E8%87%AA%E9%80%82%E5%BA%94%E9%99%90%E6%B5%81%E5%8E%9F%E7%90%86%E5%89%96%E6%9E%90%E4%B8%8E%E5%AE%9E%E6%88%98%E6%8C%87%E5%AF%BC/" class="article-date">
-  <time datetime="2020-12-08T15:03:35.000Z" itemprop="datePublished">2020-12-08</time>
+    <a href="/2020/12/09/%E6%8E%92%E5%BA%8F%E4%BA%8C%E5%8F%89%E6%A0%91JAVA%E7%89%88%E5%AE%9E%E7%8E%B0/" class="article-date">
+  <time datetime="2020-12-09T15:22:35.000Z" itemprop="datePublished">2020-12-09</time>
 </a>
     
   <div class="article-category">
-    <a class="article-category-link" href="/categories/sentinel/">sentinel</a>
+    <a class="article-category-link" href="/categories/java/">java</a>
   </div>
 
   </div>
@@ -165,7 +138,7 @@
         
   
     <h1 itemprop="name">
-      <a class="article-title" href="/2020/12/08/Sentinel%20%E7%B3%BB%E7%BB%9F%E8%87%AA%E9%80%82%E5%BA%94%E9%99%90%E6%B5%81%E5%8E%9F%E7%90%86%E5%89%96%E6%9E%90%E4%B8%8E%E5%AE%9E%E6%88%98%E6%8C%87%E5%AF%BC/">Sentinel 系统自适应限流原理剖析与实战指导</a>
+      <a class="article-title" href="/2020/12/09/%E6%8E%92%E5%BA%8F%E4%BA%8C%E5%8F%89%E6%A0%91JAVA%E7%89%88%E5%AE%9E%E7%8E%B0/">排序二叉树JAVA版实现</a>
     </h1>
   
 
@@ -173,39 +146,32 @@
     
     <div class="article-entry" itemprop="articleBody">
       
-        <p>看到标题中的几个关键字<strong>系统自适应</strong>限流是不是觉得高大上，这个自适应又是如何实现的呢？</p>
-<h2 id="1、Sentinel-系统自适应概述"><a href="#1、Sentinel-系统自适应概述" class="headerlink" title="1、Sentinel 系统自适应概述"></a>1、Sentinel 系统自适应概述</h2><p>从官方了解到 Sentienl 系统自适应限流是一个全局的概念，对应用入口流量统一进行统一控制，结合应用的机器负载、CPU 使用率，总体平均响应时间、入口 QPS 和并发线程数等几个维度的监控指标从而决定是否调用进行限流操作。为了有一个直观的感受，我们可以从官方的运维平台看看其系统自适应限流的操作界面：<br><img src="https://img-blog.csdnimg.cn/2020052413411896.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br>RT、线程数、入口QPS这三个指标是可以通过采集调用信息进行统计计算的，那系统LOAD、CPU使用率是如何获取的呢？大家可以带着这个问题进入本文的学习中来。</p>
-<p>在详细分析系统自适应实现原理之前我们先来思考一下 Sentinel 引入该机制的目的。</p>
-<p>官方文档针对这个问题有过仔细阐述，我们先来看看官方文档对其阐述。</p>
-<p>引入系统自适应限流的主要的目的有如下两个：</p>
+        <p>1、排序二叉树特点</p>
 <ul>
-<li>保证系统不被拖垮</li>
-<li>在系统稳定的前提下保证系统的吞吐量。</li>
+<li>根节点的值大于等于左子树的节点</li>
+<li>根节点的值小于等于它右子树的节点。</li>
 </ul>
-<p>目前我们接触的限流的防护思路都是设定一个指标（阔值），例如系统的负载 load 超过某个阔值后就阻止或减少流量的继续进入，当系统负载降低到某一水平后则恢复流量的进入。通常都是被动的，其实际效果取决与阔值设置是否合理，但往往设置合理不是一件容易的事情。</p>
-<p>那 Sentinel 提供的系统自适应是可以将设定的规则作为一个保护因子，而允许通过的流量由处理请求的能力来决定，即根据请求的响应时间、当前系统正在处理的请求速率来决定。</p>
-<p>那 Sentinel 是如何实现的呢？接下来用源码的手段来揭晓其实现原理。</p>
-<h2 id="2、系统自适应限流原理"><a href="#2、系统自适应限流原理" class="headerlink" title="2、系统自适应限流原理"></a>2、系统自适应限流原理</h2><p>Sentinel 执行系统限流的核心入口类为 SystemSlot，该类实现简单，如下图所示：<br><img src="https://img-blog.csdnimg.cn/20200524134158678.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="SystemRuleManager#checkSystem"><br>从这里可以看出实现的关键在于SystemRuleManager，这里是直接调用 checkSystem 进行是否触发其限流，那我们接下来重点跟踪一下该方法的实现。</p>
-<h4 id="2-1-自适应限流检测流程"><a href="#2-1-自适应限流检测流程" class="headerlink" title="2.1 自适应限流检测流程"></a>2.1 自适应限流检测流程</h4><p>系统自适应限流检测具体由 SystemRuleManager 的 checkSystem 方法实现，接下来详细剖析其实现细节。<br><img src="https://img-blog.csdnimg.cn/2020052413421556.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br>Step1：验证相关资源，主要包含三层验证：</p>
+<p>2、遍历二叉树的方法</p>
 <ul>
-<li>如果资源名称为空，则直接跳过，这个是容错机制。</li>
-<li>如果系统自适应开关为打开，直接放行，该开关初始化时为 false，在加载到一条系统自适应配置规则时该状态会设置为 true，具体在 loadSystemConf 中。</li>
-<li>如果资源的类型不是入口流量(EntryType.IN),则直接放行。<br><img src="https://img-blog.csdnimg.cn/20200524134428924.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br>Step2：从QPS为维度验证是否需要被限流，其实现关键点如下：</li>
-<li>当前的qps，如果 ENTRY_NODE 为空则返回0，否则返回该统计节点的成功 qps，那 ENTRY_NODE 统计节点是“何许人也”，原来是 Sentinel 特定定义了一个资源，其名称为__total_inbound_traffic__，用来采集所有入口调用的信息，当资源进入类型为 ENTRY_TYPE_IN 时，会自动采集信息，其具体统计信息在 StatisticSlot 的 entry 方法中被调用，其截图如下：<br><img src="https://img-blog.csdnimg.cn/20200524134513299.png#pic_center" alt="在这里插入图片描述"></li>
-<li>如果当前调用的 QPS 大于设定的QPS，即触发限流，那这个 qps 又是在什么时候被设置的呢？也是在加载系统限流规则时被设置，如果一个应用同一个限流点（LOAD、QPS)设置了多条规则，最小值生效。<br><img src="https://img-blog.csdnimg.cn/20200524134545735.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br>Step3：关于线程数、响应时间限流模式与QPS类似，就不再重复介绍。<br><img src="https://img-blog.csdnimg.cn/20200524134621142.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br>Step4：如果当前系统的负载超过了设定的阔值的处理逻辑，这里就是自适应的核心所在，并不是超过负载就限流，而是需要根据当前系统的请求处理能力进行综合判断，具体逻辑在 checkBbr 方法中实现。关于如何获得系统负载与 checkBbr 方法稍后会详细介绍。<br><img src="https://img-blog.csdnimg.cn/20200524134709868.png#pic_center" alt="在这里插入图片描述"><br>Step5：如果当前CPU的负载超过了设置的阔值，触发限流，那在JAVA中是如何获取CPU的使用率的呢？稍后详细介绍。</li>
+<li>先序遍历：先遍历根节点，然后遍历左子树，再遍历右子树</li>
+<li>中序遍历：先遍历左子树，然后遍历根节点，再遍历右子树</li>
+<li>后续遍历  </li>
 </ul>
+<p><strong>如果要保证节点从小到大排序，采用中序遍历</strong>；</p>
+<p>一言不合就写代码实现，提供详细的可视化角度（代码可运行）。</p>
+<p>目前代码中，已经实现 新增单个元素、删除单个元素、中序遍历整颗树。</p>
         
           <p class="article-more-link">
-            <a href="/2020/12/08/Sentinel%20%E7%B3%BB%E7%BB%9F%E8%87%AA%E9%80%82%E5%BA%94%E9%99%90%E6%B5%81%E5%8E%9F%E7%90%86%E5%89%96%E6%9E%90%E4%B8%8E%E5%AE%9E%E6%88%98%E6%8C%87%E5%AF%BC/#more">Read More</a>
+            <a href="/2020/12/09/%E6%8E%92%E5%BA%8F%E4%BA%8C%E5%8F%89%E6%A0%91JAVA%E7%89%88%E5%AE%9E%E7%8E%B0/#more">Read More</a>
           </p>
         
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://example.com/2020/12/08/Sentinel%20%E7%B3%BB%E7%BB%9F%E8%87%AA%E9%80%82%E5%BA%94%E9%99%90%E6%B5%81%E5%8E%9F%E7%90%86%E5%89%96%E6%9E%90%E4%B8%8E%E5%AE%9E%E6%88%98%E6%8C%87%E5%AF%BC/" data-id="ckig4lieu001mm4rg6hqge5jj" class="article-share-link">Share</a>
+      <a data-url="http://example.com/2020/12/09/%E6%8E%92%E5%BA%8F%E4%BA%8C%E5%8F%89%E6%A0%91JAVA%E7%89%88%E5%AE%9E%E7%8E%B0/" data-id="ckiibfost002xpkrgau9bb6xe" class="article-share-link">Share</a>
       
       
-  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/sentinel/" rel="tag">sentinel</a></li></ul>
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/java-%E7%AE%97%E6%B3%95/" rel="tag">java 算法</a></li></ul>
 
     </footer>
   </div>
@@ -214,14 +180,14 @@
 
 
   
-    <article id="post-Sentinel Dubbo 适配器看限流与熔断(实战思考篇)" class="article article-type-post" itemscope itemprop="blogPost">
+    <article id="post-java Reference 引用学习总结" class="article article-type-post" itemscope itemprop="blogPost">
   <div class="article-meta">
-    <a href="/2020/12/08/Sentinel%20Dubbo%20%E9%80%82%E9%85%8D%E5%99%A8%E7%9C%8B%E9%99%90%E6%B5%81%E4%B8%8E%E7%86%94%E6%96%AD(%E5%AE%9E%E6%88%98%E6%80%9D%E8%80%83%E7%AF%87)/" class="article-date">
-  <time datetime="2020-12-08T15:01:35.000Z" itemprop="datePublished">2020-12-08</time>
+    <a href="/2020/12/09/java%20Reference%20%E5%BC%95%E7%94%A8%E5%AD%A6%E4%B9%A0%E6%80%BB%E7%BB%93/" class="article-date">
+  <time datetime="2020-12-09T15:12:35.000Z" itemprop="datePublished">2020-12-09</time>
 </a>
     
   <div class="article-category">
-    <a class="article-category-link" href="/categories/sentinel/">sentinel</a>
+    <a class="article-category-link" href="/categories/java/">java</a>
   </div>
 
   </div>
@@ -232,7 +198,7 @@
         
   
     <h1 itemprop="name">
-      <a class="article-title" href="/2020/12/08/Sentinel%20Dubbo%20%E9%80%82%E9%85%8D%E5%99%A8%E7%9C%8B%E9%99%90%E6%B5%81%E4%B8%8E%E7%86%94%E6%96%AD(%E5%AE%9E%E6%88%98%E6%80%9D%E8%80%83%E7%AF%87)/">Sentinel Dubbo 适配器看限流与熔断(实战思考篇)</a>
+      <a class="article-title" href="/2020/12/09/java%20Reference%20%E5%BC%95%E7%94%A8%E5%AD%A6%E4%B9%A0%E6%80%BB%E7%BB%93/">java Reference 引用学习总结</a>
     </h1>
   
 
@@ -240,528 +206,522 @@
     
     <div class="article-entry" itemprop="articleBody">
       
-        <p>本文是源码分析 Sentinel 系列的第十三篇，已经非常详细的介绍了 Sentinel 的架构体系、滑动窗口、调用链上下文、限流、熔断的实现原理，相信各位读者朋友们对Sentinel有一个较为体系化的认知了，这个时候是该开始如何在生产环境进行运用了。</p>
-<blockquote>
-<p>本文将以 Dubbo 服务调用为案例剖析场景，尝试对官方提供的 Dubbo 适配器做一个研究学习并对此做出自己的评价，抛出我的观点，期待与大家共同探讨，交流。</p>
-</blockquote>
-<p>一个 Dubbo RPC 的简易调用过程如下图所示：<br><img src="https://img-blog.csdnimg.cn/20200510202405377.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br>消费者会维护一个服务提供者列表，然后再发一起一个服务调用的时候会首先根据负载均衡算法从中选择一个服务提供者，然后发起 RPC 调用，在请求真实发送之前会依次通过客户端设置的过滤器链(Filter)，然后经过网络传输到到达服务提供者，并执行完服务提供者端的 Filter，最后进入到业务逻辑执行并返回结果。</p>
-<p>Sentinel 与 Dubbo 的整合就是利用了 Dubbo 的 Filter 机制，为 Dubbo 提供对应的 过滤器，无缝实现限流、熔断等功能，做到业务无感知，即业务代码无需使用 Sentinel 相关的 API。</p>
-<p>接下来请大家带着在 Dubbo 中如何使用限流、熔断方面来看官方给出的解决方案。</p>
-<blockquote>
-<p>思考题：在看接下来的内容之前，建议大家稍作停顿，思考一下，在服务调用模型中，限流、熔断通常在哪个端做比较合适。</p>
-</blockquote>
-<h2 id="1、从消费端来看限流与熔断"><a href="#1、从消费端来看限流与熔断" class="headerlink" title="1、从消费端来看限流与熔断"></a>1、从消费端来看限流与熔断</h2><p><img src="https://img-blog.csdnimg.cn/20200510202451273.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述">从消费端的视角，虽然提供了服务端的负载均衡，但从客户端不管是向192.168.1.3还是向192.168.1.4发送RPC调用，都会经过同一个 Sentinel Dubbo Filter。这个看似简单明了，但这是我们接下来思考的最基本最核心的点。</p>
-<p>我们先来看看官方提供的 Dubbo 适配器的核心实现：<br>SentinelDubboConsumerFilter#invoke<br><img src="https://img-blog.csdnimg.cn/20200510202524603.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br>消费端这边使用到了两个资源名称，一个是接口级别，例如 com.demo.service.UserService，另外一是方法级别，例如 com.demo.servcie.UserServce#findUser(Ljava.lang.String)。<br>定义了两个资源后，Sentinel 会使用滑动窗口机制，为上述两个资源收集实时的调用信息，为后续的限流、熔断提供数据依据。</p>
-        
-          <p class="article-more-link">
-            <a href="/2020/12/08/Sentinel%20Dubbo%20%E9%80%82%E9%85%8D%E5%99%A8%E7%9C%8B%E9%99%90%E6%B5%81%E4%B8%8E%E7%86%94%E6%96%AD(%E5%AE%9E%E6%88%98%E6%80%9D%E8%80%83%E7%AF%87)/#more">Read More</a>
-          </p>
-        
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="http://example.com/2020/12/08/Sentinel%20Dubbo%20%E9%80%82%E9%85%8D%E5%99%A8%E7%9C%8B%E9%99%90%E6%B5%81%E4%B8%8E%E7%86%94%E6%96%AD(%E5%AE%9E%E6%88%98%E6%80%9D%E8%80%83%E7%AF%87)/" data-id="ckig4liet001im4rg9arabpax" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/sentinel/" rel="tag">sentinel</a></li></ul>
-
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-Sentinel 集群限流设计原理" class="article article-type-post" itemscope itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/2020/12/08/Sentinel%20%E9%9B%86%E7%BE%A4%E9%99%90%E6%B5%81%E8%AE%BE%E8%AE%A1%E5%8E%9F%E7%90%86/" class="article-date">
-  <time datetime="2020-12-08T15:00:35.000Z" itemprop="datePublished">2020-12-08</time>
-</a>
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/sentinel/">sentinel</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/2020/12/08/Sentinel%20%E9%9B%86%E7%BE%A4%E9%99%90%E6%B5%81%E8%AE%BE%E8%AE%A1%E5%8E%9F%E7%90%86/">Sentinel 集群限流设计原理</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <h2 id="1、集群限流使用场景"><a href="#1、集群限流使用场景" class="headerlink" title="1、集群限流使用场景"></a>1、集群限流使用场景</h2><p>首先一个服务有三个服务提供者，但这三台集群的硬件配置不一样，如图所示：<br><img src="https://img-blog.csdnimg.cn/20200503232733111.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br>为了充分利用硬件的资源，诸如 Dubbo 都提供了基于权重的负载均衡机制，例如可以将8C16G的机器设置的权重是4C8G的两倍，这样充分利用硬件资源，假如现在需要引入 Sentinel 的限流机制，例如为一个 Dubbo 服务设置限流规则，这样由于三台集群分担的流量不均匀，会导致无法重复利用高配机器的资源。</p>
-<p>假设经过压测，机器配置为C48G最高能承受的TPS为 1500，而机器配置为8C16G能承受的TPS为2800，那如果采取单机限流，其阔值只能设置为1500，因为如果超过1500，会将4C8G的机器压垮。</p>
-<p>解决这种办法的方式就是针对整个集群进行限流，即为整个集群设置一个阔值，例如设置限流TPS为6000。</p>
-<h2 id="2、集群限流与单机限流的异同思考"><a href="#2、集群限流与单机限流的异同思考" class="headerlink" title="2、集群限流与单机限流的异同思考"></a>2、集群限流与单机限流的异同思考</h2><p>限流的一个基本作用就是按照限流规则生成访问许可(Token)，然后根据当前实时的调用信息进行判断是否可以获得许可而决定是否放行。</p>
-<p>集群与单机限流在实时调用信息收集方面应该差别不大，都可以基于滑动窗口进行统计信息的收集。</p>
-<p>集群与单机限流的最主要区别在与许可的生成，单机模式的许可直接在本地生成，但集群限流必须有一个统一的 Token 发放机制，以此来协调当前集群内多机调用，从而基于当前“调用总数”进行限流。</p>
-        
-          <p class="article-more-link">
-            <a href="/2020/12/08/Sentinel%20%E9%9B%86%E7%BE%A4%E9%99%90%E6%B5%81%E8%AE%BE%E8%AE%A1%E5%8E%9F%E7%90%86/#more">Read More</a>
-          </p>
-        
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="http://example.com/2020/12/08/Sentinel%20%E9%9B%86%E7%BE%A4%E9%99%90%E6%B5%81%E8%AE%BE%E8%AE%A1%E5%8E%9F%E7%90%86/" data-id="ckig4liew001tm4rgaf3m3qkp" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/sentinel/" rel="tag">sentinel</a></li></ul>
-
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-Sentienl 动态数据源架构设计理念与改造实践" class="article article-type-post" itemscope itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/2020/12/08/Sentienl%20%E5%8A%A8%E6%80%81%E6%95%B0%E6%8D%AE%E6%BA%90%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1%E7%90%86%E5%BF%B5%E4%B8%8E%E6%94%B9%E9%80%A0%E5%AE%9E%E8%B7%B5/" class="article-date">
-  <time datetime="2020-12-08T14:59:35.000Z" itemprop="datePublished">2020-12-08</time>
-</a>
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/sentinel/">sentinel</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/2020/12/08/Sentienl%20%E5%8A%A8%E6%80%81%E6%95%B0%E6%8D%AE%E6%BA%90%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1%E7%90%86%E5%BF%B5%E4%B8%8E%E6%94%B9%E9%80%A0%E5%AE%9E%E8%B7%B5/">Sentienl 动态数据源架构设计理念与改造实践</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <p>在介绍集群限流之前需要首先掌握动态数据源的配置方式，本文将根据 Sentinel 官方提供的代码提出整体架构思路，并最终给出实践指导。</p>
-<blockquote>
-<p>温馨提示：本文主要分为动态数据源架构设计理念、从官方示例寻找改造思路、基于SpringBoot改造方案三个部分来详细剖析 Sentienl 动态数据源的改造方案，循序渐进，不仅解决问题本身，更是反映了作者研究一个问题的思路与方法。</p>
-</blockquote>
-<h2 id="1、架构设计理念"><a href="#1、架构设计理念" class="headerlink" title="1、架构设计理念"></a>1、架构设计理念</h2><p>在 Sentinel 中主要有如下几个角色：管理后台、限流熔断规则数据源、应用程序。</p>
-<p>1）管理后台</p>
-<p>管理后台主要用于可视化配置限流规则、熔断规则，其操作界面截图如下：<br><img src="https://img-blog.csdnimg.cn/20200425210307130.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br>2）限流熔断规则数据源</p>
-<p>用于存储限流熔断规则的数据容器，在 Sentinel 中对应动态数据源这个概念，动态数据源包含两层含义：</p>
+        <h2 id="1、Java引用的类型"><a href="#1、Java引用的类型" class="headerlink" title="1、Java引用的类型"></a>1、Java引用的类型</h2><p>强引用、软引用(java.lang.ref.SoftReference)、弱引用(java.lang.ref.WeakReference)、虚引用(　java.lang.ref.PhantomReference　)。</p>
+<p>java默认的引用类型为强引用，比如 Object a = new Object();其中 a 为强引用，new Object()为一个具体的对象。</p>
+<p>至于软应用，弱引用，虚引用，就是 JAVA 虚拟机管理对象的范畴了，可以这样理解，SoftReference、WeakReference、PlantomReference 只是一种标记，JAVA 虚拟机在垃圾回收时，对上述不同的标记【引用的对象】采取不同的措施。采取措施如下：</p>
 <ul>
-<li>数据容器<br>数据容器指的就是存储熔断、限流等规则配置的数据库，例如关系型数据库、Zookeeper等等，在实际生产过程中需要选用支持持久化功能的数据库，否则程序一重启，配置规则就会丢失，显然是不能接受的。</li>
-<li>动态<br>动态二字主要强调的是配置规则的更改能动态及时生效，引入 Sentinel 限流 SDK 的应用程序在不需要重启的情况下动态感知配置规则发生变化并立即生效。Sentinel 目前对 apollo、consul、etcd、nacos、redis、spring-clould-config、zookeeper 等进行了适配支持。</li>
-</ul>
-<p>3）应用程序</p>
-<p>希望通过 Sentinel 提供的限流、熔断功能对应用程序加以保护，需要引用 Sentinel 相关的 SDK，根据采集的调用信息判断当前是否符合限流规则。</p>
-<p>后台管理系统、动态数据源、应用程序的关系如图所示：<br><img src="https://img-blog.csdnimg.cn/20200425210401161.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"></p>
-<h2 id="2、从官方示例寻找改造思路"><a href="#2、从官方示例寻找改造思路" class="headerlink" title="2、从官方示例寻找改造思路"></a>2、从官方示例寻找改造思路</h2><p>从官方的文档中可以明确获悉 sentinel-dashboard 即官方自带的后台管理系统只支持将限流、熔断等限流配置规则存储在内存中，一旦后台管理系统重启，配置的熔断规则将全部丢失，所以在生产实践过程中需要对 sentinel-dashboard 进行一定的改造，引入动态数据源，例如 Zookeeper，对限流等配置进行持久化存储。</p>
-<p>有了上面的架构设计理念为我们的改造提供了方向，那如何具体改造呢？首先我们来看一下官方提供的 Demo 程序。官方提供的示例代码如下图所示：<br><img src="https://img-blog.csdnimg.cn/20200425210450996.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br>接下来我们将以 zookeeper 动态数据源来介绍基于 zookeeper 如何构建 Sentinel 动态数据源。</p>
-        
-          <p class="article-more-link">
-            <a href="/2020/12/08/Sentienl%20%E5%8A%A8%E6%80%81%E6%95%B0%E6%8D%AE%E6%BA%90%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1%E7%90%86%E5%BF%B5%E4%B8%8E%E6%94%B9%E9%80%A0%E5%AE%9E%E8%B7%B5/#more">Read More</a>
-          </p>
-        
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="http://example.com/2020/12/08/Sentienl%20%E5%8A%A8%E6%80%81%E6%95%B0%E6%8D%AE%E6%BA%90%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1%E7%90%86%E5%BF%B5%E4%B8%8E%E6%94%B9%E9%80%A0%E5%AE%9E%E8%B7%B5/" data-id="ckig4liep001am4rg43ykhh57" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/sentinel/" rel="tag">sentinel</a></li></ul>
-
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-源码分析 Sentinel DegradeSlot 熔断实现原理" class="article article-type-post" itemscope itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/2020/12/08/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90%20Sentinel%20DegradeSlot%20%E7%86%94%E6%96%AD%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86/" class="article-date">
-  <time datetime="2020-12-08T14:58:35.000Z" itemprop="datePublished">2020-12-08</time>
-</a>
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/sentinel/">sentinel</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/2020/12/08/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90%20Sentinel%20DegradeSlot%20%E7%86%94%E6%96%AD%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86/">源码分析 Sentinel DegradeSlot 熔断实现原理</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <h2 id="1、DegradeSlot-概述"><a href="#1、DegradeSlot-概述" class="headerlink" title="1、DegradeSlot 概述"></a>1、DegradeSlot 概述</h2><p>Sentinel 中的熔断实现类为 DegradeSlot。DegradeSlot 的类定义如下图所示：<br><img src="https://img-blog.csdnimg.cn/20200412153916327.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br>由此可见，熔断主要实现逻辑定义在 DegradeRuleManager 的 checkDegrade 方法中。<br>DegradeRuleManager#checkDegrade<br><img src="https://img-blog.csdnimg.cn/20200412153949610.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述">代码@1：首先从 degradeRules 熔断规则缓存中获取资源的熔断规则。</p>
-<p>代码@2：遍历熔断规则列表。</p>
-<p>代码@3：调用熔断规则 DegradeRule 的  passCheck，如果该方法返回 false，则表示需要熔断，则抛出 DegradeException 异常。</p>
-<p>即实现熔断的核心逻辑在 DegradeRule 中。</p>
-        
-          <p class="article-more-link">
-            <a href="/2020/12/08/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90%20Sentinel%20DegradeSlot%20%E7%86%94%E6%96%AD%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86/#more">Read More</a>
-          </p>
-        
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="http://example.com/2020/12/08/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90%20Sentinel%20DegradeSlot%20%E7%86%94%E6%96%AD%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86/" data-id="ckig4lifb002om4rg15h7boq2" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/sentinel/" rel="tag">sentinel</a></li></ul>
-
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-Sentienl 流控效果之匀速排队与预热实现原理与实战建议" class="article article-type-post" itemscope itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/2020/12/08/Sentienl%20%E6%B5%81%E6%8E%A7%E6%95%88%E6%9E%9C%E4%B9%8B%E5%8C%80%E9%80%9F%E6%8E%92%E9%98%9F%E4%B8%8E%E9%A2%84%E7%83%AD%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86%E4%B8%8E%E5%AE%9E%E6%88%98%E5%BB%BA%E8%AE%AE/" class="article-date">
-  <time datetime="2020-12-08T14:55:35.000Z" itemprop="datePublished">2020-12-08</time>
-</a>
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/sentinel/">sentinel</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/2020/12/08/Sentienl%20%E6%B5%81%E6%8E%A7%E6%95%88%E6%9E%9C%E4%B9%8B%E5%8C%80%E9%80%9F%E6%8E%92%E9%98%9F%E4%B8%8E%E9%A2%84%E7%83%AD%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86%E4%B8%8E%E5%AE%9E%E6%88%98%E5%BB%BA%E8%AE%AE/">Sentienl 流控效果之匀速排队与预热实现原理与实战建议</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <blockquote>
-<p>温馨提示，如果大家对源码不感兴趣，可以直接跳到本文的总结部分，了解一下预热实现原理的一些实战建议。</p>
-<p>首先先回顾一下 Sentinel 流控效果相关的类图：<br><img src="https://img-blog.csdnimg.cn/20200406112941248.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br>DefaultController 快速失败已经在上文详细介绍过，本文将详细介绍其他两种策略的实现原理。</p>
-</blockquote>
-<p>首先我们应该知道，一条流控规则(FlowRule)对应一个 TrafficShapingController 对象。</p>
-<h2 id="1、RateLimiterController"><a href="#1、RateLimiterController" class="headerlink" title="1、RateLimiterController"></a>1、RateLimiterController</h2><p>匀速排队策略实现类，首先我们先来介绍一下该类的几个成员变量的含义：</p>
-<ul>
-<li>int maxQueueingTimeMs<br>排队等待的最大超时时间，如果等待超过该时间，将会抛出 FlowException。</li>
-<li>double count<br>流控规则中的阔值，即令牌的总个数，以QPS为例，如果该值设置为1000，则表示1s可并发的请求数量。</li>
-<li>AtomicLong latestPassedTime<br>上一次成功通过的时间戳。</li>
-</ul>
-<p>接下来我们详细来看一下其算法的实现：<br>RateLimiterController#canPass</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">boolean</span> <span class="title">canPass</span><span class="params">(Node node, <span class="keyword">int</span> acquireCount, <span class="keyword">boolean</span> prioritized)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (acquireCount &lt;= <span class="number">0</span>) &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">true</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (count &lt;= <span class="number">0</span>) &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">false</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">long</span> currentTime = TimeUtil.currentTimeMillis();</span><br><span class="line">    <span class="keyword">long</span> costTime = Math.round(<span class="number">1.0</span> * (acquireCount) / count * <span class="number">1000</span>);    <span class="comment">// @1</span></span><br><span class="line">    <span class="keyword">long</span> expectedTime = costTime + latestPassedTime.get();                <span class="comment">// @2</span></span><br><span class="line">    <span class="keyword">if</span> (expectedTime &lt;= currentTime) &#123;                                                    <span class="comment">// @3</span></span><br><span class="line">        latestPassedTime.set(currentTime);</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">true</span>;</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="keyword">long</span> waitTime = costTime + latestPassedTime.get() - TimeUtil.currentTimeMillis();   <span class="comment">// @4</span></span><br><span class="line">        <span class="keyword">if</span> (waitTime &gt; maxQueueingTimeMs) &#123;                                                                        <span class="comment">// @5</span></span><br><span class="line">            <span class="keyword">return</span> <span class="keyword">false</span>;</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            <span class="keyword">long</span> oldTime = latestPassedTime.addAndGet(costTime);                                     <span class="comment">// @6</span></span><br><span class="line">            <span class="keyword">try</span> &#123;</span><br><span class="line">                waitTime = oldTime - TimeUtil.currentTimeMillis();                                            </span><br><span class="line">                <span class="keyword">if</span> (waitTime &gt; maxQueueingTimeMs) &#123;</span><br><span class="line">                    latestPassedTime.addAndGet(-costTime);</span><br><span class="line">                    <span class="keyword">return</span> <span class="keyword">false</span>;</span><br><span class="line">                &#125;</span><br><span class="line">		<span class="keyword">if</span> (waitTime &gt; <span class="number">0</span>) &#123;                                                     <span class="comment">// @7</span></span><br><span class="line">                    Thread.sleep(waitTime);</span><br><span class="line">                &#125;</span><br><span class="line">                <span class="keyword">return</span> <span class="keyword">true</span>;</span><br><span class="line">            &#125; <span class="keyword">catch</span> (InterruptedException e) &#123;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">false</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>代码@1：首先算出每一个请求之间最小的间隔，时间单位为毫秒。例如 cout 设置为 1000,表示一秒可以通过 1000个请求，匀速排队，那每个请求的间隔为 1 / 1000(s)，乘以1000将时间单位转换为毫秒，如果一次需要2个令牌，则其间隔时间为2ms，用 costTime 表示。</p>
-<p>代码@2：计算下一个请求的期望达到时间，等于上一次通过的时间戳 + costTime ，用 expectedTime 表示。</p>
-<p>代码@3：如果 expectedTime 小于等于当前时间，说明在期望的时间没有请求到达，说明没有按照期望消耗令牌，故本次请求直接通过，并更新上次通过的时间为当前时间。</p>
-<p>代码@4：如果 expectedTime 大于当前时间，说明还没到令牌发放时间，当前请求需要等待。首先先计算需要等待是时间，用 waitTime 表示。</p>
-<p>代码@5：如果计算的需要等待的时间大于允许排队的时间，则返回 false，即本次请求将被限流，返回 FlowException。</p>
-<p>代码@6：进入排队，默认是本次请求通过，故先将上一次通过流量的时间戳增加 costTime，然后直接调用 Thread 的 sleep 方法，将当前请求先阻塞一会，然后返回 true 表示请求通过。</p>
-<blockquote>
-<p>匀速排队模式的实现的关键：主要是记录上一次请求通过的时间戳，然后根据流控规则，判断两次请求之间最小的间隔，并加入一个排队时间。</p>
-</blockquote>
-<h2 id="2、WarmUpController"><a href="#2、WarmUpController" class="headerlink" title="2、WarmUpController"></a>2、WarmUpController</h2><p>预热策略的实现，首先我们先来介绍一下该类的几个成员变量的含义：</p>
-<ul>
-<li>double count<br>流控规则设定的阔值。</li>
-<li>int coldFactor<br>冷却因子。</li>
-<li>int warningToken<br>告警token，对应 Guava 中的 RateLimiter 中的 </li>
-<li>int maxToken<br>double slope<br>AtomicLong storedTokens<br>AtomicLong lastFilledTime</li>
-</ul>
-<h4 id="2-1-WarmUpController-构造函数"><a href="#2-1-WarmUpController-构造函数" class="headerlink" title="2.1 WarmUpController 构造函数"></a>2.1 WarmUpController 构造函数</h4><p>内部的构造函数，最终将调用 construct 方法。<br>WarmUpController#construct</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">construct</span><span class="params">(<span class="keyword">double</span> count, <span class="keyword">int</span> warmUpPeriodInSec, <span class="keyword">int</span> coldFactor)</span> </span>&#123; <span class="comment">// @1</span></span><br><span class="line">	<span class="keyword">if</span> (coldFactor &lt;= <span class="number">1</span>) &#123;</span><br><span class="line">		<span class="keyword">throw</span> <span class="keyword">new</span> IllegalArgumentException(<span class="string">&quot;Cold factor should be larger than 1&quot;</span>);</span><br><span class="line">         &#125;</span><br><span class="line">	<span class="keyword">this</span>.count = count;  </span><br><span class="line">	<span class="keyword">this</span>.coldFactor = coldFactor;   </span><br><span class="line">	warningToken = (<span class="keyword">int</span>)(warmUpPeriodInSec * count) / (coldFactor - <span class="number">1</span>);   <span class="comment">// @2</span></span><br><span class="line">	maxToken = warningToken + (<span class="keyword">int</span>)(<span class="number">2</span> * warmUpPeriodInSec * count / (<span class="number">1.0</span> + coldFactor));  <span class="comment">// @3</span></span><br><span class="line">	slope = (coldFactor - <span class="number">1.0</span>) / count / (maxToken - warningToken);  </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>要理解该方法，就需要理解 Guava 框架的 SmoothWarmingUp 相关的预热算法，其算法原理如图所示：<br><img src="https://img-blog.csdnimg.cn/20200406114151249.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br>关于该图的详细介绍，请参考笔者的另外一篇博文：<a target="_blank" rel="noopener" href="https://blog.csdn.net/prestigeding/article/details/105262127">源码分析RateLimiter SmoothWarmingUp 实现原理</a>，对该图进行了详细解读。</p>
-<p>代码@1：首先介绍该方法的参数列表：</p>
-<ul>
-<li>double count<br>限流规则配置的阔值，例如是按 TPS 类型来限流，如果限制为100tps，则该值为100。</li>
-<li>int warmUpPeriodInSec<br>预热时间，单位为秒，通用在限流规则页面可配置。</li>
-<li>int coldFactor<br>冷却因子，这里默认为3，与 RateLimiter 中的冷却因子保持一致，表示的含义为 coldIntervalMicros 与  stableIntervalMicros 的比值。</li>
-</ul>
-<p>代码@2：计算 warningToken 的值，与 Guava 中的 RateLimiter 中的 thresholdPermits 的计算算法公式相同，thresholdPermits = 0.5 * warmupPeriod / stableInterval，在Sentienl 中，而 stableInteral = 1 / count，thresholdPermits  表达式中的 0.5 就是因为 codeFactor 为3，因为 warm up period与 stable   面积之比等于 (coldIntervalMicros - stableIntervalMicros ) 与 stableIntervalMicros 的比值，这个比值又等于 coldIntervalMicros / stableIntervalMicros  - stableIntervalMicros / stableIntervalMicros 等于 coldFactor - 1。</p>
-<p>代码@3：同样根据 Guava 中的 RateLimiter 关于 maxToken 也能理解。</p>
-        
-          <p class="article-more-link">
-            <a href="/2020/12/08/Sentienl%20%E6%B5%81%E6%8E%A7%E6%95%88%E6%9E%9C%E4%B9%8B%E5%8C%80%E9%80%9F%E6%8E%92%E9%98%9F%E4%B8%8E%E9%A2%84%E7%83%AD%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86%E4%B8%8E%E5%AE%9E%E6%88%98%E5%BB%BA%E8%AE%AE/#more">Read More</a>
-          </p>
-        
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="http://example.com/2020/12/08/Sentienl%20%E6%B5%81%E6%8E%A7%E6%95%88%E6%9E%9C%E4%B9%8B%E5%8C%80%E9%80%9F%E6%8E%92%E9%98%9F%E4%B8%8E%E9%A2%84%E7%83%AD%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86%E4%B8%8E%E5%AE%9E%E6%88%98%E5%BB%BA%E8%AE%AE/" data-id="ckig4lier001fm4rga1wvaok6" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/sentinel/" rel="tag">sentinel</a></li></ul>
-
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-源码分析RateLimiter SmoothWarmingUp 实现原理(文末附流程图)" class="article article-type-post" itemscope itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/2020/12/08/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90RateLimiter%20SmoothWarmingUp%20%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86(%E6%96%87%E6%9C%AB%E9%99%84%E6%B5%81%E7%A8%8B%E5%9B%BE)/" class="article-date">
-  <time datetime="2020-12-08T14:53:35.000Z" itemprop="datePublished">2020-12-08</time>
-</a>
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/sentinel/">sentinel</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/2020/12/08/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90RateLimiter%20SmoothWarmingUp%20%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86(%E6%96%87%E6%9C%AB%E9%99%84%E6%B5%81%E7%A8%8B%E5%9B%BE)/">源码分析RateLimiter SmoothWarmingUp 实现原理(文末附流程图)</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <p>上一篇详细介绍了 <a target="_blank" rel="noopener" href="https://blog.csdn.net/prestigeding/article/details/105027563">SmoothBursty</a> 的实现原理，本文将介绍带有预热机制的限速器实现原理。</p>
-<p>@<a href="%E6%9C%AC%E8%8A%82%E7%9B%AE%E5%BD%95">TOC</a></p>
-<h2 id="1、类图"><a href="#1、类图" class="headerlink" title="1、类图"></a>1、类图</h2><p><img src="https://img-blog.csdnimg.cn/20200329155128855.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br>从上文也详细介绍了 RateLimiter 相关的类图，本文就不详细介绍。</p>
-<h2 id="2、SmoothWarmingUp-创建流程"><a href="#2、SmoothWarmingUp-创建流程" class="headerlink" title="2、SmoothWarmingUp 创建流程"></a>2、SmoothWarmingUp 创建流程</h2><p>创建 SmoothWarmingUp 限速器的入口为 RateLimiter 的 create 方法，其代码如下：<br>RateLimiter#create</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> RateLimiter <span class="title">create</span><span class="params">(<span class="keyword">double</span> permitsPerSecond, <span class="keyword">long</span> warmupPeriod, TimeUnit unit)</span> </span>&#123;  <span class="comment">// @1</span></span><br><span class="line">    checkArgument(warmupPeriod &gt;= <span class="number">0</span>, <span class="string">&quot;warmupPeriod must not be negative: %s&quot;</span>, warmupPeriod);</span><br><span class="line">    <span class="keyword">return</span> create(</span><br><span class="line">        SleepingStopwatch.createFromSystemTimer(), permitsPerSecond, warmupPeriod, unit, <span class="number">3.0</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>代码@1：首先先来看一下参数列表：</p>
-<ul>
-<li>double permitsPerSecond<br>每秒发放许可数量，即所谓的QPS。</li>
-<li>long warmupPeriod<br>设置预热时间。</li>
-<li>TimeUnit unit<br>warmupPeriod 的时间单位。</li>
-</ul>
-<p>代码@2：调用内部的重载方法创建 SmoothWarmingUp 。</p>
-<p>RateLimiter#create</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> RateLimiter <span class="title">create</span><span class="params">( SleepingStopwatch stopwatch, <span class="keyword">double</span> permitsPerSecond, <span class="keyword">long</span> warmupPeriod, TimeUnit unit, <span class="keyword">double</span> coldFactor)</span> </span>&#123;</span><br><span class="line">    RateLimiter rateLimiter = <span class="keyword">new</span> SmoothWarmingUp(stopwatch, warmupPeriod, unit, coldFactor);  <span class="comment">// @1</span></span><br><span class="line">    rateLimiter.setRate(permitsPerSecond); <span class="comment">// @2</span></span><br><span class="line">    <span class="keyword">return</span> rateLimiter;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>创建 SmoothWarmingUp 两个主要步骤分别是调用其构造方法首先创建 SmoothWarmingUp 实例，然后调用其 setRate 方法进行初始化速率。这里先突出 coldFactor，默认为 3.0，该属性的作用将在下文详细介绍。</p>
-<p>我们先来重点探讨一下 setRate 方法的实现。最终会调用其父类 SmoothRateLimiter 的doSetRate 方法。</p>
-<p>SmoothRateLimiter#doSetRate</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">final</span> <span class="keyword">void</span> <span class="title">doSetRate</span><span class="params">(<span class="keyword">double</span> permitsPerSecond, <span class="keyword">long</span> nowMicros)</span> </span>&#123;</span><br><span class="line">    resync(nowMicros);   <span class="comment">// @1 </span></span><br><span class="line">    <span class="keyword">double</span> stableIntervalMicros = SECONDS.toMicros(<span class="number">1L</span>) / permitsPerSecond;   </span><br><span class="line">    <span class="keyword">this</span>.stableIntervalMicros = stableIntervalMicros;   <span class="comment">// @2</span></span><br><span class="line">    doSetRate(permitsPerSecond, stableIntervalMicros);  <span class="comment">// @3</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>代码@1：基于当前时间重置 SmoothRateLimiter 内部的 storedPermits(已存储的许可数量) 与 nextFreeTicketMicros(下一次可以免费获取许可的时间) 值，所谓的免费指的是无需等待就可以获取设定速率的许可，该方法对理解限流许可的产生非常关键，稍后详细介绍。</p>
-<p>代码@2：根据QPS算出一个稳定的获取1个许可的时间。以一秒发放5个许可，即限速为5QPS，那发放一个许可的世界间隔为 200ms，stableIntervalMicros 变量是以微妙为单位。</p>
-<p>代码@4：调用 SmoothRateLimiter 的抽象方法 doSetRate 设置速率，这里会调用 SmoothWarmingUp 的 doSetRate 方法。</p>
-<p>在介绍 SmoothWarmingUp 的 doSetRate 方法之前，我们先来看一下 resync 方法的实现。</p>
-<p>SmoothRateLimiter#resync</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">resync</span><span class="params">(<span class="keyword">long</span> nowMicros)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (nowMicros &gt; nextFreeTicketMicros) &#123;  <span class="comment">// @1 </span></span><br><span class="line">      <span class="keyword">double</span> newPermits = (nowMicros - nextFreeTicketMicros) / coolDownIntervalMicros();  <span class="comment">// @2</span></span><br><span class="line">      storedPermits = min(maxPermits, storedPermits + newPermits);    <span class="comment">// @3</span></span><br><span class="line">      nextFreeTicketMicros = nowMicros;   <span class="comment">// @4</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>代码@1：如果当前已启动时间大于nextFreeTicketMicros（下一次可以免费获取许可的时间），则需要重新计算许可，即又可以向许可池中添加许可。</p>
-<p>代码@2：根据当前时间可增加的许可数量，由于 SmoothWarmingUp 实现了预热机制，平均生成一个许可的时间并不是固定不变的。具体由 coolDownIntervalMicros 方法实现，稍候详细介绍。</p>
-<p>代码@3：计算当前可用的许可，将新增的这些许可添加到许可池，但不会超过其最大值。</p>
-<p>代码@4：更新下一次可增加计算许可的时间。 </p>
-<p>SmoothWarmingUp#coolDownIntervalMicros</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">double</span> <span class="title">coolDownIntervalMicros</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> warmupPeriodMicros / maxPermits;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>这个方法的实现其实简单，用生成这些许可的总时间除以现在已经生成的许可数，即可得到当前时间点平均一个许可的生成时间。</p>
-        
-          <p class="article-more-link">
-            <a href="/2020/12/08/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90RateLimiter%20SmoothWarmingUp%20%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86(%E6%96%87%E6%9C%AB%E9%99%84%E6%B5%81%E7%A8%8B%E5%9B%BE)/#more">Read More</a>
-          </p>
-        
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="http://example.com/2020/12/08/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90RateLimiter%20SmoothWarmingUp%20%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86(%E6%96%87%E6%9C%AB%E9%99%84%E6%B5%81%E7%A8%8B%E5%9B%BE)/" data-id="ckig4lifd002um4rgeou829d0" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/sentinel/" rel="tag">sentinel</a></li></ul>
-
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-源码分析 RateLimiter SmoothBursty 实现原理(文末附流程图)" class="article article-type-post" itemscope itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/2020/12/08/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90%20RateLimiter%20SmoothBursty%20%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86(%E6%96%87%E6%9C%AB%E9%99%84%E6%B5%81%E7%A8%8B%E5%9B%BE)/" class="article-date">
-  <time datetime="2020-12-08T14:51:35.000Z" itemprop="datePublished">2020-12-08</time>
-</a>
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/sentinel/">sentinel</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/2020/12/08/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90%20RateLimiter%20SmoothBursty%20%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86(%E6%96%87%E6%9C%AB%E9%99%84%E6%B5%81%E7%A8%8B%E5%9B%BE)/">源码分析 RateLimiter SmoothBursty 实现原理(文末附流程图)</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <p>上篇详细介绍了<a target="_blank" rel="noopener" href="https://blog.csdn.net/prestigeding/article/details/104884255">Sentinel FlowSlot 限流实现原理(文末附流程图与总结)</a>的限流实现机制，但主要介绍的策略限流的快速失败机制，在Sentinel 中除了快速失败，还提供了匀速排队，预热等限流策略，但我发现 Sentinel 的匀速排队、预热机制是基于 guava 的 RateLimiter，为了更加彻底的理解 Sentienl 限流相关的内容，从本文开始先来学习一下 RateLimiter 的相关实现原理。</p>
-<blockquote>
-<p>温馨提示：文章的末尾会总结 SmoothBursty 的核心流程图与实现原理，本文将展示笔者是如何一步一步揭晓其实现原理的方法。</p>
-<p>@<a href="%E6%9C%AC%E8%8A%82%E7%9B%AE%E5%BD%95">TOC</a></p>
-</blockquote>
-<h2 id="1、RateLimiter-类设计图"><a href="#1、RateLimiter-类设计图" class="headerlink" title="1、RateLimiter 类设计图"></a>1、RateLimiter 类设计图</h2><p><img src="https://img-blog.csdnimg.cn/20200322143507663.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"></p>
-<ul>
-<li>RateLimiter<br>限流抽象类，定义限流器的基本接口。</li>
-<li>SmoothRateLimiter<br>平滑限流实现器，也是一个抽象类。</li>
-<li>SmoothWarmingUp<br>自带预热机制的限流器实现类型。</li>
-<li>SmoothBursty<br>适应于突发流量的限流器。</li>
-</ul>
-<p>上述类这些属性，在讲解 SmoothBursty、SmoothWarmingUp 时再详细介绍。</p>
-<blockquote>
-<p>温馨提示：可以看看这些类上的注释，先初步了解其设计思想。</p>
-</blockquote>
-<h2 id="2、寻找入口"><a href="#2、寻找入口" class="headerlink" title="2、寻找入口"></a>2、寻找入口</h2><p>我们首先从 guava 的测试用例中尝试寻找一下 RateLimiterTest。</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">testSimple</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    RateLimiter limiter = RateLimiter.create(stopwatch, <span class="number">5.0</span>);</span><br><span class="line">    limiter.acquire(); <span class="comment">// R0.00, since it&#x27;s the first request</span></span><br><span class="line">    limiter.acquire(); <span class="comment">// R0.20</span></span><br><span class="line">    limiter.acquire(); <span class="comment">// R0.20</span></span><br><span class="line">    assertEvents(<span class="string">&quot;R0.00&quot;</span>, <span class="string">&quot;R0.20&quot;</span>, <span class="string">&quot;R0.20&quot;</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>从这里基本可以看出，首先通过 RateLimiter.create 的静态方法创建一个限流器，然后应用程序在执行业务逻辑之前先调研限流器的 acquire 方法申请许可，接下来我们将循着这个流程来探讨其实现思路。</p>
-<h2 id="3、探究-SmoothBursty-实现原理"><a href="#3、探究-SmoothBursty-实现原理" class="headerlink" title="3、探究 SmoothBursty 实现原理"></a>3、探究 SmoothBursty 实现原理</h2><h4 id="3-1-SmoothBursty-创建流程"><a href="#3-1-SmoothBursty-创建流程" class="headerlink" title="3.1 SmoothBursty 创建流程"></a>3.1 SmoothBursty 创建流程</h4><p>从上面的示例来看，应用程序首先通过 RateLimiter 的静态方法创建一个限流器，其代码如下：<br>RateLimiter#create</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> RateLimiter <span class="title">create</span><span class="params">(SleepingStopwatch stopwatch, <span class="keyword">double</span> permitsPerSecond)</span> </span>&#123; <span class="comment">// @1</span></span><br><span class="line">    RateLimiter rateLimiter = <span class="keyword">new</span> SmoothBursty(stopwatch, <span class="number">1.0</span>);                                  <span class="comment">// @2</span></span><br><span class="line">    rateLimiter.setRate(permitsPerSecond);                                                                    <span class="comment">// @3</span></span><br><span class="line">    <span class="keyword">return</span> rateLimiter;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>代码@1：首先先介绍方法的参数：</p>
-<ul>
-<li>SleepingStopwatch stopwatch<br>秒表，主要是实现当前从启动开始已消耗的时间，有点类似计算一个操作耗时，实现精度纳秒。</li>
-<li>double permitsPerSecond<br>每秒的许可数，即通常我们说的限流TPS。</li>
-</ul>
-<p>代码@2：创建 SmoothBursty 对象。</p>
-<p>代码@3：调用 setRate API 设置其速率器。<br>接下来我们对其进行展开。</p>
-<h5 id="3-1-1-SmoothBursty-构造函数"><a href="#3-1-1-SmoothBursty-构造函数" class="headerlink" title="3.1.1 SmoothBursty 构造函数"></a>3.1.1 SmoothBursty 构造函数</h5><p>SmoothBursty 构造函数</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">SmoothBursty(SleepingStopwatch stopwatch, <span class="keyword">double</span> maxBurstSeconds) &#123;</span><br><span class="line">    <span class="keyword">super</span>(stopwatch);</span><br><span class="line">    <span class="keyword">this</span>.maxBurstSeconds = maxBurstSeconds;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>这里主要是为 stopWatch 与 maxBurstSeconds 赋值，其中 maxBurstSeconds 为允许的突发流量的时间，这里默认为 1.0，表示一秒，会影响最大可存储的许可数。</p>
-<h5 id="3-1-2-RateLimiter-setRate-方法详解"><a href="#3-1-2-RateLimiter-setRate-方法详解" class="headerlink" title="3.1.2 RateLimiter setRate 方法详解"></a>3.1.2 RateLimiter setRate 方法详解</h5><p>RateLimiter#setRate</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">final</span> <span class="keyword">void</span> <span class="title">setRate</span><span class="params">(<span class="keyword">double</span> permitsPerSecond)</span> </span>&#123;</span><br><span class="line">    checkArgument(</span><br><span class="line">        permitsPerSecond &gt; <span class="number">0.0</span> &amp;&amp; !Double.isNaN(permitsPerSecond), <span class="string">&quot;rate must be positive&quot;</span>);</span><br><span class="line">    <span class="keyword">synchronized</span> (mutex()) &#123; <span class="comment">// @1</span></span><br><span class="line">      doSetRate(permitsPerSecond, stopwatch.readMicros()); <span class="comment">// @2</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>代码@1：该方法需要获取该类的监视器，在同步代码块中执行，实现线程安全性。</p>
-<p>代码@2：调用 doSetRate 设置速率，将调用其具体实现类 SmoothRateLimiter 的 doSetRate 方法。</p>
-<p>SmoothRateLimiter#doSetRate</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">final</span> <span class="keyword">void</span> <span class="title">doSetRate</span><span class="params">(<span class="keyword">double</span> permitsPerSecond, <span class="keyword">long</span> nowMicros)</span> </span>&#123; <span class="comment">// @1</span></span><br><span class="line">    resync(nowMicros);   <span class="comment">// @2</span></span><br><span class="line">    <span class="keyword">double</span> stableIntervalMicros = SECONDS.toMicros(<span class="number">1L</span>) / permitsPerSecond;  <span class="comment">// @3</span></span><br><span class="line">    <span class="keyword">this</span>.stableIntervalMicros = stableIntervalMicros;                                              </span><br><span class="line">    doSetRate(permitsPerSecond, stableIntervalMicros);                                      <span class="comment">// @4</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>代码@1：先来介绍一下该方法的参数的含义：</p>
-<ul>
-<li>double permitsPerSecond<br>每秒的许可数，即TPS。</li>
-<li>long nowMicros<br>系统已运行时间。</li>
-</ul>
-<p>代码@2：基于当前时间重置 SmoothRateLimiter 内部的 storedPermits (已存储的许可数量) 与 nextFreeTicketMicros (下一次可以免费获取许可的时间) 值，所谓的免费指的是无需等待就可以获取设定速率的许可，该方法对理解限流许可的产生非常关键，稍后详细介绍。</p>
-        
-          <p class="article-more-link">
-            <a href="/2020/12/08/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90%20RateLimiter%20SmoothBursty%20%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86(%E6%96%87%E6%9C%AB%E9%99%84%E6%B5%81%E7%A8%8B%E5%9B%BE)/#more">Read More</a>
-          </p>
-        
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="http://example.com/2020/12/08/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90%20RateLimiter%20SmoothBursty%20%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86(%E6%96%87%E6%9C%AB%E9%99%84%E6%B5%81%E7%A8%8B%E5%9B%BE)/" data-id="ckig4lif9002im4rg56hp582n" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/sentinel/" rel="tag">sentinel</a></li></ul>
-
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-Sentinel FlowSlot 限流实现原理(文末附流程图与总结)" class="article article-type-post" itemscope itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/2020/12/08/Sentinel%20FlowSlot%20%E9%99%90%E6%B5%81%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86(%E6%96%87%E6%9C%AB%E9%99%84%E6%B5%81%E7%A8%8B%E5%9B%BE%E4%B8%8E%E6%80%BB%E7%BB%93)/" class="article-date">
-  <time datetime="2020-12-08T14:50:35.000Z" itemprop="datePublished">2020-12-08</time>
-</a>
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/sentinel/">sentinel</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/2020/12/08/Sentinel%20FlowSlot%20%E9%99%90%E6%B5%81%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86(%E6%96%87%E6%9C%AB%E9%99%84%E6%B5%81%E7%A8%8B%E5%9B%BE%E4%B8%8E%E6%80%BB%E7%BB%93)/">Sentinel FlowSlot 限流实现原理(文末附流程图与总结)</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <p>Sentinel 触发限流的实现类为 FlowSlot。我们再来简单思考一下，要实现触发限流，至少需要完成如下几件事情：</p>
-<ul>
-<li>收集实时调用信息。</li>
-<li>设置触发限流规则</li>
-<li>根据限流规则与调用信息来决定是否对请求进行限流等。</li>
-</ul>
-<p>如何收集实时调用信息在前面的文章中已详细介绍，请带着上述问题开始本节的探讨。<br>@<a href="%E6%9C%AC%E8%8A%82%E7%9B%AE%E5%BD%95">TOC</a></p>
-<h2 id="1、初始-FlowSlot"><a href="#1、初始-FlowSlot" class="headerlink" title="1、初始 FlowSlot"></a>1、初始 FlowSlot</h2><p>我们先从 FlotSlot 类的注释来简单认识一下流量控制相关的内容。</p>
-<ul>
-<li>根据已（NodeSelectorSlot、ClusterNodeBuilderSlot 和 StatisticSlot）收集的运行时统计信息，FlowSlot将使用预先设置的规则来决定是否应阻止传入请求。</li>
-<li>SphU.entry(resourceName)调用时，如果有任意一条规则被触发则会抛出 FlowException 异常，应用程序可捕捉该异常对业务进行定制化处理。</li>
-<li>每一条流控规则(FlowRule)都包含三个要素：流控类别、基于调用链的流控制策略、限流后的处理行为(参考FlowRule相关的注释)。<ul>
-<li><pre><code>grade 流量控制的阈值类型</code></pre>
-可选值：QPS(基于QPS限流策略)、并发线程数。</li>
-<li>strategy 基于调用链的流控制策略<br>可选值：STRATEGY_DIRECT(根据调用方限流策略)、STRATEGY_RELATE(关联流量限<br>流策略)、STRATEGY_CHAIN(根据调用链入口限流策略)</li>
-<li>controlBehavior 流量控制后的采取的行为<br>CONTROL_BEHAVIOR_DEFAULT(直接拒绝)、CONTROL_BEHAVIOR_WARM_UP(预热)、CONTROL_BEHAVIOR_RATE_LIMITER(匀速排队)、<br>CONTROL_BEHAVIOR_WARM_UP_RATE_LIMITER(预热与匀速排队)。</li>
-</ul>
+<li><p>软引用(SoftReference)：当内存足够时，该引用【引用的对象】不会被回收，那什么是内存足够呢？进行年轻代的垃圾回收不会触发SoftReference所指向对象的回收,如果触发Full GC，那SoftReference所指向的对象将被回收。</p>
+</li>
+<li><p>弱引用(WeakReference) :当进行年轻代垃圾回收时，该引用指向的对象，就会被回收。</p>
+</li>
+<li><p>虚引用(PhantomeReference) 该引用指向的对象，无法对垃圾收集器收集对象时产生任何影响，唯一有用的是，如果被垃圾收集器收集的对象，被PhantomeReference标记，垃圾收集器会通过注册在PhantomeReference上的队列来通知应用程序，该引用指向的对象，已经被垃圾收集器回收。</p>
 </li>
 </ul>
-<h2 id="2、FlowSlot-详解"><a href="#2、FlowSlot-详解" class="headerlink" title="2、FlowSlot 详解"></a>2、FlowSlot 详解</h2><h4 id="2-1-FlowSlot-类图"><a href="#2-1-FlowSlot-类图" class="headerlink" title="2.1 FlowSlot 类图"></a>2.1 FlowSlot 类图</h4><p><img src="https://img-blog.csdnimg.cn/20200315193331252.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>FlowSlot 的类图非常简单，内部持有一个成员变量，FlowRuleChecker，用来判断是否满足流控触发条件。</p>
-<p>在继续探讨 Sentinel 限流之前，我们先来了解一下 FlowRule，即认识一下 Sentienl 流控规则主要包含哪些配置项，为后续的流程做一个消息的准备。</p>
-<h4 id="2-2-FlowRule-配置项"><a href="#2-2-FlowRule-配置项" class="headerlink" title="2.2 FlowRule 配置项"></a>2.2 FlowRule 配置项</h4><p>FlowRule 的类体系如图所示：<br><img src="https://img-blog.csdnimg.cn/20200315193402645.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>其属性的含义如下：</p>
-<ul>
-<li>String resource<br>资源的名称。</li>
-<li>String limitApp<br>需要限制的调用来源，对应【新增流控规则界面】的针对来源。</li>
-<li>int grade<br>流量控制的阈值类型，目前支持 QPS 与 并发线程数，对应 【新增流控规则界面】的阔值类型。</li>
-<li>int strategy<br>基于调用链的流量控制策略，对应【新增流控规则界面】的流控模式，其可选取值在本文开头部分有详细介绍。</li>
-<li>String refResource<br>关联资源或入口资源，当流控模式为关联或链路时配置的关联资源或入口资源，对应【新增流控规则界面】的【入口资源】</li>
-<li>int controlBehavior<br>流量控制后的采取的行为，其可选取值在本文开头部分有详细介绍，对应【新增流控规则界面】的流控效果。</li>
-<li>int warmUpPeriodSec<br>预热时间，如果 controlBehavior 设置为预热(warm up)时，可以配置其预热时间，在【新增流控规则界面】中选择 warm up 类型后，会增加一行，供用户配置，默认值 10s。</li>
-<li>int maxQueueingTimeMs<br>最大超时时间，如果 controlBehavior 设置为排队等待时，等待的最大超时时间，默认为500ms。</li>
-<li>boolean clusterMode<br>是否是集群限流模式，对应【新增流控规则界面】的是否集群。</li>
-<li>ClusterFlowConfig clusterConfig<br>集群扩容相关配置，集群限流将在后续文章中重点介绍。</li>
-</ul>
-<p>在 sentinel-dashboard 的配置界面如下图所示：<br><img src="https://img-blog.csdnimg.cn/20200315193551464.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"></p>
+<p>从上文的描述，也清楚的知道，上述应用是直接JVM打交道，更直接的说是与垃圾回收器直接的交互。</p>
         
           <p class="article-more-link">
-            <a href="/2020/12/08/Sentinel%20FlowSlot%20%E9%99%90%E6%B5%81%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86(%E6%96%87%E6%9C%AB%E9%99%84%E6%B5%81%E7%A8%8B%E5%9B%BE%E4%B8%8E%E6%80%BB%E7%BB%93)/#more">Read More</a>
+            <a href="/2020/12/09/java%20Reference%20%E5%BC%95%E7%94%A8%E5%AD%A6%E4%B9%A0%E6%80%BB%E7%BB%93/#more">Read More</a>
           </p>
         
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://example.com/2020/12/08/Sentinel%20FlowSlot%20%E9%99%90%E6%B5%81%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86(%E6%96%87%E6%9C%AB%E9%99%84%E6%B5%81%E7%A8%8B%E5%9B%BE%E4%B8%8E%E6%80%BB%E7%BB%93)/" data-id="ckig4lifr003pm4rg6qtq62ia" class="article-share-link">Share</a>
+      <a data-url="http://example.com/2020/12/09/java%20Reference%20%E5%BC%95%E7%94%A8%E5%AD%A6%E4%B9%A0%E6%80%BB%E7%BB%93/" data-id="ckiibfos8001ppkrg7qd4gt1w" class="article-share-link">Share</a>
       
       
-  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/sentinel/" rel="tag">sentinel</a></li></ul>
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/java-reference/" rel="tag">java reference</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-Mybatis一二级缓存实现原理与使用指南" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2020/12/09/Mybatis%E4%B8%80%E4%BA%8C%E7%BA%A7%E7%BC%93%E5%AD%98%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86%E4%B8%8E%E4%BD%BF%E7%94%A8%E6%8C%87%E5%8D%97/" class="article-date">
+  <time datetime="2020-12-09T15:08:35.000Z" itemprop="datePublished">2020-12-09</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/mybatis/">mybatis</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/2020/12/09/Mybatis%E4%B8%80%E4%BA%8C%E7%BA%A7%E7%BC%93%E5%AD%98%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86%E4%B8%8E%E4%BD%BF%E7%94%A8%E6%8C%87%E5%8D%97/">Mybatis一二级缓存实现原理与使用指南</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>Mybatis 与 Hibernate 一样，支持一二级缓存。一级缓存指的是 Session 级别的缓存，即在一个会话中多次执行同一条 SQL 语句并且参数相同，则后面的查询将不会发送到数据库，直接从 Session 缓存中获取。二级缓存，指的是 SessionFactory 级别的缓存，即不同的会话可以共享。</p>
+<p>缓存，通常涉及到缓存的写、读、过期(更新缓存)等几个方面，请带着这些问题一起来探究Mybatis关于缓存的实现原理吧。</p>
+<blockquote>
+<p>提出问题：缓存的查询顺序，是先查一级缓存还是二级缓存？</p>
+</blockquote>
+<p>本文以SQL查询与更新两个流程来揭开Mybatis缓存实现的细节。</p>
+<h2 id="1、从-SQL-查询流程看一二级缓存"><a href="#1、从-SQL-查询流程看一二级缓存" class="headerlink" title="1、从 SQL 查询流程看一二级缓存"></a>1、从 SQL 查询流程看一二级缓存</h2><blockquote>
+<p>温馨提示，本文不会详细介绍详细的 SQL 执行流程，如果对其感兴趣，可以查阅笔者的另外一篇文章：<a target="_blank" rel="noopener" href="https://blog.csdn.net/prestigeding/article/details/90647674">源码分析Mybatis SQL执行流程</a></p>
+</blockquote>
+<h3 id="1-1-创建Executor"><a href="#1-1-创建Executor" class="headerlink" title="1.1 创建Executor"></a>1.1 创建Executor</h3><p>Configuration#newExecutor</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> Executor <span class="title">newExecutor</span><span class="params">(Transaction transaction, ExecutorType executorType)</span> </span>&#123;</span><br><span class="line">	executorType = executorType == <span class="keyword">null</span> ? defaultExecutorType : executorType;</span><br><span class="line">    executorType = executorType == <span class="keyword">null</span> ? ExecutorType.SIMPLE : executorType;</span><br><span class="line">    Executor executor;</span><br><span class="line">    <span class="keyword">if</span> (ExecutorType.BATCH == executorType) &#123;</span><br><span class="line">      executor = <span class="keyword">new</span> BatchExecutor(<span class="keyword">this</span>, transaction);</span><br><span class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> (ExecutorType.REUSE == executorType) &#123;</span><br><span class="line">      executor = <span class="keyword">new</span> ReuseExecutor(<span class="keyword">this</span>, transaction);</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">      executor = <span class="keyword">new</span> SimpleExecutor(<span class="keyword">this</span>, transaction);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (cacheEnabled) &#123;                                                           <span class="comment">// @1</span></span><br><span class="line">      executor = <span class="keyword">new</span> CachingExecutor(executor);                 <span class="comment">// @2</span></span><br><span class="line">    &#125;</span><br><span class="line">    executor = (Executor) interceptorChain.pluginAll(executor);</span><br><span class="line">    <span class="keyword">return</span> executor;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>代码@1：如果 cacheEnabled 为 true，表示开启缓存机制，缓存的实现类为 CachingExecutor，这里使用了经典的装饰模式，处理了缓存的相关逻辑后，委托给的具体的 Executor 执行。</p>
+<p>cacheEnable 在实际的使用中通过在 mybatis-config.xml 文件中指定，例如：</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">configuration</span>&gt;</span></span><br><span class="line">	<span class="tag">&lt;<span class="name">settings</span>&gt;</span></span><br><span class="line">		<span class="tag">&lt;<span class="name">setting</span> <span class="attr">name</span>=<span class="string">&quot;cacheEnabled&quot;</span> <span class="attr">value</span>=<span class="string">&quot;true&quot;</span>&gt;</span></span><br><span class="line">	<span class="tag">&lt;/<span class="name">settings</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">configuration</span>&gt;</span></span><br></pre></td></tr></table></figure>
+<p>该值默认为true。</p>
+<h3 id="1-2-CachingExecutor-query"><a href="#1-2-CachingExecutor-query" class="headerlink" title="1.2 CachingExecutor#query"></a>1.2 CachingExecutor#query</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> &lt;E&gt; <span class="function">List&lt;E&gt; <span class="title">query</span><span class="params">(MappedStatement ms, Object parameterObject, RowBounds rowBounds, ResultHandler resultHandler)</span> <span class="keyword">throws</span> SQLException </span>&#123;</span><br><span class="line">    BoundSql boundSql = ms.getBoundSql(parameterObject);  <span class="comment">// @1</span></span><br><span class="line">    CacheKey key = createCacheKey(ms, parameterObject, rowBounds, boundSql);   <span class="comment">// @2</span></span><br><span class="line">    <span class="keyword">return</span> query(ms, parameterObject, rowBounds, resultHandler, key, boundSql);       <span class="comment">// @3</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>代码@1：根据参数生成SQL语句。</p>
+<p>代码@2：根据 MappedStatement、参数、分页参数、SQL 生成缓存 Key。</p>
+<p>代码@3：调用6个参数的 query 方法。</p>
+<p>缓存 Key 的创建比较简单，本文就只贴出代码，大家一目了然,大家重点关注组成缓存Key的要素。<br>BaseExecute#createCacheKey</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> CacheKey <span class="title">createCacheKey</span><span class="params">(MappedStatement ms, Object parameterObject, RowBounds rowBounds, BoundSql boundSql)</span> </span>&#123;</span><br><span class="line">  <span class="keyword">if</span> (closed) &#123;</span><br><span class="line">    <span class="keyword">throw</span> <span class="keyword">new</span> ExecutorException(<span class="string">&quot;Executor was closed.&quot;</span>);</span><br><span class="line">  &#125;</span><br><span class="line">  CacheKey cacheKey = <span class="keyword">new</span> CacheKey();</span><br><span class="line">  cacheKey.update(ms.getId());</span><br><span class="line">  cacheKey.update(rowBounds.getOffset());</span><br><span class="line">  cacheKey.update(rowBounds.getLimit());</span><br><span class="line">  cacheKey.update(boundSql.getSql());</span><br><span class="line">  List&lt;ParameterMapping&gt; parameterMappings = boundSql.getParameterMappings();</span><br><span class="line">  TypeHandlerRegistry typeHandlerRegistry = ms.getConfiguration().getTypeHandlerRegistry();</span><br><span class="line">  <span class="comment">// mimic DefaultParameterHandler logic</span></span><br><span class="line">  <span class="keyword">for</span> (ParameterMapping parameterMapping : parameterMappings) &#123;</span><br><span class="line">    <span class="keyword">if</span> (parameterMapping.getMode() != ParameterMode.OUT) &#123;</span><br><span class="line">      Object value;</span><br><span class="line">      String propertyName = parameterMapping.getProperty();</span><br><span class="line">      <span class="keyword">if</span> (boundSql.hasAdditionalParameter(propertyName)) &#123;</span><br><span class="line">        value = boundSql.getAdditionalParameter(propertyName);</span><br><span class="line">      &#125; <span class="keyword">else</span> <span class="keyword">if</span> (parameterObject == <span class="keyword">null</span>) &#123;</span><br><span class="line">        value = <span class="keyword">null</span>;</span><br><span class="line">      &#125; <span class="keyword">else</span> <span class="keyword">if</span> (typeHandlerRegistry.hasTypeHandler(parameterObject.getClass())) &#123;</span><br><span class="line">        value = parameterObject;</span><br><span class="line">      &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        MetaObject metaObject = configuration.newMetaObject(parameterObject);</span><br><span class="line">        value = metaObject.getValue(propertyName);</span><br><span class="line">      &#125;</span><br><span class="line">      cacheKey.update(value);</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">if</span> (configuration.getEnvironment() != <span class="keyword">null</span>) &#123;</span><br><span class="line">    <span class="comment">// issue #176</span></span><br><span class="line">    cacheKey.update(configuration.getEnvironment().getId());</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">return</span> cacheKey;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>接下来重点看CachingExecutor的另外一个query方法。</p>
+<p>CachingExecutor#query</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> &lt;E&gt; <span class="function">List&lt;E&gt; <span class="title">query</span><span class="params">(MappedStatement ms, Object parameterObject, RowBounds rowBounds, ResultHandler resultHandler, CacheKey key, BoundSql boundSql)</span></span></span><br><span class="line"><span class="function">      <span class="keyword">throws</span> SQLException </span>&#123;</span><br><span class="line">    Cache cache = ms.getCache();    <span class="comment">// @1</span></span><br><span class="line">    <span class="keyword">if</span> (cache != <span class="keyword">null</span>) &#123;</span><br><span class="line">      flushCacheIfRequired(ms);        <span class="comment">// @2</span></span><br><span class="line">      <span class="keyword">if</span> (ms.isUseCache() &amp;&amp; resultHandler == <span class="keyword">null</span>) &#123;</span><br><span class="line">        ensureNoOutParams(ms, boundSql);</span><br><span class="line">        <span class="meta">@SuppressWarnings(&quot;unchecked&quot;)</span></span><br><span class="line">        List&lt;E&gt; list = (List&lt;E&gt;) tcm.getObject(cache, key);      <span class="comment">// @3</span></span><br><span class="line">        <span class="keyword">if</span> (list == <span class="keyword">null</span>) &#123;                                                              <span class="comment">// @4</span></span><br><span class="line">          list = delegate.&lt;E&gt; query(ms, parameterObject, rowBounds, resultHandler, key, boundSql);    <span class="comment">//@5</span></span><br><span class="line">          tcm.putObject(cache, key, list); <span class="comment">// issue #578 and #116                                                               // @6</span></span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> list;</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> delegate.&lt;E&gt; query(ms, parameterObject, rowBounds, resultHandler, key, boundSql);  <span class="comment">//@7</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>代码@1：获取 MappedStatement 中的 Cache cache 属性。<br>代码@2：如果不为空，则尝试从缓存中获取，否则直接委托给具体的执行器执行，例如 SimpleExecutor (@7)。<br>代码@3：尝试从缓存中根据缓存 Key 查找。<br>代码@4：如果从缓存中获取的值不为空，则直接返回缓存中的值，否则先从数据库查询@5，将查询结果更新到缓存中。</p>
+<p>这里的缓存即 MappedStatement 中的 Cache 对象是一级缓存还是二级缓存？通常在 ORM 类框架中，Session 级别的缓存为一级缓存，即会话结束后就会失效，显然这里不会随着 Session 的失效而失效，因为 Cache 对象是存储在于 MappedStatement 对象中的，每一个 MappedStatement 对象代表一个 Dao(Mapper) 中的一个方法，即代表一条对应的 SQL 语句，是一个全局的概念。</p>
+<p>相信大家也会觉得，想继续深入了解 CachingExecutor 中使用的 Cache 是一级缓存还是二级缓存，了解 Cache 对象的创建至关重要。关于 MappedStatement 的创建流程，建议查阅笔者的另外一篇博文：<a target="_blank" rel="noopener" href="https://blog.csdn.net/prestigeding/article/details/90488395">源码分析Mybatis MappedStatement的创建流程</a>。</p>
+<p>本文只会关注 MappedStatement 对象流程中关于于缓存相关的部分。</p>
+<p>接下来将按照先二级缓存，再一级缓存的思路进行讲解。</p>
+<h4 id="1-2-1-二级缓存"><a href="#1-2-1-二级缓存" class="headerlink" title="1.2.1 二级缓存"></a>1.2.1 二级缓存</h4><h5 id="1-2-1-1-MappedStatement-cache属性创建机制"><a href="#1-2-1-1-MappedStatement-cache属性创建机制" class="headerlink" title="1.2.1.1 MappedStatement#cache属性创建机制"></a>1.2.1.1 MappedStatement#cache属性创建机制</h5><p>从上面看，如果 cacheEnable 为 true 并且 MappedStatement 对象的 cache 属性不为空，则能使用二级缓存。</p>
+<p>我们可以看到 MappedStatement 对象的 cache 属性赋值的地方为：MapperBuilderAssistant#addMappedStatement，从该方法的调用链可以得知是在解析 Mapper 定义的时候就会创建。<br><img src="https://img-blog.csdnimg.cn/20190826205429651.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>使用的 cache 属性为 MapperBuilderAssistant 的 currentCache,我们跟踪一下该属性的赋值方法：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> Cache <span class="title">useCacheRef</span><span class="params">(String namespace)</span></span></span><br></pre></td></tr></table></figure>
+<p>其调用链如下：<br><img src="https://img-blog.csdnimg.cn/2019082620552683.png" alt="在这里插入图片描述"><br>可以看出是在解析 cacheRef 标签，即在解析 Mapper.xml 文件中的 cacheRef 标签时，即二级缓存的使用和 cacheRef 标签离不开关系，并且特别注意一点，其参数为 namespace，即每一个 namespace 对应一个 Cache 对象，在 Mybatis 的方法中，通常namespace 对一个 Mapper.java 对象，对应对数据库一张表的更新、新增操作。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> Cache useNewCache</span><br></pre></td></tr></table></figure>
+<p>其调用链如下图所示：<br><img src="https://img-blog.csdnimg.cn/20190826205659301.png" alt="在这里插入图片描述">在解析 Mapper.xml 文件中的 cache 标签时被调用。</p>
+<h5 id="1-2-1-2-cache标签解析"><a href="#1-2-1-2-cache标签解析" class="headerlink" title="1.2.1.2 cache标签解析"></a>1.2.1.2 cache标签解析</h5><p>接下来我们根据 cache 标签简单看一下 cache 标签的解析，下面以 xml 配置方式为例展开，基于注解的解析，其原理类似，其代码 XMLMapperBuilder 的 cacheElement 方法。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">cacheElement</span><span class="params">(XNode context)</span> <span class="keyword">throws</span> Exception </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (context != <span class="keyword">null</span>) &#123;</span><br><span class="line">      String type = context.getStringAttribute(<span class="string">&quot;type&quot;</span>, <span class="string">&quot;PERPETUAL&quot;</span>);                                                      </span><br><span class="line">      Class&lt;? extends Cache&gt; typeClass = typeAliasRegistry.resolveAlias(type);</span><br><span class="line">      String eviction = context.getStringAttribute(<span class="string">&quot;eviction&quot;</span>, <span class="string">&quot;LRU&quot;</span>);</span><br><span class="line">      Class&lt;? extends Cache&gt; evictionClass = typeAliasRegistry.resolveAlias(eviction);</span><br><span class="line">      Long flushInterval = context.getLongAttribute(<span class="string">&quot;flushInterval&quot;</span>);</span><br><span class="line">      Integer size = context.getIntAttribute(<span class="string">&quot;size&quot;</span>);</span><br><span class="line">      <span class="keyword">boolean</span> readWrite = !context.getBooleanAttribute(<span class="string">&quot;readOnly&quot;</span>, <span class="keyword">false</span>);</span><br><span class="line">      <span class="keyword">boolean</span> blocking = context.getBooleanAttribute(<span class="string">&quot;blocking&quot;</span>, <span class="keyword">false</span>);</span><br><span class="line">      Properties props = context.getChildrenAsProperties();</span><br><span class="line">      builderAssistant.useNewCache(typeClass, evictionClass, flushInterval, size, readWrite, blocking, props);</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure>
+<p>从上面 cache 标签的核心属性如下：</p>
+<ul>
+<li>type<br>缓存实现类，可选择值：PERPETUAL、LRU 等，Mybatis 中所有的缓存实现类如下：<br><img src="https://img-blog.csdnimg.cn/2019082620593518.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"></li>
+<li>eviction<br>移除算法，默认为 LRU。</li>
+<li>flushInterval<br>缓存过期时间。</li>
+<li>size<br>缓存在内存中的缓存个数。</li>
+<li>readOnly<br>是否是只读。</li>
+<li>blocking<br>是否阻塞，具体实现请看 BlockingCache。</li>
+</ul>
+<h5 id="1-2-1-3-cacheRef"><a href="#1-2-1-3-cacheRef" class="headerlink" title="1.2.1.3 cacheRef"></a>1.2.1.3 cacheRef</h5><p><img src="https://img-blog.csdnimg.cn/20190826210042752.png" alt="在这里插入图片描述"><br>cacheRef 只有一个属性，就是 namespace，就是引用其他 namespace 中的 cache。</p>
+<p>Cache 的创建流程就讲解到这里，同一个 Namespace 只会定义一个 Cache。二级缓存的创建是在 *Mapper.xml 文件中使用了&lt; cache/&gt;、&lt; cacheRef/&gt;标签时创建，并且会按 NameSpace 为维度，为各个 MapperStatement 传入它所属的 Namespace 的二级缓存对象。</p>
+<p>二级缓存的查询逻辑就介绍到这里了，我们再次回成 CacheingExecutor 的查询方法：<br>CachingExecutor#query</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> &lt;E&gt; <span class="function">List&lt;E&gt; <span class="title">query</span><span class="params">(MappedStatement ms, Object parameterObject, RowBounds rowBounds, ResultHandler resultHandler, CacheKey key, BoundSql boundSql)</span></span></span><br><span class="line"><span class="function">      <span class="keyword">throws</span> SQLException </span>&#123;</span><br><span class="line">    Cache cache = ms.getCache();    <span class="comment">// @1</span></span><br><span class="line">    <span class="keyword">if</span> (cache != <span class="keyword">null</span>) &#123;</span><br><span class="line">      flushCacheIfRequired(ms);        <span class="comment">// @2</span></span><br><span class="line">      <span class="keyword">if</span> (ms.isUseCache() &amp;&amp; resultHandler == <span class="keyword">null</span>) &#123;</span><br><span class="line">        ensureNoOutParams(ms, boundSql);</span><br><span class="line">        <span class="meta">@SuppressWarnings(&quot;unchecked&quot;)</span></span><br><span class="line">        List&lt;E&gt; list = (List&lt;E&gt;) tcm.getObject(cache, key);      <span class="comment">// @3</span></span><br><span class="line">        <span class="keyword">if</span> (list == <span class="keyword">null</span>) &#123;                                                              <span class="comment">// @4</span></span><br><span class="line">          list = delegate.&lt;E&gt; query(ms, parameterObject, rowBounds, resultHandler, key, boundSql);    <span class="comment">//@5</span></span><br><span class="line">          tcm.putObject(cache, key, list); <span class="comment">// issue #578 and #116                                                               // @6</span></span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> list;</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> delegate.&lt;E&gt; query(ms, parameterObject, rowBounds, resultHandler, key, boundSql);  <span class="comment">//@7</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>如果 MappedStatement 的 cache 属性为空，则直接调用内部的 Executor 的查询方法。也就时如果在 *.Mapper.xm l文件中未定义&lt; cache/&gt;或&lt; cacheRef/&gt;，则 cache 属性会为空。</p>
+<h4 id="1-2-2-一级缓存"><a href="#1-2-2-一级缓存" class="headerlink" title="1.2.2 一级缓存"></a>1.2.2 一级缓存</h4><p>Mybatis 根据 SQL 的类型共有如下3种 Executor类型，分别是 SIMPLE,  REUSE, BATCH，本文将以 SimpleExecutor为 例来对一级缓存的介绍。</p>
+<p>BaseExecutor#query</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> &lt;E&gt; <span class="function">List&lt;E&gt; <span class="title">query</span><span class="params">(MappedStatement ms, Object parameter, RowBounds rowBounds, ResultHandler resultHandler, CacheKey key, BoundSql boundSql)</span> <span class="keyword">throws</span> SQLException </span>&#123;</span><br><span class="line">    ErrorContext.instance().resource(ms.getResource()).activity(<span class="string">&quot;executing a query&quot;</span>).object(ms.getId());</span><br><span class="line">    <span class="keyword">if</span> (closed) &#123;</span><br><span class="line">      <span class="keyword">throw</span> <span class="keyword">new</span> ExecutorException(<span class="string">&quot;Executor was closed.&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (queryStack == <span class="number">0</span> &amp;&amp; ms.isFlushCacheRequired()) &#123;   <span class="comment">// @1</span></span><br><span class="line">      clearLocalCache();</span><br><span class="line">    &#125;</span><br><span class="line">    List&lt;E&gt; list;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">      queryStack++;                                                              </span><br><span class="line">      list = resultHandler == <span class="keyword">null</span> ? (List&lt;E&gt;) localCache.getObject(key) : <span class="keyword">null</span>;     <span class="comment">// @2</span></span><br><span class="line">      <span class="keyword">if</span> (list != <span class="keyword">null</span>) &#123;</span><br><span class="line">        handleLocallyCachedOutputParameters(ms, key, parameter, boundSql);</span><br><span class="line">      &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        list = queryFromDatabase(ms, parameter, rowBounds, resultHandler, key, boundSql);   <span class="comment">// @3</span></span><br><span class="line">      &#125;</span><br><span class="line">    &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">      queryStack--;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (queryStack == <span class="number">0</span>) &#123;</span><br><span class="line">      <span class="keyword">for</span> (DeferredLoad deferredLoad : deferredLoads) &#123;</span><br><span class="line">        deferredLoad.load();</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="comment">// issue #601</span></span><br><span class="line">      deferredLoads.clear();</span><br><span class="line">      <span class="keyword">if</span> (configuration.getLocalCacheScope() == LocalCacheScope.STATEMENT) &#123;</span><br><span class="line">        <span class="comment">// issue #482</span></span><br><span class="line">        clearLocalCache();</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> list;</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure>
+<p>代码@1：queryStack：查询栈，每次查询之前，加一，查询返回结果后减一，如果为1，表示整个会会话中没有执行的查询语句，并根据 MappedStatement 是否需要执行清除缓存，如果是查询类的请求，无需清除缓存，如果是更新类操作的MappedStatemt，每次执行之前都需要清除缓存。<br>代码@2：如果缓存中存在，直接返回缓存中的数据。<br>代码@3：如果缓存未命中，则调用 queryFromDatabase 从数据中查询。</p>
+<p>我们顺便看一下 queryFromDatabase 方法，再来看一下一级缓存的实现类。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> &lt;E&gt; <span class="function">List&lt;E&gt; <span class="title">queryFromDatabase</span><span class="params">(MappedStatement ms, Object parameter, RowBounds rowBounds, ResultHandler resultHandler, CacheKey key, BoundSql boundSql)</span> <span class="keyword">throws</span> SQLException </span>&#123;</span><br><span class="line">   List&lt;E&gt; list;</span><br><span class="line">   localCache.putObject(key, EXECUTION_PLACEHOLDER);   <span class="comment">//@!</span></span><br><span class="line">   <span class="keyword">try</span> &#123;</span><br><span class="line">     list = doQuery(ms, parameter, rowBounds, resultHandler, boundSql);   <span class="comment">// @2</span></span><br><span class="line">   &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">     localCache.removeObject(key);                                                            <span class="comment">// @3</span></span><br><span class="line">   &#125;</span><br><span class="line">   localCache.putObject(key, list);                                                              <span class="comment">// @4</span></span><br><span class="line">   <span class="keyword">if</span> (ms.getStatementType() == StatementType.CALLABLE) &#123;</span><br><span class="line">     localOutputParameterCache.putObject(key, parameter);</span><br><span class="line">   &#125;</span><br><span class="line">   <span class="keyword">return</span> list;</span><br><span class="line"> &#125;</span><br></pre></td></tr></table></figure>
+<p>代码@1：先往本地遍历存储一个厂里，表示正在执行中。<br>代码@2：从数据中查询数据。<br>代码@3：先移除正在执行中的标记。<br>代码@4：将数据库中的值存储到一级缓存中。</p>
+<p>可以看出一级缓存的属性为 localCache，为 Executor 的属性。如果大家看过笔者发布的这个 Mybatis 系列就能轻易得出一个结论，每一个 SQL 会话对应一个 SqlSession 对象，每一个 SqlSession 会对应一个 Executor 对象，故 Executor 级别的缓存即为Session 级别的缓存，即为 Mybatis 的一级缓存。</p>
+<p>上面已经介绍了一二级缓存的查找与添加，在查询的时候，首先查询缓存，如果缓存未命中，则查询数据库，然后将查询到的结果存入缓存中。</p>
+<p>下面我们来简单看看缓存的更新。</p>
+<h2 id="2、从SQL更新流程看一二级缓存"><a href="#2、从SQL更新流程看一二级缓存" class="headerlink" title="2、从SQL更新流程看一二级缓存"></a>2、从SQL更新流程看一二级缓存</h2><p>从更新的角度，更加的是关注缓存的更新，即当数据发生变化后，如果清除对应的缓存。</p>
+        
+          <p class="article-more-link">
+            <a href="/2020/12/09/Mybatis%E4%B8%80%E4%BA%8C%E7%BA%A7%E7%BC%93%E5%AD%98%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86%E4%B8%8E%E4%BD%BF%E7%94%A8%E6%8C%87%E5%8D%97/#more">Read More</a>
+          </p>
+        
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://example.com/2020/12/09/Mybatis%E4%B8%80%E4%BA%8C%E7%BA%A7%E7%BC%93%E5%AD%98%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86%E4%B8%8E%E4%BD%BF%E7%94%A8%E6%8C%87%E5%8D%97/" data-id="ckiibfotm004vpkrg4irxgusn" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/mybatis/" rel="tag">mybatis</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-源码分析Mybatis插件(Plugin)机制与实战" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2020/12/09/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90Mybatis%E6%8F%92%E4%BB%B6(Plugin)%E6%9C%BA%E5%88%B6%E4%B8%8E%E5%AE%9E%E6%88%98/" class="article-date">
+  <time datetime="2020-12-09T15:07:35.000Z" itemprop="datePublished">2020-12-09</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/mybatis/">mybatis</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/2020/12/09/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90Mybatis%E6%8F%92%E4%BB%B6(Plugin)%E6%9C%BA%E5%88%B6%E4%B8%8E%E5%AE%9E%E6%88%98/">源码分析Mybatis插件(Plugin)机制与实战</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <blockquote>
+<p>温馨提示：本文也是以提问式阅读与探究源码的技巧展示。</p>
+</blockquote>
+<h2 id="1、回顾"><a href="#1、回顾" class="headerlink" title="1、回顾"></a>1、回顾</h2><p>从前面的文章我们已经知道，Mybatis在执行SQL语句的扩展点为Executor、StatementHandler、ParameterHandler与ResultSetHandler，我们本节将以Executor为入口，向大家展示Mybatis插件的扩展机制。</p>
+<p>我们先来看回顾一下Mybatis Executor的创建入口。</p>
+<h3 id="1-1-Configuration-newExecutor"><a href="#1-1-Configuration-newExecutor" class="headerlink" title="1.1 Configuration#newExecutor"></a>1.1 Configuration#newExecutor</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> Executor <span class="title">newExecutor</span><span class="params">(Transaction transaction, ExecutorType executorType)</span> </span>&#123;</span><br><span class="line">  executorType = executorType == <span class="keyword">null</span> ? defaultExecutorType : executorType;</span><br><span class="line">  executorType = executorType == <span class="keyword">null</span> ? ExecutorType.SIMPLE : executorType;</span><br><span class="line">  Executor executor;</span><br><span class="line">  <span class="keyword">if</span> (ExecutorType.BATCH == executorType) &#123;</span><br><span class="line">    executor = <span class="keyword">new</span> BatchExecutor(<span class="keyword">this</span>, transaction);</span><br><span class="line">  &#125; <span class="keyword">else</span> <span class="keyword">if</span> (ExecutorType.REUSE == executorType) &#123;</span><br><span class="line">    executor = <span class="keyword">new</span> ReuseExecutor(<span class="keyword">this</span>, transaction);</span><br><span class="line">  &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">    executor = <span class="keyword">new</span> SimpleExecutor(<span class="keyword">this</span>, transaction);</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">if</span> (cacheEnabled) &#123;</span><br><span class="line">    executor = <span class="keyword">new</span> CachingExecutor(executor);</span><br><span class="line">  &#125;</span><br><span class="line">  executor = (Executor) interceptorChain.pluginAll(executor);   <span class="comment">// @1</span></span><br><span class="line">  <span class="keyword">return</span> executor;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>代码@1,：使用InterceptorChain.pluginAll(executor)进行拆件化处理。</p>
+<p>思考：使用该方法调用后，会返回一个什么对象呢？如何自定义拆件，自定义插件如何执行呢？</p>
+<p>那接下来我们带着上述疑问，从InterceptorChain类开始进行深入学习。</p>
+<h2 id="2、InterceptorChain"><a href="#2、InterceptorChain" class="headerlink" title="2、InterceptorChain"></a>2、InterceptorChain</h2><p>从名字上看其大意为拦截器链。</p>
+<h3 id="2-1-类图"><a href="#2-1-类图" class="headerlink" title="2.1 类图"></a>2.1 类图</h3><p><img src="https://img-blog.csdnimg.cn/20190530205753805.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"></p>
+<ul>
+<li>InterceptorChain<br>拦截器链，其内部维护一个interceptors,表示拦截器链中所有的拦截器，并提供增加或获取拦截器链的方法，下面会重点分析pluginAll方法。</li>
+<li>Interceptor<br>拦截器接口，用户自定义的拦截器需要实现该接口。</li>
+<li>Invocation<br>拦截器执行时的上下文环境，其实就是目标方法的调用信息，包含目标对象、调用的方法信息、参数信息。其中包含一个非常重要的方法：proceed。<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> Object <span class="title">proceed</span><span class="params">()</span> <span class="keyword">throws</span> InvocationTargetException, IllegalAccessException </span>&#123;</span><br><span class="line">  <span class="keyword">return</span> method.invoke(target, args);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+该方法的主要目的就是进行处理链的传播，执行完拦截器的方法后，最终需要调用目标方法的invoke方法。</li>
+</ul>
+<p>记下来中先重点分析一下InterceptorChain方法的pluginAll方法，因为从开头也知道,Mybatis在创建对象时，是调用该方法，完成目标对象的包装。</p>
+        
+          <p class="article-more-link">
+            <a href="/2020/12/09/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90Mybatis%E6%8F%92%E4%BB%B6(Plugin)%E6%9C%BA%E5%88%B6%E4%B8%8E%E5%AE%9E%E6%88%98/#more">Read More</a>
+          </p>
+        
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://example.com/2020/12/09/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90Mybatis%E6%8F%92%E4%BB%B6(Plugin)%E6%9C%BA%E5%88%B6%E4%B8%8E%E5%AE%9E%E6%88%98/" data-id="ckiibfot6003vpkrggtdkcbts" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/mybatis/" rel="tag">mybatis</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-源码解析MyBatis Sharding-Jdbc SQL语句执行流程详解" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2020/12/09/%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90MyBatis%20Sharding-Jdbc%20SQL%E8%AF%AD%E5%8F%A5%E6%89%A7%E8%A1%8C%E6%B5%81%E7%A8%8B%E8%AF%A6%E8%A7%A3/" class="article-date">
+  <time datetime="2020-12-09T15:04:35.000Z" itemprop="datePublished">2020-12-09</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/mybatis/">mybatis</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/2020/12/09/%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90MyBatis%20Sharding-Jdbc%20SQL%E8%AF%AD%E5%8F%A5%E6%89%A7%E8%A1%8C%E6%B5%81%E7%A8%8B%E8%AF%A6%E8%A7%A3/">源码解析MyBatis Sharding-Jdbc SQL语句执行流程详解</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>本文将详细介绍Mybatis SQL语句执行的全流程，本文与上篇具有一定的关联性，建议先阅读该系列中的前面3篇文章，重点掌握Mybatis Mapper类的初始化过程，因为在Mybatis中，Mapper是执行SQL语句的入口，类似下面这段代码：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Service</span></span><br><span class="line"><span class="keyword">public</span> UserService implements IUserService &#123;</span><br><span class="line"> 	<span class="meta">@Autowired</span></span><br><span class="line">    <span class="keyword">private</span> UserMapper userMapper;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> User <span class="title">findUser</span><span class="params">(Integer id)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> userMapper.find(id);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>开始进入本文的主题，以源码为手段，分析Mybatis执行SQL语句的流行，并且使用了数据库分库分表中间件sharding-jdbc,其版本为sharding-jdbc1.4.1。</p>
+<p>为了方便大家对本文的源码分析，先给出Mybatis层面核心类的方法调用序列图。</p>
+<h2 id="1、SQL执行序列图"><a href="#1、SQL执行序列图" class="headerlink" title="1、SQL执行序列图"></a>1、SQL执行序列图</h2><p><img src="https://img-blog.csdnimg.cn/20190528210928807.jpg?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"></p>
+        
+          <p class="article-more-link">
+            <a href="/2020/12/09/%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90MyBatis%20Sharding-Jdbc%20SQL%E8%AF%AD%E5%8F%A5%E6%89%A7%E8%A1%8C%E6%B5%81%E7%A8%8B%E8%AF%A6%E8%A7%A3/#more">Read More</a>
+          </p>
+        
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://example.com/2020/12/09/%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90MyBatis%20Sharding-Jdbc%20SQL%E8%AF%AD%E5%8F%A5%E6%89%A7%E8%A1%8C%E6%B5%81%E7%A8%8B%E8%AF%A6%E8%A7%A3/" data-id="ckiibfotv005lpkrg8abo8ey2" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/mybatis/" rel="tag">mybatis</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-Mybatis执行SQL的4大基础组件详解" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2020/12/09/Mybatis%E6%89%A7%E8%A1%8CSQL%E7%9A%844%E5%A4%A7%E5%9F%BA%E7%A1%80%E7%BB%84%E4%BB%B6%E8%AF%A6%E8%A7%A3/" class="article-date">
+  <time datetime="2020-12-09T14:53:35.000Z" itemprop="datePublished">2020-12-09</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/mybatis/">mybatis</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/2020/12/09/Mybatis%E6%89%A7%E8%A1%8CSQL%E7%9A%844%E5%A4%A7%E5%9F%BA%E7%A1%80%E7%BB%84%E4%BB%B6%E8%AF%A6%E8%A7%A3/">Mybatis执行SQL的4大基础组件详解</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h2 id="1、Executor"><a href="#1、Executor" class="headerlink" title="1、Executor"></a>1、Executor</h2><p>sql执行器，其对应的类全路径：org.apache.ibatis.executor.Executor。</p>
+<h3 id="1-1-Executor类图"><a href="#1-1-Executor类图" class="headerlink" title="1.1 Executor类图"></a>1.1 Executor类图</h3><p><img src="https://img-blog.csdnimg.cn/20190526170433414.jpg?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"></p>
+<ul>
+<li><p>Executor<br>执行器根据接口，定义update(更新或插入)、query(查询)、commit(提交事务)、rollback(回滚事务)。接下来简单介绍几个重要方法：</p>
+<ul>
+<li>int update(MappedStatement ms, Object parameter) throws SQLException<br>更新或插入方法，其参数含义如下：、<br>1）MappedStatement ms：SQL映射语句（Mapper.xml文件每一个方法对应一个MappedStatement对象）<br>2）Object parameter：参数，通常是List集合。</li>
+<li>&lt; E&gt; List&lt; E&gt; query(MappedStatement ms, Object parameter, RowBounds rowBounds, ResultHandler resultHandler)<br>查询方法，其参数含义如下：<br>1）RowBounds：行边界，主要值分页参数limit、offset。<br>2）ResultHandler resultHandler：结果处理器。</li>
+<li>CacheKey createCacheKey(MappedStatement ms, Object parameterObj, RowBounds bounds, BoundSql bSql)<br>创建缓存Key，Mybatis一二级缓存的缓存Key，可以看出Key由上述4个参数来决定。<br>1）BoundSql boundSql：可以通过该对象获取SQL语句。</li>
+</ul>
+</li>
+<li><p>CachingExecutor<br>支持结果缓存的SQL执行器，注意其设计模式的应用，该类中，会持有Executor的一个委托对象，CachingExecutor关注与缓存特定的逻辑，其最终的SQL执行由其委托对象来实现，即其内部的委托对象为BaseExecutor的实现类。</p>
+</li>
+<li><p>BaseExecutor<br>Executor的基础实现类，该类为抽象类，关于查询、更新具体的实现由其子类来实现，下面4个都是其子类。</p>
+</li>
+<li><p>SimpleExecutor<br>简单的Executor执行器。</p>
+</li>
+<li><p>BatchExecutor<br>支持批量执行的Executor执行器。</p>
+</li>
+<li><p>ClosedExecutor<br>表示一个已关闭的Executor。</p>
+</li>
+<li><p>ReuseExecutor<br>支持重复使用Statement,以SQL为键，缓存Statement对象。</p>
+</li>
+</ul>
+<h3 id="1-2-创建Executor"><a href="#1-2-创建Executor" class="headerlink" title="1.2 创建Executor"></a>1.2 创建Executor</h3><p>在Mybatis中，Executor的创建由Configuration对象来创建，具体的代码如下：</p>
+<h4 id="Configuration-newExecitor"><a href="#Configuration-newExecitor" class="headerlink" title="Configuration#newExecitor"></a>Configuration#newExecitor</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> Executor <span class="title">newExecutor</span><span class="params">(Transaction transaction)</span> </span>&#123;</span><br><span class="line">  <span class="keyword">return</span> newExecutor(transaction, defaultExecutorType);   <span class="comment">// @1</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">public</span> Executor <span class="title">newExecutor</span><span class="params">(Transaction transaction, ExecutorType executorType)</span> </span>&#123;</span><br><span class="line">  executorType = executorType == <span class="keyword">null</span> ? defaultExecutorType : executorType;</span><br><span class="line">  executorType = executorType == <span class="keyword">null</span> ? ExecutorType.SIMPLE : executorType;</span><br><span class="line">  Executor executor;</span><br><span class="line">  <span class="keyword">if</span> (ExecutorType.BATCH == executorType) &#123;   <span class="comment">// @2</span></span><br><span class="line">    executor = <span class="keyword">new</span> BatchExecutor(<span class="keyword">this</span>, transaction);</span><br><span class="line">  &#125; <span class="keyword">else</span> <span class="keyword">if</span> (ExecutorType.REUSE == executorType) &#123;</span><br><span class="line">    executor = <span class="keyword">new</span> ReuseExecutor(<span class="keyword">this</span>, transaction);</span><br><span class="line">  &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">    executor = <span class="keyword">new</span> SimpleExecutor(<span class="keyword">this</span>, transaction);</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">if</span> (cacheEnabled) &#123; <span class="comment">// @3</span></span><br><span class="line">    executor = <span class="keyword">new</span> CachingExecutor(executor);</span><br><span class="line">  &#125;</span><br><span class="line">  executor = (Executor) interceptorChain.pluginAll(executor);  <span class="comment">// @4</span></span><br><span class="line">  <span class="keyword">return</span> executor;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>从上面的代码可以看出，Executor的创建由如下三个关键点：<br>代码@1：默认的ExecutorType为ExecutorType.SIMPLE，即默认创建的Executory为SimpleExecutor。<br>代码@2：根据executorType的值创建对应的Executory。<br>代码@3：如果cacheEnabled为true，则创建CachingExecutory，然后在其内部持有上面创建的Executor,cacheEnabled默认为true，则默认创建的Executor为CachingExecutor，并且其内部包裹着SimpleExecutor。<br>代码@4：使用InterceptorChain.pluginAll为executor创建代理对象，即Mybatis的拆件机制，将在该系列文章中详细介绍。</p>
+        
+          <p class="article-more-link">
+            <a href="/2020/12/09/Mybatis%E6%89%A7%E8%A1%8CSQL%E7%9A%844%E5%A4%A7%E5%9F%BA%E7%A1%80%E7%BB%84%E4%BB%B6%E8%AF%A6%E8%A7%A3/#more">Read More</a>
+          </p>
+        
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://example.com/2020/12/09/Mybatis%E6%89%A7%E8%A1%8CSQL%E7%9A%844%E5%A4%A7%E5%9F%BA%E7%A1%80%E7%BB%84%E4%BB%B6%E8%AF%A6%E8%A7%A3/" data-id="ckiibform0005pkrgbfyl0dnc" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/mybatis/" rel="tag">mybatis</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-源码分析Mybatis MappedStatement的创建流程" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2020/12/09/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90Mybatis%20MappedStatement%E7%9A%84%E5%88%9B%E5%BB%BA%E6%B5%81%E7%A8%8B/" class="article-date">
+  <time datetime="2020-12-09T14:51:35.000Z" itemprop="datePublished">2020-12-09</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/mybatis/">mybatis</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/2020/12/09/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90Mybatis%20MappedStatement%E7%9A%84%E5%88%9B%E5%BB%BA%E6%B5%81%E7%A8%8B/">源码分析Mybatis MappedStatement的创建流程</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>上文<a target="_blank" rel="noopener" href="https://blog.csdn.net/prestigeding/article/details/90415680">源码分析Mybatis MapperProxy创建流程</a>重点阐述MapperProxy的创建流程，但并没有介绍*.Mapper.java(UserMapper.java)是如何与*Mapper.xml文件中的SQL语句是如何建立关联的。本文将重点接开这个谜团。</p>
+<p>接下来重点从源码的角度分析Mybatis MappedStatement的创建流程。</p>
+<h2 id="1、上节回顾"><a href="#1、上节回顾" class="headerlink" title="1、上节回顾"></a>1、上节回顾</h2><p>我们注意到这里有两三个与Mapper相关的配置：</p>
+<ol>
+<li>SqlSessionFactory#mapperLocations，指定xml文件的配置路径。</li>
+<li>SqlSessionFactory#configLocation，指定mybaits的配置文件，该配置文件也可以配置mapper.xml的配置路径信息。</li>
+<li>MapperScannerConfigurer，扫描Mapper的java类(DAO)。</li>
+</ol>
+<p>我们已经详细介绍了Mybatis Mapper对象的扫描与构建，那接下来我们将重点介绍MaperProxy与mapper.xml文件是如何建立关联关系的。</p>
+<p>根据上面的罗列以及上文的讲述，Mapper.xml与Mapper建立联系主要的入口有三：<br>1）MapperScannerConfigurer扫描Bean流程中，在调用MapperReigistry#addMapper时如果Mapper对应的映射文件(Mapper.xml)未加载到内存，会触发加载。<br>2）实例化SqlSessionFactory时，如果配置了mapperLocations。<br>3）示例化SqlSessionFactory时，如果配置了configLocation。</p>
+<p>本节的行文思路：从SqlSessionFacotry的初始化开始讲起，因为mapperLocations、configLocation都是是SqlSessionFactory的属性。</p>
+<blockquote>
+<p>温馨提示：下面开始从源码的角度对其进行介绍，大家可以先跳到文末看看其调用序列图。</p>
+</blockquote>
+        
+          <p class="article-more-link">
+            <a href="/2020/12/09/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90Mybatis%20MappedStatement%E7%9A%84%E5%88%9B%E5%BB%BA%E6%B5%81%E7%A8%8B/#more">Read More</a>
+          </p>
+        
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://example.com/2020/12/09/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90Mybatis%20MappedStatement%E7%9A%84%E5%88%9B%E5%BB%BA%E6%B5%81%E7%A8%8B/" data-id="ckiibfot4003ppkrgg53vd2e9" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/mybatis/" rel="tag">mybatis</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-源码分析Mybatis MapperProxy初始化之Mapper对象的扫描与构建" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2020/12/09/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90Mybatis%20MapperProxy%E5%88%9D%E5%A7%8B%E5%8C%96%E4%B9%8BMapper%E5%AF%B9%E8%B1%A1%E7%9A%84%E6%89%AB%E6%8F%8F%E4%B8%8E%E6%9E%84%E5%BB%BA/" class="article-date">
+  <time datetime="2020-12-09T14:49:35.000Z" itemprop="datePublished">2020-12-09</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/mybatis/">mybatis</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/2020/12/09/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90Mybatis%20MapperProxy%E5%88%9D%E5%A7%8B%E5%8C%96%E4%B9%8BMapper%E5%AF%B9%E8%B1%A1%E7%9A%84%E6%89%AB%E6%8F%8F%E4%B8%8E%E6%9E%84%E5%BB%BA/">源码分析Mybatis MapperProxy初始化之Mapper对象的扫描与构建</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>MapperScannerConfigurer，Spring整合Mybatis的核心类，其作用是扫描项目中Dao类，将其创建为Mybatis的Maper对象即MapperProxy对象。</p>
+<p>首先进入源码学习之前，我们先看一下在项目中的配置文件信息。<br><img src="https://img-blog.csdnimg.cn/20190521205718910.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>我们注意到这里有两三个与Mapper相关的配置：</p>
+<ol>
+<li>SqlSessionFactory#mapperLocations，指定xml文件的配置路径。</li>
+<li>SqlSessionFactory#configLocation，指定mybaits的配置文件，该配置文件也可以配置mapper.xml的配置路径信息。</li>
+<li>MapperScannerConfigurer，扫描Mapper的java类(DAO)。</li>
+</ol>
+<p>本文的行文思路如下：</p>
+<ol>
+<li>Mybatis MapperProxy对象的扫描与构建</li>
+<li>Mapper类与SQL语句如何建立关联<br>这部分主要阐述Java类的运行实例Mapper对象（例如UserMapper、BookMapper)是如何与mapper.xml(UserMapper.xml、BookMapper.xml文件建立联系的)。</li>
+</ol>
+<h2 id="Mybatis-MapperProxy对象创建流程"><a href="#Mybatis-MapperProxy对象创建流程" class="headerlink" title="Mybatis MapperProxy对象创建流程"></a>Mybatis MapperProxy对象创建流程</h2><p>下面的源码分析或许会比较枯燥，进入源码分析之前，先给出MapperProxy的创建序列图。</p>
+<h3 id="1-1-MapperProxy创建序列图"><a href="#1-1-MapperProxy创建序列图" class="headerlink" title="1.1 MapperProxy创建序列图"></a>1.1 MapperProxy创建序列图</h3><p><img src="https://img-blog.csdnimg.cn/20190521215333400.jpg?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"></p>
+<h3 id="1-2-MapperScannerConfigurer详解"><a href="#1-2-MapperScannerConfigurer详解" class="headerlink" title="1.2 MapperScannerConfigurer详解"></a>1.2 MapperScannerConfigurer详解</h3><p>MapperScannerConfigurer的类图如下所示：<br><img src="https://img-blog.csdnimg.cn/20190521210119671.jpg?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>MapperScannerConfigurer实现Spring Bean生命周期相关的类：BeanNameAware、ApplicationContextAware、BeanFactoryPostProcessor、InitializingBean、BeanDefinitionRegistryPostProcessor，我们先来看一下这些接口对应的方法的调用时机：</p>
+        
+          <p class="article-more-link">
+            <a href="/2020/12/09/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90Mybatis%20MapperProxy%E5%88%9D%E5%A7%8B%E5%8C%96%E4%B9%8BMapper%E5%AF%B9%E8%B1%A1%E7%9A%84%E6%89%AB%E6%8F%8F%E4%B8%8E%E6%9E%84%E5%BB%BA/#more">Read More</a>
+          </p>
+        
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://example.com/2020/12/09/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90Mybatis%20MapperProxy%E5%88%9D%E5%A7%8B%E5%8C%96%E4%B9%8BMapper%E5%AF%B9%E8%B1%A1%E7%9A%84%E6%89%AB%E6%8F%8F%E4%B8%8E%E6%9E%84%E5%BB%BA/" data-id="ckiibfot5003spkrg8bss5ts1" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/mybatis/" rel="tag">mybatis</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-使用流收集数据之toList、joining、groupBy(多字段分组)" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2020/12/09/%E4%BD%BF%E7%94%A8%E6%B5%81%E6%94%B6%E9%9B%86%E6%95%B0%E6%8D%AE%E4%B9%8BtoList%E3%80%81joining%E3%80%81groupBy(%E5%A4%9A%E5%AD%97%E6%AE%B5%E5%88%86%E7%BB%84)/" class="article-date">
+  <time datetime="2020-12-09T14:45:35.000Z" itemprop="datePublished">2020-12-09</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/java8/">java8</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/2020/12/09/%E4%BD%BF%E7%94%A8%E6%B5%81%E6%94%B6%E9%9B%86%E6%95%B0%E6%8D%AE%E4%B9%8BtoList%E3%80%81joining%E3%80%81groupBy(%E5%A4%9A%E5%AD%97%E6%AE%B5%E5%88%86%E7%BB%84)/">使用流收集数据之toList、joining、groupBy(多字段分组)</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>本文将从Collectos中构建收集器入手，详细介绍java8提供了哪些收集器，重点介绍:toList、toSet、toCollection、joining、groupBy(包含多级分组)、reducing的核心实现原理与使用示例。</p>
+<h2 id="1、toList、toSet、toCollection"><a href="#1、toList、toSet、toCollection" class="headerlink" title="1、toList、toSet、toCollection"></a>1、toList、toSet、toCollection</h2><p>首先对流中的数据进行计算，最终返回的数据类型为集合。Collectors中定义了如下3集合类收集器，其声明如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> &lt;T&gt; Collector&lt;T, ?, List&lt;T&gt;&gt; toList()</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> &lt;T&gt; Collector&lt;T, ?, Set&lt;T&gt;&gt; toSet()</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> &lt;T, C extends Collection&lt;T&gt;&gt; Collector&lt;T, ?, C&gt; toCollection(Supplier&lt;C&gt; collectionFactory)</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>温馨提示：建议根据上篇的理论，再来反推一下这些Collector中的核心属性的值，例如supplier、accumulator、combiner、characteristics。不过特别注意，toList、toCollection是不支持并行运行的，但toSet()方法支持并行运行。</p>
+</blockquote>
+<p>我们首先来看一个一直使用的示例，返回菜单中所有菜品的名称：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">test_toList</span><span class="params">(List&lt;Dish&gt; menu)</span> </span>&#123;</span><br><span class="line">    List&lt;String&gt; names = menu.stream().map(Dish::getName)</span><br><span class="line">                        .collect(Collectors.toList());</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>由于toList方法的实现原理已经在 <a target="_blank" rel="noopener" href="https://blog.csdn.net/prestigeding/article/details/90813819">java8读书笔记：探究java8流收集数据原理</a>中也详细介绍，故本篇不再重点介绍。</p>
+<h2 id="2、joining"><a href="#2、joining" class="headerlink" title="2、joining"></a>2、joining</h2><p>Collectors定义了如下3个重载方法。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> Collector&lt;CharSequence, ?, String&gt; joining()</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> Collector&lt;CharSequence, ?, String&gt; joining(CharSequence delimiter)</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> Collector&lt;CharSequence, ?, String&gt; joining(CharSequence delimiter,</span><br><span class="line">    CharSequence prefix, CharSequence suffix)</span><br></pre></td></tr></table></figure>
+<h3 id="2-1-joining"><a href="#2-1-joining" class="headerlink" title="2.1 joining"></a>2.1 joining</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> Collector&lt;CharSequence, ?, String&gt; joining() &#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">new</span> CollectorImpl&lt;CharSequence, StringBuilder, String&gt;(</span><br><span class="line">        StringBuilder::<span class="keyword">new</span>, StringBuilder::append,</span><br><span class="line">        (r1, r2) -&gt; &#123; r1.append(r2); <span class="keyword">return</span> r1; &#125;,</span><br><span class="line">        StringBuilder::toString, CH_NOID);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<ul>
+<li>Supplier&lt; A&gt; supplier()<br>其函数为StringBuilder::new，即通过该方法创建一个StringBuilder方法，作为累积器的初始值。</li>
+<li>BiConsumer&lt;A, T&gt; accumulator<br>累积器：StringBuilder::append，即会对流中的元素执行追加。</li>
+<li>BinaryOperator&lt; A&gt; combiner<br>组合器，也是调用append方法，进行字符串的规约。</li>
+<li>Function&lt;A,R&gt; finisher<br>转换器：由于累积器返回的最终对象为StringBuilder，并不是目标String类型，故需要调用StringBuilder#toString方法进行转换</li>
+<li>Set&lt; Characteristics&gt; characteristics<br>无任何行为。</li>
+</ul>
+<p>从上面的函数定义我们可以得出该方法的作用：针对字符串流，会对流中的元素执行字符的追加动作，流元素之间没有分隔符号，示例如下：<br><img src="https://img-blog.csdnimg.cn/20190609173712998.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"></p>
+<h3 id="2-2-joining-CharSequence-delimiter"><a href="#2-2-joining-CharSequence-delimiter" class="headerlink" title="2.2 joining(CharSequence delimiter)"></a>2.2 joining(CharSequence delimiter)</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> Collector&lt;CharSequence, ?, String&gt; joining(CharSequence delimiter) &#123;</span><br><span class="line">    <span class="keyword">return</span> joining(delimiter, <span class="string">&quot;&quot;</span>, <span class="string">&quot;&quot;</span>);</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> Collector&lt;CharSequence, ?, String&gt; joining(CharSequence delimiter,</span><br><span class="line">                                                         CharSequence prefix,</span><br><span class="line">                                                         CharSequence suffix) &#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">new</span> CollectorImpl&lt;&gt;(</span><br><span class="line">            () -&gt; <span class="keyword">new</span> StringJoiner(delimiter, prefix, suffix),</span><br><span class="line">            StringJoiner::add, StringJoiner::merge,</span><br><span class="line">            StringJoiner::toString, CH_NOID);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<ul>
+<li>Supplier&lt; A&gt; supplier()<br>其函数为() -&gt; new StringJoiner(delimiter, prefix, suffix)，累积器的初始值为StringJoiner。</li>
+<li>BiConsumer&lt;A, T&gt; accumulator<br>累积器：StringJoiner::append，即会对流中的元素执行追加。</li>
+<li>BinaryOperator&lt; A&gt; combiner<br>组合器，StringJoiner::merge。</li>
+<li>Function&lt;A,R&gt; finisher<br>转换器：由于累积器返回的最终对象为StringBuilder，并不是目标String类型，故需要调用StringBuilder#toString方法进行转换</li>
+<li>Set&lt; Characteristics&gt; characteristics<br>无任何行为。</li>
+</ul>
+<p>其示例如下：<br><img src="https://img-blog.csdnimg.cn/20190609173901452.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"></p>
+        
+          <p class="article-more-link">
+            <a href="/2020/12/09/%E4%BD%BF%E7%94%A8%E6%B5%81%E6%94%B6%E9%9B%86%E6%95%B0%E6%8D%AE%E4%B9%8BtoList%E3%80%81joining%E3%80%81groupBy(%E5%A4%9A%E5%AD%97%E6%AE%B5%E5%88%86%E7%BB%84)/#more">Read More</a>
+          </p>
+        
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://example.com/2020/12/09/%E4%BD%BF%E7%94%A8%E6%B5%81%E6%94%B6%E9%9B%86%E6%95%B0%E6%8D%AE%E4%B9%8BtoList%E3%80%81joining%E3%80%81groupBy(%E5%A4%9A%E5%AD%97%E6%AE%B5%E5%88%86%E7%BB%84)/" data-id="ckiibfosf0022pkrge96oak8v" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/java8-Lambda-%E6%B5%81%E8%AE%A1%E7%AE%97/" rel="tag">java8 Lambda 流计算</a></li></ul>
 
     </footer>
   </div>
@@ -774,7 +734,7 @@
 
   <nav id="page-nav">
     
-    <span class="page-number current">1</span><a class="page-number" href="/page/2/">2</a><a class="page-number" href="/page/3/">3</a><span class="space">&hellip;</span><a class="page-number" href="/page/5/">5</a><a class="extend next" rel="next" href="/page/2/">下一页 &amp;raquo;</a>
+    <span class="page-number current">1</span><a class="page-number" href="/page/2/">2</a><a class="page-number" href="/page/3/">3</a><span class="space">&hellip;</span><a class="page-number" href="/page/7/">7</a><a class="extend next" rel="next" href="/page/2/">下一页 &amp;raquo;</a>
   </nav>
 
 </section>
@@ -785,7 +745,7 @@
   <div class="widget-wrap">
     <h3 class="widget-title">分类</h3>
     <div class="widget">
-      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/kafka-rocketmq/">kafka rocketmq</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/rocketmq/">rocketmq</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/sentinel/">sentinel</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/%E7%A8%8B%E5%BA%8F%E4%BA%BA%E7%94%9F-%E9%80%86%E8%A2%AD-%E8%81%8C%E5%9C%BA%E5%8F%91%E5%B1%95/">程序人生 逆袭 职场发展</a></li></ul>
+      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/java/">java</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/java8/">java8</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/kafka-rocketmq/">kafka rocketmq</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/mybatis/">mybatis</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/rocketmq/">rocketmq</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/sentinel/">sentinel</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/%E7%A8%8B%E5%BA%8F%E4%BA%BA%E7%94%9F-%E9%80%86%E8%A2%AD-%E8%81%8C%E5%9C%BA%E5%8F%91%E5%B1%95/">程序人生 逆袭 职场发展</a></li></ul>
     </div>
   </div>
 
@@ -795,7 +755,7 @@
   <div class="widget-wrap">
     <h3 class="widget-title">标签</h3>
     <div class="widget">
-      <ul class="tag-list" itemprop="keywords"><li class="tag-list-item"><a class="tag-list-link" href="/tags/kafka-rocketmq/" rel="tag">kafka rocketmq</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rocketmq/" rel="tag">rocketmq</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rocketmq-broker-busy-TIMEOUT-CLEAN-QUEUE-PCBUSY-CLEAN-QUEUE/" rel="tag">rocketmq broker busy TIMEOUT_CLEAN_QUEUE PCBUSY_CLEAN_QUEUE</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rocketmq-%E4%B8%BB%E9%A2%98%E6%89%A9%E5%AE%B9-%E5%AE%9E%E6%88%98-%E5%9D%91/" rel="tag">rocketmq 主题扩容 实战 坑</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rocketmq-%E5%A4%9A%E5%89%AF%E6%9C%AC-raft-%E4%B8%BB%E4%BB%8E%E5%88%87%E6%8D%A2/" rel="tag">rocketmq 多副本 raft 主从切换</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rocketmq-%E5%A4%9A%E5%89%AF%E6%9C%AC-raft-%E9%80%89%E4%B8%BB/" rel="tag">rocketmq 多副本 raft 选主</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/sentinel/" rel="tag">sentinel</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E7%A8%8B%E5%BA%8F%E4%BA%BA%E7%94%9F/" rel="tag">程序人生</a></li></ul>
+      <ul class="tag-list" itemprop="keywords"><li class="tag-list-item"><a class="tag-list-link" href="/tags/java-reference/" rel="tag">java reference</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/java-%E7%AE%97%E6%B3%95/" rel="tag">java 算法</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/java8-Lambda-%E5%87%BD%E6%95%B0%E5%BC%8F%E7%BC%96%E7%A8%8B/" rel="tag">java8 Lambda 函数式编程</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/java8-Lambda-%E6%B5%81%E8%AE%A1%E7%AE%97/" rel="tag">java8 Lambda 流计算</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/kafka-rocketmq/" rel="tag">kafka rocketmq</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/mybatis/" rel="tag">mybatis</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rocketmq/" rel="tag">rocketmq</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rocketmq-broker-busy-TIMEOUT-CLEAN-QUEUE-PCBUSY-CLEAN-QUEUE/" rel="tag">rocketmq broker busy TIMEOUT_CLEAN_QUEUE PCBUSY_CLEAN_QUEUE</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rocketmq-%E4%B8%BB%E9%A2%98%E6%89%A9%E5%AE%B9-%E5%AE%9E%E6%88%98-%E5%9D%91/" rel="tag">rocketmq 主题扩容 实战 坑</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rocketmq-%E5%A4%9A%E5%89%AF%E6%9C%AC-raft-%E4%B8%BB%E4%BB%8E%E5%88%87%E6%8D%A2/" rel="tag">rocketmq 多副本 raft 主从切换</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rocketmq-%E5%A4%9A%E5%89%AF%E6%9C%AC-raft-%E9%80%89%E4%B8%BB/" rel="tag">rocketmq 多副本 raft 选主</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/sentinel/" rel="tag">sentinel</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E7%A8%8B%E5%BA%8F%E4%BA%BA%E7%94%9F/" rel="tag">程序人生</a></li></ul>
     </div>
   </div>
 
@@ -805,7 +765,7 @@
   <div class="widget-wrap">
     <h3 class="widget-title">标签云</h3>
     <div class="widget tagcloud">
-      <a href="/tags/kafka-rocketmq/" style="font-size: 10px;">kafka rocketmq</a> <a href="/tags/rocketmq/" style="font-size: 20px;">rocketmq</a> <a href="/tags/rocketmq-broker-busy-TIMEOUT-CLEAN-QUEUE-PCBUSY-CLEAN-QUEUE/" style="font-size: 10px;">rocketmq broker busy TIMEOUT_CLEAN_QUEUE PCBUSY_CLEAN_QUEUE</a> <a href="/tags/rocketmq-%E4%B8%BB%E9%A2%98%E6%89%A9%E5%AE%B9-%E5%AE%9E%E6%88%98-%E5%9D%91/" style="font-size: 10px;">rocketmq 主题扩容 实战 坑</a> <a href="/tags/rocketmq-%E5%A4%9A%E5%89%AF%E6%9C%AC-raft-%E4%B8%BB%E4%BB%8E%E5%88%87%E6%8D%A2/" style="font-size: 10px;">rocketmq 多副本 raft 主从切换</a> <a href="/tags/rocketmq-%E5%A4%9A%E5%89%AF%E6%9C%AC-raft-%E9%80%89%E4%B8%BB/" style="font-size: 10px;">rocketmq 多副本 raft 选主</a> <a href="/tags/sentinel/" style="font-size: 15px;">sentinel</a> <a href="/tags/%E7%A8%8B%E5%BA%8F%E4%BA%BA%E7%94%9F/" style="font-size: 10px;">程序人生</a>
+      <a href="/tags/java-reference/" style="font-size: 10px;">java reference</a> <a href="/tags/java-%E7%AE%97%E6%B3%95/" style="font-size: 12px;">java 算法</a> <a href="/tags/java8-Lambda-%E5%87%BD%E6%95%B0%E5%BC%8F%E7%BC%96%E7%A8%8B/" style="font-size: 12px;">java8 Lambda 函数式编程</a> <a href="/tags/java8-Lambda-%E6%B5%81%E8%AE%A1%E7%AE%97/" style="font-size: 14px;">java8 Lambda 流计算</a> <a href="/tags/kafka-rocketmq/" style="font-size: 10px;">kafka rocketmq</a> <a href="/tags/mybatis/" style="font-size: 16px;">mybatis</a> <a href="/tags/rocketmq/" style="font-size: 20px;">rocketmq</a> <a href="/tags/rocketmq-broker-busy-TIMEOUT-CLEAN-QUEUE-PCBUSY-CLEAN-QUEUE/" style="font-size: 10px;">rocketmq broker busy TIMEOUT_CLEAN_QUEUE PCBUSY_CLEAN_QUEUE</a> <a href="/tags/rocketmq-%E4%B8%BB%E9%A2%98%E6%89%A9%E5%AE%B9-%E5%AE%9E%E6%88%98-%E5%9D%91/" style="font-size: 10px;">rocketmq 主题扩容 实战 坑</a> <a href="/tags/rocketmq-%E5%A4%9A%E5%89%AF%E6%9C%AC-raft-%E4%B8%BB%E4%BB%8E%E5%88%87%E6%8D%A2/" style="font-size: 10px;">rocketmq 多副本 raft 主从切换</a> <a href="/tags/rocketmq-%E5%A4%9A%E5%89%AF%E6%9C%AC-raft-%E9%80%89%E4%B8%BB/" style="font-size: 10px;">rocketmq 多副本 raft 选主</a> <a href="/tags/sentinel/" style="font-size: 18px;">sentinel</a> <a href="/tags/%E7%A8%8B%E5%BA%8F%E4%BA%BA%E7%94%9F/" style="font-size: 10px;">程序人生</a>
     </div>
   </div>
 
@@ -827,23 +787,23 @@
       <ul>
         
           <li>
-            <a href="/2020/12/08/%E7%BB%93%E5%90%88%20Sentinel%20%E4%B8%93%E6%A0%8F%E8%B0%88%E8%B0%88%E6%88%91%E7%9A%84%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB%E6%8A%80%E5%B7%A7/">结合 Sentinel 专栏谈谈我的源码阅读技巧</a>
+            <a href="/2020/12/09/%E5%BF%AB%E9%80%9F%E6%8E%92%E5%BA%8F%E7%AE%97%E6%B3%95java%E7%89%88%E5%AE%9E%E7%8E%B0/">快速排序算法java版实现</a>
           </li>
         
           <li>
-            <a href="/2020/12/08/Sentinel%20%E7%B3%BB%E7%BB%9F%E8%87%AA%E9%80%82%E5%BA%94%E9%99%90%E6%B5%81%E5%8E%9F%E7%90%86%E5%89%96%E6%9E%90%E4%B8%8E%E5%AE%9E%E6%88%98%E6%8C%87%E5%AF%BC/">Sentinel 系统自适应限流原理剖析与实战指导</a>
+            <a href="/2020/12/09/%E6%8E%92%E5%BA%8F%E4%BA%8C%E5%8F%89%E6%A0%91JAVA%E7%89%88%E5%AE%9E%E7%8E%B0/">排序二叉树JAVA版实现</a>
           </li>
         
           <li>
-            <a href="/2020/12/08/Sentinel%20Dubbo%20%E9%80%82%E9%85%8D%E5%99%A8%E7%9C%8B%E9%99%90%E6%B5%81%E4%B8%8E%E7%86%94%E6%96%AD(%E5%AE%9E%E6%88%98%E6%80%9D%E8%80%83%E7%AF%87)/">Sentinel Dubbo 适配器看限流与熔断(实战思考篇)</a>
+            <a href="/2020/12/09/java%20Reference%20%E5%BC%95%E7%94%A8%E5%AD%A6%E4%B9%A0%E6%80%BB%E7%BB%93/">java Reference 引用学习总结</a>
           </li>
         
           <li>
-            <a href="/2020/12/08/Sentinel%20%E9%9B%86%E7%BE%A4%E9%99%90%E6%B5%81%E8%AE%BE%E8%AE%A1%E5%8E%9F%E7%90%86/">Sentinel 集群限流设计原理</a>
+            <a href="/2020/12/09/Mybatis%E4%B8%80%E4%BA%8C%E7%BA%A7%E7%BC%93%E5%AD%98%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86%E4%B8%8E%E4%BD%BF%E7%94%A8%E6%8C%87%E5%8D%97/">Mybatis一二级缓存实现原理与使用指南</a>
           </li>
         
           <li>
-            <a href="/2020/12/08/Sentienl%20%E5%8A%A8%E6%80%81%E6%95%B0%E6%8D%AE%E6%BA%90%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1%E7%90%86%E5%BF%B5%E4%B8%8E%E6%94%B9%E9%80%A0%E5%AE%9E%E8%B7%B5/">Sentienl 动态数据源架构设计理念与改造实践</a>
+            <a href="/2020/12/09/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90Mybatis%E6%8F%92%E4%BB%B6(Plugin)%E6%9C%BA%E5%88%B6%E4%B8%8E%E5%AE%9E%E6%88%98/">源码分析Mybatis插件(Plugin)机制与实战</a>
           </li>
         
       </ul>

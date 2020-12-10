@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+
+  
+  <title>Lambda表达式语法与函数式编程接口 | 中间件兴趣圈</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="1、lambda语法初探java8 lambda表达式语法的两种格式：  (parameters)  -&gt;  expression (parameters) -&gt; {statements;}  语法解读：  (parameters)，lambda表达式的参数列表，其定义方法为JAVA普通的方法相同，例如(Object a, Object b)。 -&gt; 箭头，是参数列表与lambd">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Lambda表达式语法与函数式编程接口">
+<meta property="og:url" content="http://example.com/2020/12/09/Lambda%E8%A1%A8%E8%BE%BE%E5%BC%8F%E8%AF%AD%E6%B3%95%E4%B8%8E%E5%87%BD%E6%95%B0%E5%BC%8F%E7%BC%96%E7%A8%8B%E6%8E%A5%E5%8F%A3/index.html">
+<meta property="og:site_name" content="中间件兴趣圈">
+<meta property="og:description" content="1、lambda语法初探java8 lambda表达式语法的两种格式：  (parameters)  -&gt;  expression (parameters) -&gt; {statements;}  语法解读：  (parameters)，lambda表达式的参数列表，其定义方法为JAVA普通的方法相同，例如(Object a, Object b)。 -&gt; 箭头，是参数列表与lambd">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/20190512222228610.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/20190512222420653.png">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/20190512222646904.png">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/20190512222740390.png">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/20190512222814465.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/20190512222852671.png">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/20190512222914785.png">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/20190512222939113.png">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/20190512223009303.png">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/20190512223153712.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70">
+<meta property="article:published_time" content="2020-12-09T14:23:35.000Z">
+<meta property="article:modified_time" content="2020-12-09T14:24:03.670Z">
+<meta property="article:author" content="中间件兴趣圈">
+<meta property="article:tag" content="java8 Lambda 函数式编程">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://img-blog.csdnimg.cn/20190512222228610.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70">
+  
+    <link rel="alternate" href="/atom.xml" title="中间件兴趣圈" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  
+    <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css">
+  
+  
+<link rel="stylesheet" href="/css/style.css">
+
+<meta name="generator" content="Hexo 5.2.0"></head>
+
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">中间件兴趣圈</a>
+      </h1>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="搜索"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://example.com"></form>
+      </div>
+    </div>
+  </div>
+</header>
+      <div class="outer">
+        <section id="main"><article id="post-Lambda表达式语法与函数式编程接口" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2020/12/09/Lambda%E8%A1%A8%E8%BE%BE%E5%BC%8F%E8%AF%AD%E6%B3%95%E4%B8%8E%E5%87%BD%E6%95%B0%E5%BC%8F%E7%BC%96%E7%A8%8B%E6%8E%A5%E5%8F%A3/" class="article-date">
+  <time datetime="2020-12-09T14:23:35.000Z" itemprop="datePublished">2020-12-09</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/java8/">java8</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      Lambda表达式语法与函数式编程接口
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <div id="vip-container"><h2 id="1、lambda语法初探"><a href="#1、lambda语法初探" class="headerlink" title="1、lambda语法初探"></a>1、lambda语法初探</h2><p>java8 lambda表达式语法的两种格式：</p>
+<ul>
+<li>(parameters)  -&gt;  expression</li>
+<li>(parameters) -&gt; {statements;}</li>
+</ul>
+<p>语法解读：</p>
+<ol>
+<li>(parameters)，lambda表达式的参数列表，其定义方法为JAVA普通的方法相同，例如(Object a, Object b)。</li>
+<li>-&gt; 箭头，是参数列表与lambda表达式主题部分的分隔符号。</li>
+<li>expression 单表达式</li>
+<li>{statements; } 语句。</li>
+</ol>
+<p>测试：如下语句是否是正确的lambda表达式。<br>(1)  () -&gt; {}<br>(2)  () -&gt; “Raoul”<br>(3)  () -&gt; {return “Mario”;}<br>(4)  (Integer i) -&gt; return “Alan” + i;<br>(5)  (String s) -&gt; {“IronMan”;}</p>
+<p>正解：<br>(1) 正确。如果使用匿名类(接口名统一使用IDemoLambda)表示如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"> new IDemoLambda() &#123;</span><br><span class="line">     public void test() &#123;</span><br><span class="line">     &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>(2)正确。如果使用匿名类(接口名统一使用IDemoLambda)表示如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"> new IDemoLambda() &#123;</span><br><span class="line">     public String test() &#123;</span><br><span class="line">           return &quot;Raoul&quot;;  &#x2F;&#x2F; 如果直接接一个值，表示返回该值</span><br><span class="line">     &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>(3)正确。如果使用匿名类(接口名统一使用IDemoLambda)表示如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"> new IDemoLambda() &#123;</span><br><span class="line">     public String test() &#123;</span><br><span class="line">          return &quot;Mario&quot;;</span><br><span class="line">     &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>(4)错误。因为return是流程控制语句，表示返回，不是一个表达式，故不符合lambda语法，正确的表示方法应该是 (Integer i) -&gt;{ return “Alan” + i;}。如果使用匿名类(接口名统一使用IDemoLambda)表示如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"> new IDemoLambda() &#123;</span><br><span class="line">     public String test(Integer i) &#123;</span><br><span class="line">          return &quot;Alan&quot; + i;</span><br><span class="line">     &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>(5)错误。因为”IronMan”是一个表达式，并不是一个语句，故不能使用{}修饰，应修改为 (String s) -&gt; “IronMan”。如果使用匿名类(接口名统一使用IDemoLambda)表示如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"> new IDemoLambda() &#123;</span><br><span class="line">     public String test(String s) &#123;</span><br><span class="line">          return &quot;IronMan&quot;;</span><br><span class="line">     &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="2、初步接触函数式接口"><a href="#2、初步接触函数式接口" class="headerlink" title="2、初步接触函数式接口"></a>2、初步接触函数式接口</h2><p>在java8中，一个接口如果只定义了一个抽象方法，那这个接口就可以称为函数式接口，就可以使用lambda表达式来简化程序代码。Lambda表达式可以直接赋值给变量，也可以直接作为参数传递给函数，示例如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">public static void startThread(Runnable a) &#123;</span><br><span class="line">    (new Thread(a)).start();</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">public static void main(String[] args) &#123;</span><br><span class="line">    &#x2F;&#x2F; lambda表达式可以直接赋值给变量，也可以直接以参数的形式传递给方法、</span><br><span class="line">    Runnable a &#x3D; () -&gt; &#123;</span><br><span class="line">        System.out.println(&quot;Hello World,Lambda...&quot;);</span><br><span class="line">    &#125;;</span><br><span class="line">    &#x2F;&#x2F; JDK8之前使用匿名类来实现</span><br><span class="line">    Runnable b &#x3D; new Runnable() &#123;</span><br><span class="line">        @Override</span><br><span class="line">        public void run() &#123;</span><br><span class="line">            System.out.println(&quot;Hello World,Lambda...&quot;);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;;</span><br><span class="line">    startThread(a);</span><br><span class="line">    startThread(() -&gt; &#123;</span><br><span class="line">        System.out.println(&quot;Hello World,Lambda...&quot;);</span><br><span class="line">    &#125;);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>那能将(int a) -&gt; {System.out.println(“Hello World, Lambda…”);}表达式赋值给Runnable a变量吗？答案是不能，因为该表达式不符合函数式编程接口(Runnable)唯一抽象方法的函数签名列表。<br>Runnable的函数式签名列表为public abstract void run();</p>
+<blockquote>
+<p>温馨提示：如果我们有留意JDK8的Runnable接口的定义，你会发现给接口相对JDK8之前的版本多了一个注解：@FunctionalInterface，该注解是一个标识注解，用来标识这个接口是一个函数式接口。如果我们人为在一个不满足函数式定义的接口上增加@FunctionalInterface，则会在编译时提示错误。</p>
+</blockquote>
+<a id="more"></a>
+
+<h2 id="3、-Lambda表达式实战思考"><a href="#3、-Lambda表达式实战思考" class="headerlink" title="3、 Lambda表达式实战思考"></a>3、 Lambda表达式实战思考</h2><p>例如有如下代码：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">&#x2F;**</span><br><span class="line"> * 处理文件：当前需求是处理文件的第一行数据</span><br><span class="line"> * @return</span><br><span class="line"> * @throws IOException</span><br><span class="line"> *&#x2F;</span><br><span class="line">public static String processFile() throws IOException &#123;</span><br><span class="line">    try(BufferedReader br &#x3D; new BufferedReader(new FileReader(&quot;data.txt&quot;))) &#123;</span><br><span class="line">        return  br.readLine();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>当前需求为处理文件的第一行数据，那问题来了，如果需求变化需要返回文件的第一行和第二行数据，那该如何进行改造呢？<br>在理想的情况下，需要重用执行设置和关闭流的代码，并告诉processFile()方法对文件执行不同的操作，换句话说就是要实现对processFile的行为进行参数化。</p>
+<p>Step·1：行为参数化<br>要读取文件的头两行，用Lambda语法如何实现呢？思考一下，下面这条语句是否可以实现？</p>
+<p>(BufferedReader bf) -&gt; br.readLine() + br.readLine()<br>答案是当然可以，接下来就要思考，定义一个什么样的方法，能接收上面这个参数。</p>
+<p>Step2：使用函数式接口来传递行为<br>要使用(bufferedReader bf) -&gt; br.readLine() + br.readLine()，则需要定义一个接受参数为BufferedReader，并返回String类型的函数式接口。<br>定义如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">@FunctionalInterface</span><br><span class="line">public interface BufferedReaderProcessor &#123;</span><br><span class="line">     public String process(BufferedReader b) throws IoException;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>那把processFile方法改造成如下代码：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">&#x2F;**</span><br><span class="line"> * 处理文件：当前需求是处理文件的第一行数据</span><br><span class="line"> * @return</span><br><span class="line"> * @throws IOException</span><br><span class="line"> *&#x2F;</span><br><span class="line">public static String processFile(BufferedReaderProcess brp) throws IOException &#123;</span><br><span class="line">    try(BufferedReader br &#x3D; new BufferedReader(new FileReader(&quot;data.txt&quot;))) &#123;</span><br><span class="line">        return  brp.process(br);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>Step3：使用lambda表达式作为参数进行传递<br>将行为参数化后，并对方法进行改造，使方法接受一个函数式编程接口后，就可以将Lambda表达式直接传递给方法，例如：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">processFile(  (BufferedReader br)  -&gt; br.readLine()  );</span><br><span class="line">processFile( (BufferedReader bf) -&gt; br.readLine() + br.readLine()); </span><br></pre></td></tr></table></figure>
+
+<h2 id="4、Java8中自定义函数式接口"><a href="#4、Java8中自定义函数式接口" class="headerlink" title="4、Java8中自定义函数式接口"></a>4、Java8中自定义函数式接口</h2><p>从上面的讲解中我们已然能够得知，要能够将Lambda表达式当成方法参数进行参数行为化的一个前提条件是首先要在方法列表中使用一个函数式接口，例如上例中的BufferReaderProcess，那如果每次使用Labmbda表达式之前都要定义各自的函数式编程接口，那也够麻烦的，那有没有一种方式，或定义一种通用的函数式编程接口呢？答案是肯定的，Java8的设计者，利用泛型，定义了一整套函数式编程接口，下面将介绍java8中常用的函数式编程接口。</p>
+<h4 id="4-1-Predicate"><a href="#4-1-Predicate" class="headerlink" title="4.1 Predicate"></a>4.1 Predicate</h4><p><img src="https://img-blog.csdnimg.cn/20190512222228610.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>所谓函数式编程接口就是只能定义一个抽象方法，Predicate 函数接口中定义的抽象方法为 boolean test(T t)，对应的函数式行为为接收一类对象 t，返回 boolean 类型，其可用的 lambda 表达式为 (T t) -&gt; boolean 类型的表达式，例如(Sample a) -&gt; a.isEmpty() 。</p>
+<p>该接口通常的应用场景为过滤。例如，要定义一个方法，从集合中进行刷选，具体的刷选逻辑（行为）由参数进行指定，那我们可以定义这样一个刷选的方法：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">public static &lt;T&gt; List&lt;T&gt; filter(List&lt;T&gt; list, Predicate&lt;T&gt; p) &#123;</span><br><span class="line">List&lt;T&gt; results &#x3D; new ArrayList&lt;&gt;();</span><br><span class="line">for(T s: list)&#123;</span><br><span class="line">if(p.test(s))&#123;</span><br><span class="line">results.add(s);</span><br><span class="line">&#125;</span><br><span class="line">&#125;</span><br><span class="line">return results;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>上述函数，我们可以这样进行调用：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">Predicate&lt;String&gt; behaviorFilter &#x3D; (String s) -&gt; !s.isEmpty();  &#x2F;&#x2F; lambda表达式赋值给一个变量</span><br><span class="line">filter(behaviorFilter);  </span><br></pre></td></tr></table></figure>
+<p>其它add等方法，将在下文介绍（复合lambda表达式）。</p>
+<p>另外，为了避免java基本类型与包装类型的装箱与拆箱带来的性能损耗，JDK8的设计者们提供了如下函数式编程接口：IntPredicate、LongPredicate、DoublePredicate。我们选择LongPredicate看一下其函数接口的声明：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">boolean test(long value);</span><br></pre></td></tr></table></figure>
+
+<h4 id="4-2-Consumer"><a href="#4-2-Consumer" class="headerlink" title="4.2 Consumer"></a>4.2 Consumer</h4><p><img src="https://img-blog.csdnimg.cn/20190512222420653.png" alt="在这里插入图片描述"><br>该函数式编程接口适合对对象进行处理，但没有返回值,对应的函数描述符：T -&gt; void</p>
+<p>举例如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">public static &lt;T&gt; void forEach(List&lt;T&gt; list, Consumer&lt;T&gt; c) &#123;</span><br><span class="line">    for(T t : list) &#123;</span><br><span class="line">        c.accept(t);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>其调用示例如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">forEach(  Arrays.asList(1,2,3,4,5),   (Integer i) -&gt; System.out.println(i) ); </span><br></pre></td></tr></table></figure>
+<p>另外，为了避免java基本类型与包装类型的装箱与拆箱带来的性能损耗，JDK8的设计者们提供了如下函数式编程接口：IntConsumer、LongConsumer、DoubleConsumer。</p>
+<h4 id="4-3-Function-lt-T-R-gt"><a href="#4-3-Function-lt-T-R-gt" class="headerlink" title="4.3 Function&lt;T,R&gt;"></a>4.3 Function&lt;T,R&gt;</h4><p><img src="https://img-blog.csdnimg.cn/20190512222646904.png" alt="在这里插入图片描述"><br>其适合的场景是，接收一个泛型T的对象，返回一个泛型为R的对象，其对应的函数描述符:  T -&gt; R。</p>
+<p>示例如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">public static &lt;T,R&gt; List&lt;R&gt; map(List&lt;T&gt; list, Function&lt;T,R&gt; f) &#123;</span><br><span class="line">          List&lt;R&gt; result &#x3D; new ArrayList&lt;&gt;();</span><br><span class="line">          for(T t : list) &#123;</span><br><span class="line">                result.add(  f.apply(t) );</span><br><span class="line">          &#125;</span><br><span class="line">          return result;</span><br><span class="line">&#125;</span><br><span class="line">List&lt;Integer&gt; l &#x3D; map(Arrays.asList(&quot;lambdas&quot;, &quot;in&quot;, &quot;action&quot;),  (String s)  -&gt; s.length  );</span><br></pre></td></tr></table></figure>
+<p>另外，为了避免java基本类型与包装类型的装箱与拆箱带来的性能损耗，JDK8的设计者们提供了如下函数式编程接口：IntFunction&lt; R&gt;、LongFunction&lt; R&gt;、DoubleFunction&lt; R&gt;、IntToDoubleFunction、IntToLongFunction、LongToIntFunction、LongToDoubleFunction、ToIntFunction&lt; T&gt;、ToDoubleFunction&lt; T&gt;、ToLongFunction&lt; T&gt;。</p>
+<h4 id="4-4-Supplier-lt-T-gt"><a href="#4-4-Supplier-lt-T-gt" class="headerlink" title="4.4 Supplier&lt; T&gt;"></a>4.4 Supplier&lt; T&gt;</h4><p><img src="https://img-blog.csdnimg.cn/20190512222740390.png" alt="在这里插入图片描述"><br>函数描述符：() -&gt; T。适合创建对象的场景，例如  () -&gt; new Object();</p>
+<p>另外，为了避免java基本类型与包装类型的装箱与拆箱带来的性能损耗，JDK8的设计者们提供了如下函数式编程接口：BooleanSupplier、IntSupplier、LongSupplier、DoubleSupplier。</p>
+<h4 id="4-5-UnaryOperator-lt-T-gt"><a href="#4-5-UnaryOperator-lt-T-gt" class="headerlink" title="4.5 UnaryOperator&lt; T &gt;"></a>4.5 UnaryOperator&lt; T &gt;</h4><p><img src="https://img-blog.csdnimg.cn/20190512222814465.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>一元运算符函数式接口，接收一个泛型T的对象，同样返回一个泛型T的对象。<br>示例如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">public static &lt;T&gt; List&lt;T&gt; map(List&lt;T&gt; list, UnaryOperator&lt;T&gt; f) &#123;</span><br><span class="line">          List&lt;R&gt; result &#x3D; new ArrayList&lt;&gt;();</span><br><span class="line">          for(T t : list) &#123;</span><br><span class="line">                result.add(  f.apply(t) );</span><br><span class="line">          &#125;</span><br><span class="line">          return result;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">map(  list, (int i) -&gt; i ++ );</span><br></pre></td></tr></table></figure>
+
+<p>另外，为了避免java基本类型与包装类型的装箱与拆箱带来的性能损耗，JDK8的设计者们提供了如下函数式编程接口：IntUnaryOperator、LongUnaryOperator、DoubleUnaryOperator。</p>
+<h4 id="4-6-BiPredicate-lt-T-U-gt"><a href="#4-6-BiPredicate-lt-T-U-gt" class="headerlink" title="4.6 BiPredicate&lt;T,U&gt;"></a>4.6 BiPredicate&lt;T,U&gt;</h4><p><img src="https://img-blog.csdnimg.cn/20190512222852671.png" alt="在这里插入图片描述"><br>接收两个参数，返回boolean类型。其对应的函数描述符：(T,U) -&gt; boolean。</p>
+<h4 id="4-7-BiConsumer-lt-T-U-gt"><a href="#4-7-BiConsumer-lt-T-U-gt" class="headerlink" title="4.7 BiConsumer&lt;T,U&gt;"></a>4.7 BiConsumer&lt;T,U&gt;</h4><p><img src="https://img-blog.csdnimg.cn/20190512222914785.png" alt="在这里插入图片描述"><br>与Consume函数式接口类似，只是该接口接收两个参数，对应的函数描述符(T,U)  -&gt; void。</p>
+<p>另外，为了避免java基本类型与包装类型的装箱与拆箱带来的性能损耗，JDK8的设计者们提供了如下函数式编程接口：ObjIntConsumer、ObjLongConsumer、ObjDoubleConsumer。</p>
+<h4 id="4-8-BiFunction-lt-T-U-R-gt"><a href="#4-8-BiFunction-lt-T-U-R-gt" class="headerlink" title="4.8 BiFunction&lt;T,U,R&gt;"></a>4.8 BiFunction&lt;T,U,R&gt;</h4><p><img src="https://img-blog.csdnimg.cn/20190512222939113.png" alt="在这里插入图片描述"><br>与Function函数式接口类似，其对应的函数描述符：(T,U) -&gt; R。</p>
+<p>另外，为了避免java基本类型与包装类型的装箱与拆箱带来的性能损耗，JDK8的设计者们提供了如下函数式编程接口：ToIntBiFunction(T,U)、ToLongBiFunction(T,U)、ToDoubleBiFunction(T,U)。</p>
+<h4 id="4-9-BinaryOperator-lt-T-gt"><a href="#4-9-BinaryOperator-lt-T-gt" class="headerlink" title="4.9 BinaryOperator&lt; T &gt;"></a>4.9 BinaryOperator&lt; T &gt;</h4><p><img src="https://img-blog.csdnimg.cn/20190512223009303.png" alt="在这里插入图片描述"><br>二维运算符，接收两个T类型的对象，返回一个T类型的对象。</p>
+<p>另外，为了避免java基本类型与包装类型的装箱与拆箱带来的性能损耗，JDK8的设计者们提供了如下函数式编程接口：IntBinaryOperator、LongBinaryOperator、DoubleBinaryOperator。</p>
+<p>上述就是JDK8定义在java.util.function中的函数式编程接口。重点关注的是其定义的函数式编程接口，其复合操作相关的API将在下文中详细介绍。</p>
+<h2 id="5、类型检查、类型推断以及限制"><a href="#5、类型检查、类型推断以及限制" class="headerlink" title="5、类型检查、类型推断以及限制"></a>5、类型检查、类型推断以及限制</h2><h4 id="5-1-类型检查"><a href="#5-1-类型检查" class="headerlink" title="5.1 类型检查"></a>5.1 类型检查</h4><p>java8是如何检查传入的Lambda表示式是否符合约定的类型呢？<br>例如</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">public static &lt;T&gt; List&lt;T&gt; filter(List&lt;T&gt; list, Predicate&lt;T&gt; p) &#123;</span><br><span class="line">    List&lt;T&gt; results &#x3D; new ArrayList&lt;&gt;();</span><br><span class="line">    for(T s: list)&#123;</span><br><span class="line">        if(p.test(s))&#123;</span><br><span class="line">            results.add(s);</span><br><span class="line">       &#125;</span><br><span class="line">   &#125;</span><br><span class="line">   return results;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">List&lt;Apple&gt; heavierThan150g &#x3D; filter(inventory, (Apple a) -&gt; a.getWeight() &gt; 150);</span><br></pre></td></tr></table></figure>
+<p>其类型检测的步骤：<br>1）首先查看filter函数的参数列表，得出Lambda对应的参数类型为Predicate&lt; T &gt;。<br>2）函数式接口Predicate中定义的抽象接口为  boolean test(T t),对应的函数描述符(  T  -&gt;  boolean)。<br>3）验证Lambda表达式是否符合函数描述符。</p>
+<p>注意：如果一个Lambda的主体式一个语句表达式，它就和一个返回void的函数描述符兼容（当然参数列表也必须兼容）。例如，以下两行都是合法的，尽管List的add方法返回一个boolean，而不式Consumer上下文(T -&gt; void)所要求的void：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">&#x2F;&#x2F; Predicate返回了一个boolean</span><br><span class="line">Predicate&lt;String&gt; p &#x3D; s -&gt; list.add(s);</span><br><span class="line">&#x2F;&#x2F; Consumer返回了一个void</span><br><span class="line">Consumer&lt;String&gt; b &#x3D; s -&gt; list.add(s);</span><br></pre></td></tr></table></figure>
+<p>思考题：如下表达式是否正确？</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Object o &#x3D; () -&gt; &#123;System.out.println(&quot;Tricky example&quot;); &#125;;</span><br></pre></td></tr></table></figure>
+<p>答案是错误的，该语句的含义就是把lambda表达式复制给目标对象(Object o)，lambda对应的函数描述符为() -&gt; void，期望目标对象拥有一个唯一的抽象方法，参数列表为空，返回值为void的方法，显然目标对象Object不满足该条件，如果换成如下示例，则能编译通过：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Runnable r &#x3D; () &#123;System.out.println(&quot;Tricky example&quot;); &#125;;</span><br></pre></td></tr></table></figure>
+<p>因为Runnable的定义如下：<br><img src="https://img-blog.csdnimg.cn/20190512223153712.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"></p>
+<h4 id="5-2-类型推断"><a href="#5-2-类型推断" class="headerlink" title="5.2 类型推断"></a>5.2 类型推断</h4><p>所谓的类型推断，指的式java编译器能根据目标类型来推断出用什么函数式接口来配合Lambda表达式，这也意味着它也可以推断出适合Lambda的签名，因为函数描述符可以通过目标类型得到。</p>
+<p>例如：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">List&lt;Apple&gt; greenApples &#x3D;  filter(inventory, （Apple a） -&gt; &quot;green&quot;.equals(a.getColor()));</span><br><span class="line">也可以写成</span><br><span class="line">List&lt;Apple&gt; greenApples &#x3D;  filter(inventory, a  -&gt; &quot;green&quot;.equals(a.getColor()));</span><br><span class="line"></span><br><span class="line">Lambda表达式有多个参数，代码可读性的好处就更为明显。例如，你可以这样来创建一个Comparator 对象：</span><br><span class="line">Comparator&lt;Apple&gt; c &#x3D;  (Apple a1, Apple a2) -&gt; a1.getWeight().compareTo(a2.getWeight());</span><br><span class="line">Comparator&lt;Apple&gt; c &#x3D; (a1, a2) -&gt; a1.getWeight().compareTo(a2.getWeight());</span><br></pre></td></tr></table></figure>
+<p>由于java编译器能根据目标类型来推导出Lambda的函数签名，故lambda的函数签名列表时，可以去掉参数的类型。</p>
+<h4 id="5-3-局部变量"><a href="#5-3-局部变量" class="headerlink" title="5.3 局部变量"></a>5.3 局部变量</h4><p>Lambda表达式主体部分也能引入外部的变量，例如：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">int portNumber &#x3D; 1337;</span><br><span class="line">Runnable r &#x3D; () -&gt; System.out.println(portNumber);</span><br></pre></td></tr></table></figure>
+<p>其中portNumber参数并不是方法签名参数，但这样有一个限制条件，引入的局部变量必须是常量（实际意义上的常量，可以不用final来定义，但不能改变其值。例如如下示例是错误的：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">int portNumber &#x3D; 1337;</span><br><span class="line">Runnable r &#x3D; () -&gt; System.out.println(portNumber);</span><br><span class="line">portNumber &#x3D; 1228;  &#x2F;&#x2F; 因为portNumber的值已改变，不符合局部变量的捕获条件，上述代码无法编译通过。</span><br></pre></td></tr></table></figure>
+<h4 id="5-4-方法引用"><a href="#5-4-方法引用" class="headerlink" title="5.4 方法引用"></a>5.4 方法引用</h4><h5 id="5-4-1-方法引用常用的构造方法"><a href="#5-4-1-方法引用常用的构造方法" class="headerlink" title="5.4.1 方法引用常用的构造方法"></a>5.4.1 方法引用常用的构造方法</h5><p>JDK8中有3中方法引用：</p>
+<ol>
+<li>指向静态方法的方法引用<br>Integer.parseInt  对应的方法引用可以写成： Integer::parseInt。</li>
+<li>指向任意类型的实例方法的引用<br>  (Strng str ) -&gt; str.length  对应的方法引用：String::length。(注意这里的属性为方法列表)</li>
+<li>lambda捕获外部的实例对象<br>例如如下代码：</li>
+</ol>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">Apple a &#x3D; new Apple();</span><br><span class="line">process(  () -&gt; a.getColor()  );  &#x2F;&#x2F; 则可以写成  process ( a::getColor ); </span><br></pre></td></tr></table></figure>
+<h5 id="5-4-2-构造函数引用"><a href="#5-4-2-构造函数引用" class="headerlink" title="5.4.2 构造函数引用"></a>5.4.2 构造函数引用</h5><p>大家可以回想一下，jdk8中定义了一个创建对象的函数式编程接口Supplier,函数描述符：() -&gt; T。适合创建对象的场景，例如  () -&gt; new Object();<br>对于没有构造函数的，我们可以这样来创建对象：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">Supplier&lt;Apple&gt; c1 &#x3D; Apple:new;</span><br><span class="line">Apple a1 &#x3D; c1.get();</span><br></pre></td></tr></table></figure>
+<p>如果有1个参数的构造方法呢？</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">Function&lt;Integer, Apple&gt; c2 &#x3D; Apple::new;</span><br><span class="line">Apple a2 &#x3D; c2.apply(weight);</span><br></pre></td></tr></table></figure>
+<p>Lambda语法的基础知识就介绍到这里，本文详细介绍了Lambda表达式的语法格式、函数式编程接口、lambda与函数式编程接口的关系、方法引用。</p>
+<p>下一节主要介绍复合Lambda表达式使用。</p>
+</div>
+
+			<script src="https://my.openwrite.cn/js/readmore.js" type="text/javascript"></script>
+			<script>
+			var isMobile = navigator.userAgent.match(/(phone|pad|pod|iPhone|iPod|ios|iPad|Android|Mobile|BlackBerry|IEMobile|MQQBrowser|JUC|Fennec|wOSBrowser|BrowserNG|WebOS|Symbian|Windows Phone)/i);
+			if (!isMobile) {
+			    var btw = new BTWPlugin();
+			    btw.init({
+			        "id": "vip-container",
+			        "blogId": "18019-1573088808868-542",
+			        "name": "中间件兴趣圈",
+			        "qrcode": "https://img-blog.csdnimg.cn/20190314214003962.jpg",
+			        "keyword": "more"
+			    });
+			}
+			</script>
+		
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://example.com/2020/12/09/Lambda%E8%A1%A8%E8%BE%BE%E5%BC%8F%E8%AF%AD%E6%B3%95%E4%B8%8E%E5%87%BD%E6%95%B0%E5%BC%8F%E7%BC%96%E7%A8%8B%E6%8E%A5%E5%8F%A3/" data-id="ckiibfotl004upkrgdtd7hqy6" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/java8-Lambda-%E5%87%BD%E6%95%B0%E5%BC%8F%E7%BC%96%E7%A8%8B/" rel="tag">java8 Lambda 函数式编程</a></li></ul>
+
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+    <a href="/2020/12/09/%E5%A4%8D%E5%90%88Lambda%E8%A1%A8%E8%BE%BE%E5%BC%8F/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Newer</strong>
+      <div class="article-nav-title">
+        
+          复合Lambda表达式
+        
+      </div>
+    </a>
+  
+  
+    <a href="/2020/12/08/%E7%BB%93%E5%90%88%20Sentinel%20%E4%B8%93%E6%A0%8F%E8%B0%88%E8%B0%88%E6%88%91%E7%9A%84%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB%E6%8A%80%E5%B7%A7/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">结合 Sentinel 专栏谈谈我的源码阅读技巧</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+</section>
+        
+          <aside id="sidebar">
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">分类</h3>
+    <div class="widget">
+      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/java/">java</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/java8/">java8</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/kafka-rocketmq/">kafka rocketmq</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/mybatis/">mybatis</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/rocketmq/">rocketmq</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/sentinel/">sentinel</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/%E7%A8%8B%E5%BA%8F%E4%BA%BA%E7%94%9F-%E9%80%86%E8%A2%AD-%E8%81%8C%E5%9C%BA%E5%8F%91%E5%B1%95/">程序人生 逆袭 职场发展</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">标签</h3>
+    <div class="widget">
+      <ul class="tag-list" itemprop="keywords"><li class="tag-list-item"><a class="tag-list-link" href="/tags/java-reference/" rel="tag">java reference</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/java-%E7%AE%97%E6%B3%95/" rel="tag">java 算法</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/java8-Lambda-%E5%87%BD%E6%95%B0%E5%BC%8F%E7%BC%96%E7%A8%8B/" rel="tag">java8 Lambda 函数式编程</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/java8-Lambda-%E6%B5%81%E8%AE%A1%E7%AE%97/" rel="tag">java8 Lambda 流计算</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/kafka-rocketmq/" rel="tag">kafka rocketmq</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/mybatis/" rel="tag">mybatis</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rocketmq/" rel="tag">rocketmq</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rocketmq-broker-busy-TIMEOUT-CLEAN-QUEUE-PCBUSY-CLEAN-QUEUE/" rel="tag">rocketmq broker busy TIMEOUT_CLEAN_QUEUE PCBUSY_CLEAN_QUEUE</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rocketmq-%E4%B8%BB%E9%A2%98%E6%89%A9%E5%AE%B9-%E5%AE%9E%E6%88%98-%E5%9D%91/" rel="tag">rocketmq 主题扩容 实战 坑</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rocketmq-%E5%A4%9A%E5%89%AF%E6%9C%AC-raft-%E4%B8%BB%E4%BB%8E%E5%88%87%E6%8D%A2/" rel="tag">rocketmq 多副本 raft 主从切换</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rocketmq-%E5%A4%9A%E5%89%AF%E6%9C%AC-raft-%E9%80%89%E4%B8%BB/" rel="tag">rocketmq 多副本 raft 选主</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/sentinel/" rel="tag">sentinel</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E7%A8%8B%E5%BA%8F%E4%BA%BA%E7%94%9F/" rel="tag">程序人生</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">标签云</h3>
+    <div class="widget tagcloud">
+      <a href="/tags/java-reference/" style="font-size: 10px;">java reference</a> <a href="/tags/java-%E7%AE%97%E6%B3%95/" style="font-size: 12px;">java 算法</a> <a href="/tags/java8-Lambda-%E5%87%BD%E6%95%B0%E5%BC%8F%E7%BC%96%E7%A8%8B/" style="font-size: 12px;">java8 Lambda 函数式编程</a> <a href="/tags/java8-Lambda-%E6%B5%81%E8%AE%A1%E7%AE%97/" style="font-size: 14px;">java8 Lambda 流计算</a> <a href="/tags/kafka-rocketmq/" style="font-size: 10px;">kafka rocketmq</a> <a href="/tags/mybatis/" style="font-size: 16px;">mybatis</a> <a href="/tags/rocketmq/" style="font-size: 20px;">rocketmq</a> <a href="/tags/rocketmq-broker-busy-TIMEOUT-CLEAN-QUEUE-PCBUSY-CLEAN-QUEUE/" style="font-size: 10px;">rocketmq broker busy TIMEOUT_CLEAN_QUEUE PCBUSY_CLEAN_QUEUE</a> <a href="/tags/rocketmq-%E4%B8%BB%E9%A2%98%E6%89%A9%E5%AE%B9-%E5%AE%9E%E6%88%98-%E5%9D%91/" style="font-size: 10px;">rocketmq 主题扩容 实战 坑</a> <a href="/tags/rocketmq-%E5%A4%9A%E5%89%AF%E6%9C%AC-raft-%E4%B8%BB%E4%BB%8E%E5%88%87%E6%8D%A2/" style="font-size: 10px;">rocketmq 多副本 raft 主从切换</a> <a href="/tags/rocketmq-%E5%A4%9A%E5%89%AF%E6%9C%AC-raft-%E9%80%89%E4%B8%BB/" style="font-size: 10px;">rocketmq 多副本 raft 选主</a> <a href="/tags/sentinel/" style="font-size: 18px;">sentinel</a> <a href="/tags/%E7%A8%8B%E5%BA%8F%E4%BA%BA%E7%94%9F/" style="font-size: 10px;">程序人生</a>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">归档</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/12/">十二月 2020</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">最新文章</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2020/12/09/%E5%BF%AB%E9%80%9F%E6%8E%92%E5%BA%8F%E7%AE%97%E6%B3%95java%E7%89%88%E5%AE%9E%E7%8E%B0/">快速排序算法java版实现</a>
+          </li>
+        
+          <li>
+            <a href="/2020/12/09/%E6%8E%92%E5%BA%8F%E4%BA%8C%E5%8F%89%E6%A0%91JAVA%E7%89%88%E5%AE%9E%E7%8E%B0/">排序二叉树JAVA版实现</a>
+          </li>
+        
+          <li>
+            <a href="/2020/12/09/java%20Reference%20%E5%BC%95%E7%94%A8%E5%AD%A6%E4%B9%A0%E6%80%BB%E7%BB%93/">java Reference 引用学习总结</a>
+          </li>
+        
+          <li>
+            <a href="/2020/12/09/Mybatis%E4%B8%80%E4%BA%8C%E7%BA%A7%E7%BC%93%E5%AD%98%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86%E4%B8%8E%E4%BD%BF%E7%94%A8%E6%8C%87%E5%8D%97/">Mybatis一二级缓存实现原理与使用指南</a>
+          </li>
+        
+          <li>
+            <a href="/2020/12/09/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90Mybatis%E6%8F%92%E4%BB%B6(Plugin)%E6%9C%BA%E5%88%B6%E4%B8%8E%E5%AE%9E%E6%88%98/">源码分析Mybatis插件(Plugin)机制与实战</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2020 中间件兴趣圈<br>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+</nav>
+    
+
+<script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+
+
+  
+<link rel="stylesheet" href="/fancybox/jquery.fancybox.css">
+
+  
+<script src="/fancybox/jquery.fancybox.pack.js"></script>
+
+
+
+
+<script src="/js/script.js"></script>
+
+
+
+
+  </div>
+</body>
+</html>
