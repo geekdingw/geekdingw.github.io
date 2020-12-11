@@ -1,13 +1,87 @@
 <!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  
+
+
 
   
-  <title>中间件兴趣圈</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-  <meta name="description" content="关注微信公众号「中间件兴趣圈」，第一时间获取最新干货！">
+
+
+<html class="theme-next pisces use-motion" lang="zh-CN">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.4" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.4">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.4" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="Hexo, NexT" />
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="中间件兴趣圈" type="application/atom+xml" />
+
+
+
+
+
+
+<meta name="description" content="关注微信公众号「中间件兴趣圈」，第一时间获取最新干货！">
 <meta property="og:type" content="website">
 <meta property="og:title" content="中间件兴趣圈">
 <meta property="og:url" content="http://example.com/page/5/index.html">
@@ -16,83 +90,262 @@
 <meta property="og:locale" content="zh_CN">
 <meta property="article:author" content="中间件兴趣圈">
 <meta name="twitter:card" content="summary">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '',
+    scheme: 'Pisces',
+    version: '5.1.4',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://example.com/page/5/"/>
+
+
+
+
+
+  <title>中间件兴趣圈</title>
   
-    <link rel="alternate" href="/atom.xml" title="中间件兴趣圈" type="application/atom+xml">
-  
-  
-    <link rel="icon" href="/favicon.png">
-  
-  
-    <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css">
-  
-  
-<link rel="stylesheet" href="/css/style.css">
+
+
+
+
+
+
+
 
 <meta name="generator" content="Hexo 5.2.0"></head>
 
-<body>
-  <div id="container">
-    <div id="wrap">
-      <header id="header">
-  <div id="banner"></div>
-  <div id="header-outer" class="outer">
-    <div id="header-title" class="inner">
-      <h1 id="logo-wrap">
-        <a href="/" id="logo">中间件兴趣圈</a>
-      </h1>
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left 
+  page-home">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">中间件兴趣圈</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
       
-    </div>
-    <div id="header-inner" class="inner">
-      <nav id="main-nav">
-        <a id="main-nav-toggle" class="nav-icon"></a>
-        
-          <a class="main-nav-link" href="/">Home</a>
-        
-          <a class="main-nav-link" href="/archives">Archives</a>
-        
-      </nav>
-      <nav id="sub-nav">
-        
-          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
-        
-        <a id="nav-search-btn" class="nav-icon" title="搜索"></a>
-      </nav>
-      <div id="search-form-wrap">
-        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://example.com"></form>
-      </div>
-    </div>
-  </div>
-</header>
-      <div class="outer">
-        <section id="main">
-  
-    <article id="post-RocketMQ消息轨迹-设计篇" class="article article-type-post" itemscope itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/2020/12/08/RocketMQ%E6%B6%88%E6%81%AF%E8%BD%A8%E8%BF%B9-%E8%AE%BE%E8%AE%A1%E7%AF%87/" class="article-date">
-  <time datetime="2020-12-08T13:55:35.000Z" itemprop="datePublished">2020-12-08</time>
-</a>
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/rocketmq/">rocketmq</a>
+        <p class="site-subtitle">关注微信公众号「中间件兴趣圈」，第一时间获取最新干货！</p>
+      
   </div>
 
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
   </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/2020/12/08/RocketMQ%E6%B6%88%E6%81%AF%E8%BD%A8%E8%BF%B9-%E8%AE%BE%E8%AE%A1%E7%AF%87/">RocketMQ消息轨迹-设计篇</a>
-    </h1>
+</div>
+
+<nav class="site-nav">
   
 
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            Home
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
+            
+            Tags
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
+            
+            Categories
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
+            
+            Archives
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+  <section id="posts" class="posts-expand">
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2020/12/08/RocketMQ%E6%B6%88%E6%81%AF%E8%BD%A8%E8%BF%B9-%E8%AE%BE%E8%AE%A1%E7%AF%87/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="中间件兴趣圈">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2020/12/08/RocketMQ%E6%B6%88%E6%81%AF%E8%BD%A8%E8%BF%B9-%E8%AE%BE%E8%AE%A1%E7%AF%87/" itemprop="url">RocketMQ消息轨迹-设计篇</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2020-12-08T21:55:35+08:00">
+                2020-12-08
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/rocketmq/" itemprop="url" rel="index">
+                    <span itemprop="name">rocketmq</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
       </header>
     
-    <div class="article-entry" itemprop="articleBody">
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
       
-        <p>RocketMQ消息轨迹主要包含两篇文章：设计篇与源码分析篇，本节将详细介绍RocketMQ消息轨迹-设计相关。</p>
+      
+
+      
+        
+          <p>RocketMQ消息轨迹主要包含两篇文章：设计篇与源码分析篇，本节将详细介绍RocketMQ消息轨迹-设计相关。</p>
 <p>RocketMQ消息轨迹，主要跟踪消息发送、消息消费的轨迹，即详细记录消息各个处理环节的日志，从设计上至少需要解决如下三个核心问题：</p>
 <ul>
 <li>消费轨迹数据格式</li>
@@ -118,53 +371,152 @@
 <li>success<br>是发送成功。</li>
 <li>contextCode<br>消费状态码，可选值：SUCCESS,TIME_OUT,EXCEPTION,RETURNNULL,FAILED。</li>
 </ul>
-        
-          <p class="article-more-link">
-            <a href="/2020/12/08/RocketMQ%E6%B6%88%E6%81%AF%E8%BD%A8%E8%BF%B9-%E8%AE%BE%E8%AE%A1%E7%AF%87/#more">Read More</a>
-          </p>
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/2020/12/08/RocketMQ%E6%B6%88%E6%81%AF%E8%BD%A8%E8%BF%B9-%E8%AE%BE%E8%AE%A1%E7%AF%87/#more" rel="contents">
+              Read more &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
         
       
     </div>
-    <footer class="article-footer">
-      <a data-url="http://example.com/2020/12/08/RocketMQ%E6%B6%88%E6%81%AF%E8%BD%A8%E8%BF%B9-%E8%AE%BE%E8%AE%A1%E7%AF%87/" data-id="ckiibfos30016pkrghcanh27q" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/rocketmq/" rel="tag">rocketmq</a></li></ul>
+    
+    
+    
 
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
     </footer>
   </div>
   
-</article>
+  
+  
+  </article>
 
+
+    
+      
 
   
-    <article id="post-源码阅读技巧篇：RocketMQ DLedger 多副本即主从切换专栏回顾" class="article article-type-post" itemscope itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/2020/12/08/%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB%E6%8A%80%E5%B7%A7%E7%AF%87%EF%BC%9ARocketMQ%20DLedger%20%E5%A4%9A%E5%89%AF%E6%9C%AC%E5%8D%B3%E4%B8%BB%E4%BB%8E%E5%88%87%E6%8D%A2%E4%B8%93%E6%A0%8F%E5%9B%9E%E9%A1%BE/" class="article-date">
-  <time datetime="2020-12-08T13:55:35.000Z" itemprop="datePublished">2020-12-08</time>
-</a>
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/rocketmq/">rocketmq</a>
-  </div>
 
-  </div>
-  <div class="article-inner">
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2020/12/08/%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB%E6%8A%80%E5%B7%A7%E7%AF%87%EF%BC%9ARocketMQ%20DLedger%20%E5%A4%9A%E5%89%AF%E6%9C%AC%E5%8D%B3%E4%B8%BB%E4%BB%8E%E5%88%87%E6%8D%A2%E4%B8%93%E6%A0%8F%E5%9B%9E%E9%A1%BE/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="中间件兴趣圈">
+    </span>
+
     
-    
-      <header class="article-header">
+      <header class="post-header">
+
         
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/2020/12/08/%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB%E6%8A%80%E5%B7%A7%E7%AF%87%EF%BC%9ARocketMQ%20DLedger%20%E5%A4%9A%E5%89%AF%E6%9C%AC%E5%8D%B3%E4%B8%BB%E4%BB%8E%E5%88%87%E6%8D%A2%E4%B8%93%E6%A0%8F%E5%9B%9E%E9%A1%BE/">源码阅读技巧篇：RocketMQ DLedger 多副本即主从切换专栏回顾</a>
-    </h1>
-  
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2020/12/08/%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB%E6%8A%80%E5%B7%A7%E7%AF%87%EF%BC%9ARocketMQ%20DLedger%20%E5%A4%9A%E5%89%AF%E6%9C%AC%E5%8D%B3%E4%B8%BB%E4%BB%8E%E5%88%87%E6%8D%A2%E4%B8%93%E6%A0%8F%E5%9B%9E%E9%A1%BE/" itemprop="url">源码阅读技巧篇：RocketMQ DLedger 多副本即主从切换专栏回顾</a></h1>
+        
 
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2020-12-08T21:55:35+08:00">
+                2020-12-08
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/rocketmq/" itemprop="url" rel="index">
+                    <span itemprop="name">rocketmq</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
       </header>
     
-    <div class="article-entry" itemprop="articleBody">
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
       
-        <p>RocketMQ DLedger 多副本即主从切换专栏总共包含9篇文章，时间跨度大概为2个月的时间，笔者觉得授人以鱼不如授人以渔，借以这个系列来展示该系列的创作始末，展示笔者阅读源码的技巧。</p>
+      
+
+      
+        
+          <p>RocketMQ DLedger 多副本即主从切换专栏总共包含9篇文章，时间跨度大概为2个月的时间，笔者觉得授人以鱼不如授人以渔，借以这个系列来展示该系列的创作始末，展示笔者阅读源码的技巧。</p>
 <p>首先在下决心研读  RocketMQ DLedger 多副本(主从切换)的源码之前，首先还是要通过官方的分享、百度等途径对该功能进行一些基本的了解。</p>
 <p>我们了解到 RocketMQ 在 4.5.0 之前提供了主从同步功能，即当主节点宕机后，消费端可以继续从从节点上消费消息，但无法继续向该复制组发送消息。RocketMQ 4.5.0版本引入了多副本机制，即 DLedger，支持主从切换，即当一个复制组内的主节点宕机后，会在该复制组内触发重新选主，选主完成后即可继续提供消息写功能。同时还了解到 rocketmq 主从切换是基于 raft 协议的。</p>
 <p>raft 协议是何许人也，我猜想大部分读者对这个名词并不陌生，但像笔者一样只是听过其大体作用但并未详细学习的应该也不在少数，故我觉得看 RocketMQ DLedger 多副本即主从切换之前应该重点了解 raft 协议。</p>
@@ -172,53 +524,152 @@
 <p>本文主要根据 raft 官方提供的动画来学习了解 raft 协议，从本文基本得知了 raft 协议主要包含两个重要部分：选主 以及 日志复制。在了解了 raft 协议的选主、日志复制的基本实现后，然后就可以步入到 RocketMQ DLedger 多副本即主从切换的源码研究了，以探究大神是如何实现 raft 协议的。同时在了解到了 raft 协议的选主部分内容后，自己也可以简单的思考，如果自己去实现 raft 协议，应该要实现哪些关键点，当时我的思考如下：<br><img src="https://img-blog.csdnimg.cn/20191020212502611.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>这样在看源码时更加有针对性，不至于在阅读源码过程中“迷失”。</p>
 <p>2、<a target="_blank" rel="noopener" href="https://blog.csdn.net/prestigeding/article/details/99697323">源码分析 RocketMQ DLedger 多副本之 Leader 选主</a></p>
 <p>本文按照上一篇的思路，重点对 DLedgerLeaderElector 的实现进行了详细分析，特别是其内部的状态机流转，最后也给出一张流程图对选主过程进行一个简单的梳理与总结。</p>
-        
-          <p class="article-more-link">
-            <a href="/2020/12/08/%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB%E6%8A%80%E5%B7%A7%E7%AF%87%EF%BC%9ARocketMQ%20DLedger%20%E5%A4%9A%E5%89%AF%E6%9C%AC%E5%8D%B3%E4%B8%BB%E4%BB%8E%E5%88%87%E6%8D%A2%E4%B8%93%E6%A0%8F%E5%9B%9E%E9%A1%BE/#more">Read More</a>
-          </p>
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/2020/12/08/%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB%E6%8A%80%E5%B7%A7%E7%AF%87%EF%BC%9ARocketMQ%20DLedger%20%E5%A4%9A%E5%89%AF%E6%9C%AC%E5%8D%B3%E4%B8%BB%E4%BB%8E%E5%88%87%E6%8D%A2%E4%B8%93%E6%A0%8F%E5%9B%9E%E9%A1%BE/#more" rel="contents">
+              Read more &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
         
       
     </div>
-    <footer class="article-footer">
-      <a data-url="http://example.com/2020/12/08/%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB%E6%8A%80%E5%B7%A7%E7%AF%87%EF%BC%9ARocketMQ%20DLedger%20%E5%A4%9A%E5%89%AF%E6%9C%AC%E5%8D%B3%E4%B8%BB%E4%BB%8E%E5%88%87%E6%8D%A2%E4%B8%93%E6%A0%8F%E5%9B%9E%E9%A1%BE/" data-id="ckiibfota0047pkrgfrp35vir" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/rocketmq/" rel="tag">rocketmq</a></li></ul>
+    
+    
+    
 
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
     </footer>
   </div>
   
-</article>
+  
+  
+  </article>
 
+
+    
+      
 
   
-    <article id="post-RocketMQ一个新的消费组初次启动时从何处开始消费呢？" class="article article-type-post" itemscope itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/2020/12/08/RocketMQ%E4%B8%80%E4%B8%AA%E6%96%B0%E7%9A%84%E6%B6%88%E8%B4%B9%E7%BB%84%E5%88%9D%E6%AC%A1%E5%90%AF%E5%8A%A8%E6%97%B6%E4%BB%8E%E4%BD%95%E5%A4%84%E5%BC%80%E5%A7%8B%E6%B6%88%E8%B4%B9%E5%91%A2%EF%BC%9F/" class="article-date">
-  <time datetime="2020-12-08T13:55:35.000Z" itemprop="datePublished">2020-12-08</time>
-</a>
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/rocketmq/">rocketmq</a>
-  </div>
 
-  </div>
-  <div class="article-inner">
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2020/12/08/RocketMQ%E4%B8%80%E4%B8%AA%E6%96%B0%E7%9A%84%E6%B6%88%E8%B4%B9%E7%BB%84%E5%88%9D%E6%AC%A1%E5%90%AF%E5%8A%A8%E6%97%B6%E4%BB%8E%E4%BD%95%E5%A4%84%E5%BC%80%E5%A7%8B%E6%B6%88%E8%B4%B9%E5%91%A2%EF%BC%9F/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="中间件兴趣圈">
+    </span>
+
     
-    
-      <header class="article-header">
+      <header class="post-header">
+
         
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/2020/12/08/RocketMQ%E4%B8%80%E4%B8%AA%E6%96%B0%E7%9A%84%E6%B6%88%E8%B4%B9%E7%BB%84%E5%88%9D%E6%AC%A1%E5%90%AF%E5%8A%A8%E6%97%B6%E4%BB%8E%E4%BD%95%E5%A4%84%E5%BC%80%E5%A7%8B%E6%B6%88%E8%B4%B9%E5%91%A2%EF%BC%9F/">RocketMQ一个新的消费组初次启动时从何处开始消费呢？</a>
-    </h1>
-  
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2020/12/08/RocketMQ%E4%B8%80%E4%B8%AA%E6%96%B0%E7%9A%84%E6%B6%88%E8%B4%B9%E7%BB%84%E5%88%9D%E6%AC%A1%E5%90%AF%E5%8A%A8%E6%97%B6%E4%BB%8E%E4%BD%95%E5%A4%84%E5%BC%80%E5%A7%8B%E6%B6%88%E8%B4%B9%E5%91%A2%EF%BC%9F/" itemprop="url">RocketMQ一个新的消费组初次启动时从何处开始消费呢？</a></h1>
+        
 
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2020-12-08T21:55:35+08:00">
+                2020-12-08
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/rocketmq/" itemprop="url" rel="index">
+                    <span itemprop="name">rocketmq</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
       </header>
     
-    <div class="article-entry" itemprop="articleBody">
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
       
-        <h2 id="1、抛出问题"><a href="#1、抛出问题" class="headerlink" title="1、抛出问题"></a>1、抛出问题</h2><p>一个新的消费组订阅一个已存在的Topic主题时，消费组是从该Topic的哪条消息开始消费呢？</p>
+      
+
+      
+        
+          <h2 id="1、抛出问题"><a href="#1、抛出问题" class="headerlink" title="1、抛出问题"></a>1、抛出问题</h2><p>一个新的消费组订阅一个已存在的Topic主题时，消费组是从该Topic的哪条消息开始消费呢？</p>
 <p>首先翻阅DefaultMQPushConsumer的API时，setConsumeFromWhere(ConsumeFromWhere consumeFromWhere)API映入眼帘，从字面意思来看是设置消费者从哪里开始消费，正是解开该问题的”钥匙“。ConsumeFromWhere枚举类图如下：<br><img src="https://img-blog.csdnimg.cn/20190720120834686.png" alt="在这里插入图片描述"></p>
 <ul>
 <li>CONSUME_FROM_MAX_OFFSET<br>从消费队列最大的偏移量开始消费。</li>
@@ -239,55 +690,153 @@
 <p>通过上述，往TopicTest发送300条消息，发送完毕后，RocketMQ Broker存储结构如下：<br><img src="https://img-blog.csdnimg.cn/20190720121132299.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"></p>
 <h3 id="1-3-消费端验证代码"><a href="#1-3-消费端验证代码" class="headerlink" title="1.3 消费端验证代码"></a>1.3 消费端验证代码</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> InterruptedException, MQClientException </span>&#123;</span><br><span class="line">    DefaultMQPushConsumer consumer = <span class="keyword">new</span> DefaultMQPushConsumer(<span class="string">&quot;my_consumer_01&quot;</span>);</span><br><span class="line">    consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET);</span><br><span class="line">    consumer.subscribe(<span class="string">&quot;TopicTest&quot;</span>, <span class="string">&quot;*&quot;</span>);</span><br><span class="line">    consumer.setNamesrvAddr(<span class="string">&quot;127.0.0.1:9876&quot;</span>);</span><br><span class="line">    consumer.registerMessageListener(<span class="keyword">new</span> MessageListenerConcurrently() &#123;</span><br><span class="line">        <span class="meta">@Override</span></span><br><span class="line">        <span class="function"><span class="keyword">public</span> ConsumeConcurrentlyStatus <span class="title">consumeMessage</span><span class="params">(List&lt;MessageExt&gt; msgs,</span></span></span><br><span class="line"><span class="function"><span class="params">            ConsumeConcurrentlyContext context)</span> </span>&#123;</span><br><span class="line">            System.out.printf(<span class="string">&quot;%s Receive New Messages: %s %n&quot;</span>, Thread.currentThread().getName(), msgs);</span><br><span class="line">            <span class="keyword">return</span> ConsumeConcurrentlyStatus.CONSUME_SUCCESS;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;);</span><br><span class="line">    consumer.start();</span><br><span class="line">    System.out.printf(<span class="string">&quot;Consumer Started.%n&quot;</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 <p>执行上述代码后，按照期望，应该是不会消费任何消息，只有等生产者再发送消息后，才会对消息进行消费，事实是这样吗？执行效果如图所示：<br><img src="https://img-blog.csdnimg.cn/20190720121225978.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br><strong>令人意外的是，竟然从队列的最小偏移量开始消费了</strong>，这就“尴尬”了。难不成是RocketMQ的Bug。带着这个疑问，从源码的角度尝试来解读该问题，并指导我们实践。</p>
-        
-          <p class="article-more-link">
-            <a href="/2020/12/08/RocketMQ%E4%B8%80%E4%B8%AA%E6%96%B0%E7%9A%84%E6%B6%88%E8%B4%B9%E7%BB%84%E5%88%9D%E6%AC%A1%E5%90%AF%E5%8A%A8%E6%97%B6%E4%BB%8E%E4%BD%95%E5%A4%84%E5%BC%80%E5%A7%8B%E6%B6%88%E8%B4%B9%E5%91%A2%EF%BC%9F/#more">Read More</a>
-          </p>
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/2020/12/08/RocketMQ%E4%B8%80%E4%B8%AA%E6%96%B0%E7%9A%84%E6%B6%88%E8%B4%B9%E7%BB%84%E5%88%9D%E6%AC%A1%E5%90%AF%E5%8A%A8%E6%97%B6%E4%BB%8E%E4%BD%95%E5%A4%84%E5%BC%80%E5%A7%8B%E6%B6%88%E8%B4%B9%E5%91%A2%EF%BC%9F/#more" rel="contents">
+              Read more &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
         
       
     </div>
-    <footer class="article-footer">
-      <a data-url="http://example.com/2020/12/08/RocketMQ%E4%B8%80%E4%B8%AA%E6%96%B0%E7%9A%84%E6%B6%88%E8%B4%B9%E7%BB%84%E5%88%9D%E6%AC%A1%E5%90%AF%E5%8A%A8%E6%97%B6%E4%BB%8E%E4%BD%95%E5%A4%84%E5%BC%80%E5%A7%8B%E6%B6%88%E8%B4%B9%E5%91%A2%EF%BC%9F/" data-id="ckiibfotp0054pkrggbha8nx0" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/rocketmq/" rel="tag">rocketmq</a></li></ul>
+    
+    
+    
 
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
     </footer>
   </div>
   
-</article>
+  
+  
+  </article>
 
+
+    
+      
 
   
-    <article id="post-RocketMQ 升级到主从切换(DLedger、多副本)实战" class="article article-type-post" itemscope itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/2020/12/08/RocketMQ%20%E5%8D%87%E7%BA%A7%E5%88%B0%E4%B8%BB%E4%BB%8E%E5%88%87%E6%8D%A2(DLedger%E3%80%81%E5%A4%9A%E5%89%AF%E6%9C%AC)%E5%AE%9E%E6%88%98/" class="article-date">
-  <time datetime="2020-12-08T13:53:35.000Z" itemprop="datePublished">2020-12-08</time>
-</a>
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/rocketmq/">rocketmq</a>
-  </div>
 
-  </div>
-  <div class="article-inner">
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2020/12/08/RocketMQ%20%E5%8D%87%E7%BA%A7%E5%88%B0%E4%B8%BB%E4%BB%8E%E5%88%87%E6%8D%A2(DLedger%E3%80%81%E5%A4%9A%E5%89%AF%E6%9C%AC)%E5%AE%9E%E6%88%98/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="中间件兴趣圈">
+    </span>
+
     
-    
-      <header class="article-header">
+      <header class="post-header">
+
         
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/2020/12/08/RocketMQ%20%E5%8D%87%E7%BA%A7%E5%88%B0%E4%B8%BB%E4%BB%8E%E5%88%87%E6%8D%A2(DLedger%E3%80%81%E5%A4%9A%E5%89%AF%E6%9C%AC)%E5%AE%9E%E6%88%98/">RocketMQ 升级到主从切换(DLedger、多副本)实战</a>
-    </h1>
-  
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2020/12/08/RocketMQ%20%E5%8D%87%E7%BA%A7%E5%88%B0%E4%B8%BB%E4%BB%8E%E5%88%87%E6%8D%A2(DLedger%E3%80%81%E5%A4%9A%E5%89%AF%E6%9C%AC)%E5%AE%9E%E6%88%98/" itemprop="url">RocketMQ 升级到主从切换(DLedger、多副本)实战</a></h1>
+        
 
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2020-12-08T21:53:35+08:00">
+                2020-12-08
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/rocketmq/" itemprop="url" rel="index">
+                    <span itemprop="name">rocketmq</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
       </header>
     
-    <div class="article-entry" itemprop="articleBody">
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
       
-        <p>本文主要介绍如何将 RocketMQ 集群从原先的主从同步升级到主从切换。</p>
+      
+
+      
+        
+          <p>本文主要介绍如何将 RocketMQ 集群从原先的主从同步升级到主从切换。</p>
 <p>首先先介绍与 DLedger 多副本即 RocketMQ 主从切换相关的核心配置属性，然后尝试搭建一个主从同步集群，再从原先的 RocketMQ 集群平滑升级到 DLedger 集群的示例，并简单测试一下主从切换功能。</p>
-<p>@<a href="%E6%9C%AC%E8%8A%82%E7%9B%AE%E5%BD%95">TOC</a></p>
 <h2 id="1、RocketMQ-DLedger-多副本即主从切换核心配置参数详解"><a href="#1、RocketMQ-DLedger-多副本即主从切换核心配置参数详解" class="headerlink" title="1、RocketMQ DLedger 多副本即主从切换核心配置参数详解"></a>1、RocketMQ DLedger 多副本即主从切换核心配置参数详解</h2><p>其主要的配置参数如下所示：</p>
 <ul>
 <li>enableDLegerCommitLog<br>是否启用 DLedger，即是否启用 RocketMQ 主从切换，默认值为 false。如果需要开启主从切换，则该值需要设置为 true 。</li>
@@ -306,53 +855,152 @@
 <figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">nohup bin/mqnamesrv  /dev/<span class="literal">null</span>  <span class="number">2</span>&gt;&amp;<span class="number">1</span> &amp;</span><br><span class="line">nohup bin/mqbroker -c conf/broker.conf  /dev/<span class="literal">null</span>  <span class="number">2</span>&gt;&amp;<span class="number">1</span> &amp;</span><br></pre></td></tr></table></figure>
 <p>安装后的集群信息如图所示：<br><img src="https://img-blog.csdnimg.cn/20191013142514649.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"></p>
 <h2 id="3、主从同步集群升级到DLedger"><a href="#3、主从同步集群升级到DLedger" class="headerlink" title="3、主从同步集群升级到DLedger"></a>3、主从同步集群升级到DLedger</h2><h3 id="3-1-部署架构"><a href="#3-1-部署架构" class="headerlink" title="3.1 部署架构"></a>3.1 部署架构</h3><p>DLedger 集群至少需要3台机器，故搭建 DLedger 还需要再引入一台机器，其部署结构图如下：</p>
-        
-          <p class="article-more-link">
-            <a href="/2020/12/08/RocketMQ%20%E5%8D%87%E7%BA%A7%E5%88%B0%E4%B8%BB%E4%BB%8E%E5%88%87%E6%8D%A2(DLedger%E3%80%81%E5%A4%9A%E5%89%AF%E6%9C%AC)%E5%AE%9E%E6%88%98/#more">Read More</a>
-          </p>
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/2020/12/08/RocketMQ%20%E5%8D%87%E7%BA%A7%E5%88%B0%E4%B8%BB%E4%BB%8E%E5%88%87%E6%8D%A2(DLedger%E3%80%81%E5%A4%9A%E5%89%AF%E6%9C%AC)%E5%AE%9E%E6%88%98/#more" rel="contents">
+              Read more &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
         
       
     </div>
-    <footer class="article-footer">
-      <a data-url="http://example.com/2020/12/08/RocketMQ%20%E5%8D%87%E7%BA%A7%E5%88%B0%E4%B8%BB%E4%BB%8E%E5%88%87%E6%8D%A2(DLedger%E3%80%81%E5%A4%9A%E5%89%AF%E6%9C%AC)%E5%AE%9E%E6%88%98/" data-id="ckiibfors000hpkrgacfkgvyg" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/rocketmq/" rel="tag">rocketmq</a></li></ul>
+    
+    
+    
 
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
     </footer>
   </div>
   
-</article>
+  
+  
+  </article>
 
+
+    
+      
 
   
-    <article id="post-源码分析 RocketMQ DLedger 多副本即主从切换实现原理" class="article article-type-post" itemscope itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/2020/12/08/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90%20RocketMQ%20DLedger%20%E5%A4%9A%E5%89%AF%E6%9C%AC%E5%8D%B3%E4%B8%BB%E4%BB%8E%E5%88%87%E6%8D%A2%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86/" class="article-date">
-  <time datetime="2020-12-08T13:51:35.000Z" itemprop="datePublished">2020-12-08</time>
-</a>
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/rocketmq/">rocketmq</a>
-  </div>
 
-  </div>
-  <div class="article-inner">
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2020/12/08/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90%20RocketMQ%20DLedger%20%E5%A4%9A%E5%89%AF%E6%9C%AC%E5%8D%B3%E4%B8%BB%E4%BB%8E%E5%88%87%E6%8D%A2%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="中间件兴趣圈">
+    </span>
+
     
-    
-      <header class="article-header">
+      <header class="post-header">
+
         
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/2020/12/08/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90%20RocketMQ%20DLedger%20%E5%A4%9A%E5%89%AF%E6%9C%AC%E5%8D%B3%E4%B8%BB%E4%BB%8E%E5%88%87%E6%8D%A2%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86/">源码分析 RocketMQ DLedger 多副本即主从切换实现原理</a>
-    </h1>
-  
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2020/12/08/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90%20RocketMQ%20DLedger%20%E5%A4%9A%E5%89%AF%E6%9C%AC%E5%8D%B3%E4%B8%BB%E4%BB%8E%E5%88%87%E6%8D%A2%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86/" itemprop="url">源码分析 RocketMQ DLedger 多副本即主从切换实现原理</a></h1>
+        
 
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2020-12-08T21:51:35+08:00">
+                2020-12-08
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/rocketmq/" itemprop="url" rel="index">
+                    <span itemprop="name">rocketmq</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
       </header>
     
-    <div class="article-entry" itemprop="articleBody">
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
       
-        <p>DLedger 基于 raft 协议，故天然支持主从切换，即主节点(Leader)发生故障，会重新触发选主，在集群内再选举出新的主节点。</p>
+      
+
+      
+        
+          <p>DLedger 基于 raft 协议，故天然支持主从切换，即主节点(Leader)发生故障，会重新触发选主，在集群内再选举出新的主节点。</p>
 <p>RocketMQ 中主从同步，从节点不仅会从主节点同步数据，也会同步元数据，包含 topic 路由信息、消费进度、延迟队列处理队列、消费组订阅配置等信息。那主从切换后元数据如何同步呢？特别是主从切换过程中，对消息消费有多大的影响，会丢失消息吗？</p>
 <blockquote>
 <p>温馨提示：本文假设大家已经对 RocketMQ4.5 版本之前的主从同步实现有一定的了解，这部分内容在《RocketMQ技术内幕》一书中有详细的介绍，大家也可以参考如下两篇文章：<br>1、 <a target="_blank" rel="noopener" href="https://blog.csdn.net/prestigeding/article/details/93672079">RocketMQ HA机制(主从同步)</a> 。<br>2、<a target="_blank" rel="noopener" href="https://blog.csdn.net/prestigeding/article/details/101629440">RocketMQ 整合 DLedger(多副本)即主从切换实现平滑升级的设计技巧</a></p>
@@ -400,154 +1048,451 @@
 <p>BrokerController#initialize</p>
 <figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (messageStoreConfig.isEnableDLegerCommitLog()) &#123;</span><br><span class="line">    DLedgerRoleChangeHandler roleChangeHandler = <span class="keyword">new</span> DLedgerRoleChangeHandler(<span class="keyword">this</span>, (DefaultMessageStore) messageStore);</span><br><span class="line">    ((DLedgerCommitLog)((DefaultMessageStore) messageStore).getCommitLog()).getdLedgerServer().getdLedgerLeaderElector().addRoleChangeHandler(roleChangeHandler);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 <p>上述代码片段截取自 BrokerController 的 initialize 方法，我们可以得知在 Broker 启动时，如果开启了 多副本机制，即 enableDLedgerCommitLog 参数设置为 true，会为 集群节点选主器添加 roleChangeHandler 事件处理器，即节点发送变更后的事件处理器。</p>
-        
-          <p class="article-more-link">
-            <a href="/2020/12/08/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90%20RocketMQ%20DLedger%20%E5%A4%9A%E5%89%AF%E6%9C%AC%E5%8D%B3%E4%B8%BB%E4%BB%8E%E5%88%87%E6%8D%A2%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86/#more">Read More</a>
-          </p>
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/2020/12/08/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90%20RocketMQ%20DLedger%20%E5%A4%9A%E5%89%AF%E6%9C%AC%E5%8D%B3%E4%B8%BB%E4%BB%8E%E5%88%87%E6%8D%A2%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86/#more" rel="contents">
+              Read more &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
         
       
     </div>
-    <footer class="article-footer">
-      <a data-url="http://example.com/2020/12/08/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90%20RocketMQ%20DLedger%20%E5%A4%9A%E5%89%AF%E6%9C%AC%E5%8D%B3%E4%B8%BB%E4%BB%8E%E5%88%87%E6%8D%A2%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86/" data-id="ckiibfots005cpkrg1yob9ikr" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/rocketmq/" rel="tag">rocketmq</a></li></ul>
+    
+    
+    
 
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
     </footer>
   </div>
   
-</article>
+  
+  
+  </article>
 
+
+    
+      
 
   
-    <article id="post-RocketMQ 整合 DLedger(多副本)即主从切换实现平滑升级的设计技巧" class="article article-type-post" itemscope itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/2020/12/08/RocketMQ%20%E6%95%B4%E5%90%88%20DLedger(%E5%A4%9A%E5%89%AF%E6%9C%AC)%E5%8D%B3%E4%B8%BB%E4%BB%8E%E5%88%87%E6%8D%A2%E5%AE%9E%E7%8E%B0%E5%B9%B3%E6%BB%91%E5%8D%87%E7%BA%A7%E7%9A%84%E8%AE%BE%E8%AE%A1%E6%8A%80%E5%B7%A7/" class="article-date">
-  <time datetime="2020-12-08T13:49:35.000Z" itemprop="datePublished">2020-12-08</time>
-</a>
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/rocketmq/">rocketmq</a>
-  </div>
 
-  </div>
-  <div class="article-inner">
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2020/12/08/RocketMQ%20%E6%95%B4%E5%90%88%20DLedger(%E5%A4%9A%E5%89%AF%E6%9C%AC)%E5%8D%B3%E4%B8%BB%E4%BB%8E%E5%88%87%E6%8D%A2%E5%AE%9E%E7%8E%B0%E5%B9%B3%E6%BB%91%E5%8D%87%E7%BA%A7%E7%9A%84%E8%AE%BE%E8%AE%A1%E6%8A%80%E5%B7%A7/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="中间件兴趣圈">
+    </span>
+
     
-    
-      <header class="article-header">
+      <header class="post-header">
+
         
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/2020/12/08/RocketMQ%20%E6%95%B4%E5%90%88%20DLedger(%E5%A4%9A%E5%89%AF%E6%9C%AC)%E5%8D%B3%E4%B8%BB%E4%BB%8E%E5%88%87%E6%8D%A2%E5%AE%9E%E7%8E%B0%E5%B9%B3%E6%BB%91%E5%8D%87%E7%BA%A7%E7%9A%84%E8%AE%BE%E8%AE%A1%E6%8A%80%E5%B7%A7/">RocketMQ 整合 DLedger(多副本)即主从切换实现平滑升级的设计技巧</a>
-    </h1>
-  
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2020/12/08/RocketMQ%20%E6%95%B4%E5%90%88%20DLedger(%E5%A4%9A%E5%89%AF%E6%9C%AC)%E5%8D%B3%E4%B8%BB%E4%BB%8E%E5%88%87%E6%8D%A2%E5%AE%9E%E7%8E%B0%E5%B9%B3%E6%BB%91%E5%8D%87%E7%BA%A7%E7%9A%84%E8%AE%BE%E8%AE%A1%E6%8A%80%E5%B7%A7/" itemprop="url">RocketMQ 整合 DLedger(多副本)即主从切换实现平滑升级的设计技巧</a></h1>
+        
 
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2020-12-08T21:49:35+08:00">
+                2020-12-08
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/rocketmq/" itemprop="url" rel="index">
+                    <span itemprop="name">rocketmq</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
       </header>
     
-    <div class="article-entry" itemprop="articleBody">
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
       
-        <p>源码分析 RocketMQ DLedger 多副本系列已经进行到第 8 篇了，前面的章节主要是介绍了基于 raft  协议的选主与日志复制，从本篇开始将开始关注如何将 DLedger 应用到 RocketMQ中。</p>
+      
+
+      
+        
+          <p>源码分析 RocketMQ DLedger 多副本系列已经进行到第 8 篇了，前面的章节主要是介绍了基于 raft  协议的选主与日志复制，从本篇开始将开始关注如何将 DLedger 应用到 RocketMQ中。</p>
 <p>摘要：详细分析了RocketMQ DLedger 多副本(主从切换) 是如何整合到 RocketMQ中，本文的行文思路首先结合已掌握的DLedger 多副本相关的知识初步思考其实现思路，然后从 Broker启动流程、DLedgerCommitlog 核心类的讲解，再从消息发送(追加)与消息查找来进一步探讨 DLedger 是如何支持平滑升级的。</p>
 <h2 id="1、阅读源码之前的思考"><a href="#1、阅读源码之前的思考" class="headerlink" title="1、阅读源码之前的思考"></a>1、阅读源码之前的思考</h2><p>RocketMQ 的消息存储文件主要包括 commitlog 文件、consumequeue 文件与 Index 文件。commitlog 文件存储全量的消息，consumequeue、index 文件都是基于 commitlog 文件构建的。要使用 DLedger 来实现消息存储的一致性，应该关键是要实现 commitlog 文件的一致性，即  DLedger 要整合的对象应该是 commitlog 文件，即只需保证 raft 协议的复制组内各个节点的 commitlog 文件一致即可。</p>
 <p>我们知道使用文件存储消息都会基于一定的存储格式，rocketmq 的 commitlog 一个条目就包含魔数、消息长度，消息属性、消息体等，而我们再来回顾一下 DLedger 日志的存储格式：<br><img src="https://img-blog.csdnimg.cn/20191003120527109.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>DLedger 要整合 commitlog 文件，是不是可以把 rocketmq  消息，即一个个  commitlog 条目整体当成 DLedger 的 body 字段即可。</p>
 <p>还等什么，跟我一起来看源码吧！！！别急，再抛一个问题，DLedger 整合 RocketMQ commitlog，能不能做到平滑升级？</p>
 <p>带着这些思考和问题，一起来探究 DLedger 是如何整合 RocketMQ 的。 </p>
-        
-          <p class="article-more-link">
-            <a href="/2020/12/08/RocketMQ%20%E6%95%B4%E5%90%88%20DLedger(%E5%A4%9A%E5%89%AF%E6%9C%AC)%E5%8D%B3%E4%B8%BB%E4%BB%8E%E5%88%87%E6%8D%A2%E5%AE%9E%E7%8E%B0%E5%B9%B3%E6%BB%91%E5%8D%87%E7%BA%A7%E7%9A%84%E8%AE%BE%E8%AE%A1%E6%8A%80%E5%B7%A7/#more">Read More</a>
-          </p>
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/2020/12/08/RocketMQ%20%E6%95%B4%E5%90%88%20DLedger(%E5%A4%9A%E5%89%AF%E6%9C%AC)%E5%8D%B3%E4%B8%BB%E4%BB%8E%E5%88%87%E6%8D%A2%E5%AE%9E%E7%8E%B0%E5%B9%B3%E6%BB%91%E5%8D%87%E7%BA%A7%E7%9A%84%E8%AE%BE%E8%AE%A1%E6%8A%80%E5%B7%A7/#more" rel="contents">
+              Read more &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
         
       
     </div>
-    <footer class="article-footer">
-      <a data-url="http://example.com/2020/12/08/RocketMQ%20%E6%95%B4%E5%90%88%20DLedger(%E5%A4%9A%E5%89%AF%E6%9C%AC)%E5%8D%B3%E4%B8%BB%E4%BB%8E%E5%88%87%E6%8D%A2%E5%AE%9E%E7%8E%B0%E5%B9%B3%E6%BB%91%E5%8D%87%E7%BA%A7%E7%9A%84%E8%AE%BE%E8%AE%A1%E6%8A%80%E5%B7%A7/" data-id="ckiibfoto0051pkrg4wv451v6" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/rocketmq/" rel="tag">rocketmq</a></li></ul>
+    
+    
+    
 
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
     </footer>
   </div>
   
-</article>
+  
+  
+  </article>
 
+
+    
+      
 
   
-    <article id="post-基于 raft 协议的 RocketMQ DLedger 多副本日志复制设计原理" class="article article-type-post" itemscope itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/2020/12/08/%E5%9F%BA%E4%BA%8E%20raft%20%E5%8D%8F%E8%AE%AE%E7%9A%84%20RocketMQ%20DLedger%20%E5%A4%9A%E5%89%AF%E6%9C%AC%E6%97%A5%E5%BF%97%E5%A4%8D%E5%88%B6%E8%AE%BE%E8%AE%A1%E5%8E%9F%E7%90%86/" class="article-date">
-  <time datetime="2020-12-08T12:14:35.000Z" itemprop="datePublished">2020-12-08</time>
-</a>
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/rocketmq/">rocketmq</a>
-  </div>
 
-  </div>
-  <div class="article-inner">
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2020/12/08/%E5%9F%BA%E4%BA%8E%20raft%20%E5%8D%8F%E8%AE%AE%E7%9A%84%20RocketMQ%20DLedger%20%E5%A4%9A%E5%89%AF%E6%9C%AC%E6%97%A5%E5%BF%97%E5%A4%8D%E5%88%B6%E8%AE%BE%E8%AE%A1%E5%8E%9F%E7%90%86/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="中间件兴趣圈">
+    </span>
+
     
-    
-      <header class="article-header">
+      <header class="post-header">
+
         
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/2020/12/08/%E5%9F%BA%E4%BA%8E%20raft%20%E5%8D%8F%E8%AE%AE%E7%9A%84%20RocketMQ%20DLedger%20%E5%A4%9A%E5%89%AF%E6%9C%AC%E6%97%A5%E5%BF%97%E5%A4%8D%E5%88%B6%E8%AE%BE%E8%AE%A1%E5%8E%9F%E7%90%86/">基于 raft 协议的 RocketMQ DLedger 多副本日志复制设计原理</a>
-    </h1>
-  
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2020/12/08/%E5%9F%BA%E4%BA%8E%20raft%20%E5%8D%8F%E8%AE%AE%E7%9A%84%20RocketMQ%20DLedger%20%E5%A4%9A%E5%89%AF%E6%9C%AC%E6%97%A5%E5%BF%97%E5%A4%8D%E5%88%B6%E8%AE%BE%E8%AE%A1%E5%8E%9F%E7%90%86/" itemprop="url">基于 raft 协议的 RocketMQ DLedger 多副本日志复制设计原理</a></h1>
+        
 
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2020-12-08T20:14:35+08:00">
+                2020-12-08
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/rocketmq/" itemprop="url" rel="index">
+                    <span itemprop="name">rocketmq</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
       </header>
     
-    <div class="article-entry" itemprop="articleBody">
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
       
-        <h2 id="1、RocketMQ-DLedger-多副本日志复制流程图"><a href="#1、RocketMQ-DLedger-多副本日志复制流程图" class="headerlink" title="1、RocketMQ DLedger 多副本日志复制流程图"></a>1、RocketMQ DLedger 多副本日志复制流程图</h2><h3 id="1-1-RocketMQ-DLedger-日志转发-append-请求流程图"><a href="#1-1-RocketMQ-DLedger-日志转发-append-请求流程图" class="headerlink" title="1.1 RocketMQ DLedger 日志转发(append) 请求流程图"></a>1.1 RocketMQ DLedger 日志转发(append) 请求流程图</h3><p><img src="https://img-blog.csdnimg.cn/20190928183406295.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"></p>
+      
+
+      
+        
+          <h2 id="1、RocketMQ-DLedger-多副本日志复制流程图"><a href="#1、RocketMQ-DLedger-多副本日志复制流程图" class="headerlink" title="1、RocketMQ DLedger 多副本日志复制流程图"></a>1、RocketMQ DLedger 多副本日志复制流程图</h2><h3 id="1-1-RocketMQ-DLedger-日志转发-append-请求流程图"><a href="#1-1-RocketMQ-DLedger-日志转发-append-请求流程图" class="headerlink" title="1.1 RocketMQ DLedger 日志转发(append) 请求流程图"></a>1.1 RocketMQ DLedger 日志转发(append) 请求流程图</h3><p><img src="https://img-blog.csdnimg.cn/20190928183406295.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"></p>
 <h3 id="1-2-RocketMQ-DLedger-日志仲裁流程图"><a href="#1-2-RocketMQ-DLedger-日志仲裁流程图" class="headerlink" title="1.2 RocketMQ DLedger 日志仲裁流程图"></a>1.2 RocketMQ DLedger 日志仲裁流程图</h3><p><img src="https://img-blog.csdnimg.cn/20190928183709529.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"></p>
 <h3 id="1-3-RocketMQ-DLedger-从节点日志复制流程图"><a href="#1-3-RocketMQ-DLedger-从节点日志复制流程图" class="headerlink" title="1.3 RocketMQ DLedger 从节点日志复制流程图"></a>1.3 RocketMQ DLedger 从节点日志复制流程图</h3><p><img src="https://img-blog.csdnimg.cn/20190928183733569.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"></p>
-        
-          <p class="article-more-link">
-            <a href="/2020/12/08/%E5%9F%BA%E4%BA%8E%20raft%20%E5%8D%8F%E8%AE%AE%E7%9A%84%20RocketMQ%20DLedger%20%E5%A4%9A%E5%89%AF%E6%9C%AC%E6%97%A5%E5%BF%97%E5%A4%8D%E5%88%B6%E8%AE%BE%E8%AE%A1%E5%8E%9F%E7%90%86/#more">Read More</a>
-          </p>
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/2020/12/08/%E5%9F%BA%E4%BA%8E%20raft%20%E5%8D%8F%E8%AE%AE%E7%9A%84%20RocketMQ%20DLedger%20%E5%A4%9A%E5%89%AF%E6%9C%AC%E6%97%A5%E5%BF%97%E5%A4%8D%E5%88%B6%E8%AE%BE%E8%AE%A1%E5%8E%9F%E7%90%86/#more" rel="contents">
+              Read more &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
         
       
     </div>
-    <footer class="article-footer">
-      <a data-url="http://example.com/2020/12/08/%E5%9F%BA%E4%BA%8E%20raft%20%E5%8D%8F%E8%AE%AE%E7%9A%84%20RocketMQ%20DLedger%20%E5%A4%9A%E5%89%AF%E6%9C%AC%E6%97%A5%E5%BF%97%E5%A4%8D%E5%88%B6%E8%AE%BE%E8%AE%A1%E5%8E%9F%E7%90%86/" data-id="ckiibfoso002lpkrge8qb81if" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/rocketmq/" rel="tag">rocketmq</a></li></ul>
+    
+    
+    
 
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
     </footer>
   </div>
   
-</article>
+  
+  
+  </article>
 
+
+    
+      
 
   
-    <article id="post-源码分析 RocketMQ DLedger(多副本) 之日志复制(传播)" class="article article-type-post" itemscope itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/2020/12/08/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90%20RocketMQ%20DLedger(%E5%A4%9A%E5%89%AF%E6%9C%AC)%20%E4%B9%8B%E6%97%A5%E5%BF%97%E5%A4%8D%E5%88%B6(%E4%BC%A0%E6%92%AD)/" class="article-date">
-  <time datetime="2020-12-08T12:12:05.000Z" itemprop="datePublished">2020-12-08</time>
-</a>
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/rocketmq/">rocketmq</a>
-  </div>
 
-  </div>
-  <div class="article-inner">
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2020/12/08/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90%20RocketMQ%20DLedger(%E5%A4%9A%E5%89%AF%E6%9C%AC)%20%E4%B9%8B%E6%97%A5%E5%BF%97%E5%A4%8D%E5%88%B6(%E4%BC%A0%E6%92%AD)/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="中间件兴趣圈">
+    </span>
+
     
-    
-      <header class="article-header">
+      <header class="post-header">
+
         
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/2020/12/08/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90%20RocketMQ%20DLedger(%E5%A4%9A%E5%89%AF%E6%9C%AC)%20%E4%B9%8B%E6%97%A5%E5%BF%97%E5%A4%8D%E5%88%B6(%E4%BC%A0%E6%92%AD)/">源码分析 RocketMQ DLedger(多副本) 之日志复制(传播)</a>
-    </h1>
-  
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2020/12/08/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90%20RocketMQ%20DLedger(%E5%A4%9A%E5%89%AF%E6%9C%AC)%20%E4%B9%8B%E6%97%A5%E5%BF%97%E5%A4%8D%E5%88%B6(%E4%BC%A0%E6%92%AD)/" itemprop="url">源码分析 RocketMQ DLedger(多副本) 之日志复制(传播)</a></h1>
+        
 
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2020-12-08T20:12:05+08:00">
+                2020-12-08
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/rocketmq/" itemprop="url" rel="index">
+                    <span itemprop="name">rocketmq</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
       </header>
     
-    <div class="article-entry" itemprop="articleBody">
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
       
-        <p>本文紧接着 源码分析 RocketMQ DLedger(多副本) 之日志追加流程  ，继续 Leader 处理客户端 append 的请求流程中最至关重要的一环：日志复制。</p>
+      
+
+      
+        
+          <p>本文紧接着 源码分析 RocketMQ DLedger(多副本) 之日志追加流程  ，继续 Leader 处理客户端 append 的请求流程中最至关重要的一环：日志复制。</p>
 <p>DLedger 多副本的日志转发由 DLedgerEntryPusher 实现，接下来将对其进行详细介绍。</p>
 <blockquote>
 <p>温馨提示：由于本篇幅较长，为了更好的理解其实现，大家可以带着如下疑问来通读本篇文章：<br>1、raft 协议中有一个非常重要的概念：已提交日志序号，该如何实现。<br>2、客户端向 DLedger 集群发送一条日志，必须得到集群中大多数节点的认可才能被认为写入成功。<br>3、raft 协议中追加、提交两个动作如何实现。</p>
@@ -606,53 +1551,152 @@
 <li>COMMIT<br>通常，leader 会将提交的索引附加到 append 请求，但是如果 append 请求很少且分散，leader 将发送一个单独的请求来通知从节点提交的索引。</li>
 </ul>
 <p>对主从节点的请求类型有了一个初步的认识后，我们将从 EntryDispatcher 的业务处理入口 doWork 方法开始讲解。</p>
-        
-          <p class="article-more-link">
-            <a href="/2020/12/08/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90%20RocketMQ%20DLedger(%E5%A4%9A%E5%89%AF%E6%9C%AC)%20%E4%B9%8B%E6%97%A5%E5%BF%97%E5%A4%8D%E5%88%B6(%E4%BC%A0%E6%92%AD)/#more">Read More</a>
-          </p>
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/2020/12/08/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90%20RocketMQ%20DLedger(%E5%A4%9A%E5%89%AF%E6%9C%AC)%20%E4%B9%8B%E6%97%A5%E5%BF%97%E5%A4%8D%E5%88%B6(%E4%BC%A0%E6%92%AD)/#more" rel="contents">
+              Read more &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
         
       
     </div>
-    <footer class="article-footer">
-      <a data-url="http://example.com/2020/12/08/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90%20RocketMQ%20DLedger(%E5%A4%9A%E5%89%AF%E6%9C%AC)%20%E4%B9%8B%E6%97%A5%E5%BF%97%E5%A4%8D%E5%88%B6(%E4%BC%A0%E6%92%AD)/" data-id="ckiibfouc0065pkrg4b2m43ob" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/rocketmq/" rel="tag">rocketmq</a></li></ul>
+    
+    
+    
 
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
     </footer>
   </div>
   
-</article>
+  
+  
+  </article>
 
+
+    
+      
 
   
-    <article id="post-源码分析 RocketMQ DLedger(多副本) 之日志追加流程" class="article article-type-post" itemscope itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/2020/12/08/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90%20RocketMQ%20DLedger(%E5%A4%9A%E5%89%AF%E6%9C%AC)%20%E4%B9%8B%E6%97%A5%E5%BF%97%E8%BF%BD%E5%8A%A0%E6%B5%81%E7%A8%8B/" class="article-date">
-  <time datetime="2020-12-08T12:07:01.000Z" itemprop="datePublished">2020-12-08</time>
-</a>
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/rocketmq/">rocketmq</a>
-  </div>
 
-  </div>
-  <div class="article-inner">
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2020/12/08/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90%20RocketMQ%20DLedger(%E5%A4%9A%E5%89%AF%E6%9C%AC)%20%E4%B9%8B%E6%97%A5%E5%BF%97%E8%BF%BD%E5%8A%A0%E6%B5%81%E7%A8%8B/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="中间件兴趣圈">
+    </span>
+
     
-    
-      <header class="article-header">
+      <header class="post-header">
+
         
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/2020/12/08/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90%20RocketMQ%20DLedger(%E5%A4%9A%E5%89%AF%E6%9C%AC)%20%E4%B9%8B%E6%97%A5%E5%BF%97%E8%BF%BD%E5%8A%A0%E6%B5%81%E7%A8%8B/">源码分析 RocketMQ DLedger(多副本) 之日志追加流程</a>
-    </h1>
-  
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2020/12/08/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90%20RocketMQ%20DLedger(%E5%A4%9A%E5%89%AF%E6%9C%AC)%20%E4%B9%8B%E6%97%A5%E5%BF%97%E8%BF%BD%E5%8A%A0%E6%B5%81%E7%A8%8B/" itemprop="url">源码分析 RocketMQ DLedger(多副本) 之日志追加流程</a></h1>
+        
 
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2020-12-08T20:07:01+08:00">
+                2020-12-08
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/rocketmq/" itemprop="url" rel="index">
+                    <span itemprop="name">rocketmq</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
       </header>
     
-    <div class="article-entry" itemprop="articleBody">
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
       
-        <p>根据 raft 协议可知，当整个集群完成 Leader 选主后，集群中的主节点就可以接受客户端的请求，而集群中的从节点只负责从主节点同步数据，而不会处理读写请求，与M-S结构的读写分离有着巨大的区别。</p>
+      
+
+      
+        
+          <p>根据 raft 协议可知，当整个集群完成 Leader 选主后，集群中的主节点就可以接受客户端的请求，而集群中的从节点只负责从主节点同步数据，而不会处理读写请求，与M-S结构的读写分离有着巨大的区别。</p>
 <p>有了前篇文章的基础，本文将直接从 Leader 处理客户端请求入口开始，其入口为：DLedgerServer 的 handleAppend 方法开始讲起。</p>
 <h2 id="1、日志复制基本流程"><a href="#1、日志复制基本流程" class="headerlink" title="1、日志复制基本流程"></a>1、日志复制基本流程</h2><p>在正式分析 RocketMQ DLedger 多副本复制之前，我们首先来了解客户端发送日志的请求协议字段，其类图如下所示：<br><img src="https://img-blog.csdnimg.cn/20190914204415722.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>我们先一一介绍各个字段的含义：</p>
 <ul>
@@ -691,54 +1735,153 @@
 <p>主要分两个步骤：<br>代码@1：检查当前投票轮次是否在 PendingMap 中，如果不在，则初始化，其结构为：Map&lt; Long/* 投票轮次*/, ConcurrentMap&lt;Long, TimeoutFuture&lt; AppendEntryResponse&gt;&gt;&gt;。</p>
 <p>代码@2：检测当前等待从节点返回结果的个数是否超过其最大请求数量，可通过maxPendingRequests<br>Num 配置，该值默认为：10000。</p>
 <p>上述逻辑比较简单，但疑问随着而来，ConcurrentMap&lt;Long, TimeoutFuture&lt; AppendEntryResponse&gt;&gt; 中的数据是从何而来的呢？我们不妨接着往下看。</p>
-        
-          <p class="article-more-link">
-            <a href="/2020/12/08/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90%20RocketMQ%20DLedger(%E5%A4%9A%E5%89%AF%E6%9C%AC)%20%E4%B9%8B%E6%97%A5%E5%BF%97%E8%BF%BD%E5%8A%A0%E6%B5%81%E7%A8%8B/#more">Read More</a>
-          </p>
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/2020/12/08/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90%20RocketMQ%20DLedger(%E5%A4%9A%E5%89%AF%E6%9C%AC)%20%E4%B9%8B%E6%97%A5%E5%BF%97%E8%BF%BD%E5%8A%A0%E6%B5%81%E7%A8%8B/#more" rel="contents">
+              Read more &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
         
       
     </div>
-    <footer class="article-footer">
-      <a data-url="http://example.com/2020/12/08/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90%20RocketMQ%20DLedger(%E5%A4%9A%E5%89%AF%E6%9C%AC)%20%E4%B9%8B%E6%97%A5%E5%BF%97%E8%BF%BD%E5%8A%A0%E6%B5%81%E7%A8%8B/" data-id="ckiibfott005fpkrgdo3x45wi" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/rocketmq/" rel="tag">rocketmq</a></li></ul>
+    
+    
+    
 
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
     </footer>
   </div>
   
-</article>
+  
+  
+  </article>
 
+
+    
+      
 
   
-    <article id="post-RocketMQ 主题扩分片后遇到的坑" class="article article-type-post" itemscope itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/2020/12/07/RocketMQ%20%E4%B8%BB%E9%A2%98%E6%89%A9%E5%88%86%E7%89%87%E5%90%8E%E9%81%87%E5%88%B0%E7%9A%84%E5%9D%91/" class="article-date">
-  <time datetime="2020-12-07T15:49:01.000Z" itemprop="datePublished">2020-12-07</time>
-</a>
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/rocketmq/">rocketmq</a>
-  </div>
 
-  </div>
-  <div class="article-inner">
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2020/12/07/RocketMQ%20%E4%B8%BB%E9%A2%98%E6%89%A9%E5%88%86%E7%89%87%E5%90%8E%E9%81%87%E5%88%B0%E7%9A%84%E5%9D%91/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="中间件兴趣圈">
+    </span>
+
     
-    
-      <header class="article-header">
+      <header class="post-header">
+
         
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/2020/12/07/RocketMQ%20%E4%B8%BB%E9%A2%98%E6%89%A9%E5%88%86%E7%89%87%E5%90%8E%E9%81%87%E5%88%B0%E7%9A%84%E5%9D%91/">RocketMQ 主题扩分片后遇到的坑</a>
-    </h1>
-  
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2020/12/07/RocketMQ%20%E4%B8%BB%E9%A2%98%E6%89%A9%E5%88%86%E7%89%87%E5%90%8E%E9%81%87%E5%88%B0%E7%9A%84%E5%9D%91/" itemprop="url">RocketMQ 主题扩分片后遇到的坑</a></h1>
+        
 
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2020-12-07T23:49:01+08:00">
+                2020-12-07
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/rocketmq/" itemprop="url" rel="index">
+                    <span itemprop="name">rocketmq</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
       </header>
     
-    <div class="article-entry" itemprop="articleBody">
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
       
-        <p>消息组接到某项目组反馈，topic 在扩容后出现部分队列无法被消费者，导致消息积压，影响线上业务？</p>
-<p>考虑到该问题是发送在真实的线上环境，为了避免泄密，本文先在笔者的虚拟机中来重现问题。<br>@<a href="%E6%9C%AC%E8%8A%82%E7%9B%AE%E5%BD%95">TOC</a></p>
+      
+
+      
+        
+          <p>消息组接到某项目组反馈，topic 在扩容后出现部分队列无法被消费者，导致消息积压，影响线上业务？</p>
+<p>考虑到该问题是发送在真实的线上环境，为了避免泄密，本文先在笔者的虚拟机中来重现问题。</p>
 <h2 id="1、案情回顾"><a href="#1、案情回顾" class="headerlink" title="1、案情回顾"></a>1、案情回顾</h2><h3 id="1-1-集群现状"><a href="#1-1-集群现状" class="headerlink" title="1.1 集群现状"></a>1.1 集群现状</h3><p>集群信息如下：<br><img src="https://img-blog.csdnimg.cn/20190906232935331.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>例如业务主体名 topic_dw_test_by_order_01 的路由信息如图所示：<br><img src="https://img-blog.csdnimg.cn/20190906233008367.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>当前的消费者信息：<br><img src="https://img-blog.csdnimg.cn/20190906233034814.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>broker 的配置信息如下：</p>
 <figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">brokerClusterName &#x3D; DefaultCluster</span><br><span class="line">brokerName &#x3D; broker-a</span><br><span class="line">brokerId &#x3D; 0</span><br><span class="line">deleteWhen &#x3D; 04</span><br><span class="line">fileReservedTime &#x3D; 48</span><br><span class="line">brokerRole &#x3D; ASYNC_MASTER</span><br><span class="line">flushDiskType &#x3D; ASYNC_FLUSH</span><br><span class="line">brokerIP1&#x3D;192.168.0.220</span><br><span class="line">brokerIP2-192.168.0.220</span><br><span class="line">namesrvAddr&#x3D;192.168.0.221:9876;192.168.0.220:9876</span><br><span class="line">storePathRootDir&#x3D;&#x2F;opt&#x2F;application&#x2F;rocketmq-all-4.5.2-bin-release&#x2F;store</span><br><span class="line">storePathCommitLog&#x3D;&#x2F;opt&#x2F;application&#x2F;rocketmq-all-4.5.2-bin-release&#x2F;store&#x2F;commitlog</span><br><span class="line">autoCreateTopicEnable&#x3D;false</span><br><span class="line">autoCreateSubscriptionGroup&#x3D;false</span><br></pre></td></tr></table></figure>
 <blockquote>
@@ -746,146 +1889,369 @@
 </blockquote>
 <p>由于该业务量稳步提升，项目组觉得该主题的队列数太少，不利于增加消费者来提高其消费能力，故向运维人员提出增加队列的需求。</p>
 <h3 id="1-2、RocketMQ-在线扩容队列"><a href="#1-2、RocketMQ-在线扩容队列" class="headerlink" title="1.2、RocketMQ 在线扩容队列"></a>1.2、RocketMQ 在线扩容队列</h3><p>运维通过公司自研的消息运维平台，直接以指定集群的方式为 topic 扩容，该运维平台底层其实使用了RocketMQ 提供的 updateTopic 命令，其命令说明如下：</p>
-        
-          <p class="article-more-link">
-            <a href="/2020/12/07/RocketMQ%20%E4%B8%BB%E9%A2%98%E6%89%A9%E5%88%86%E7%89%87%E5%90%8E%E9%81%87%E5%88%B0%E7%9A%84%E5%9D%91/#more">Read More</a>
-          </p>
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/2020/12/07/RocketMQ%20%E4%B8%BB%E9%A2%98%E6%89%A9%E5%88%86%E7%89%87%E5%90%8E%E9%81%87%E5%88%B0%E7%9A%84%E5%9D%91/#more" rel="contents">
+              Read more &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
         
       
     </div>
-    <footer class="article-footer">
-      <a data-url="http://example.com/2020/12/07/RocketMQ%20%E4%B8%BB%E9%A2%98%E6%89%A9%E5%88%86%E7%89%87%E5%90%8E%E9%81%87%E5%88%B0%E7%9A%84%E5%9D%91/" data-id="ckiibforr000fpkrg8x8ffk98" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/rocketmq-%E4%B8%BB%E9%A2%98%E6%89%A9%E5%AE%B9-%E5%AE%9E%E6%88%98-%E5%9D%91/" rel="tag">rocketmq 主题扩容 实战 坑</a></li></ul>
+    
+    
+    
 
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
     </footer>
   </div>
   
-</article>
+  
+  
+  </article>
 
+
+    
+  </section>
 
   
-
-
-  <nav id="page-nav">
-    
-    <a class="extend prev" rel="prev" href="/page/4/">&amp;laquo; 上一页</a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/3/">3</a><a class="page-number" href="/page/4/">4</a><span class="page-number current">5</span><a class="page-number" href="/page/6/">6</a><a class="page-number" href="/page/7/">7</a><a class="extend next" rel="next" href="/page/6/">下一页 &amp;raquo;</a>
+  <nav class="pagination">
+    <a class="extend prev" rel="prev" href="/page/4/">上一页</a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/4/">4</a><span class="page-number current">5</span><a class="page-number" href="/page/6/">6</a><a class="page-number" href="/page/7/">7</a><a class="extend next" rel="next" href="/page/6/">下一页</a>
   </nav>
 
-</section>
+
+
+          </div>
+          
+
+
+          
+
+        </div>
         
-          <aside id="sidebar">
+          
   
-    
-  <div class="widget-wrap">
-    <h3 class="widget-title">分类</h3>
-    <div class="widget">
-      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/java/">java</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/java8/">java8</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/kafka-rocketmq/">kafka rocketmq</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/mybatis/">mybatis</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/rocketmq/">rocketmq</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/sentinel/">sentinel</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/%E7%A8%8B%E5%BA%8F%E4%BA%BA%E7%94%9F-%E9%80%86%E8%A2%AD-%E8%81%8C%E5%9C%BA%E5%8F%91%E5%B1%95/">程序人生 逆袭 职场发展</a></li></ul>
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
     </div>
   </div>
 
-
-  
+  <aside id="sidebar" class="sidebar">
     
-  <div class="widget-wrap">
-    <h3 class="widget-title">标签</h3>
-    <div class="widget">
-      <ul class="tag-list" itemprop="keywords"><li class="tag-list-item"><a class="tag-list-link" href="/tags/java-reference/" rel="tag">java reference</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/java-%E7%AE%97%E6%B3%95/" rel="tag">java 算法</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/java8-Lambda-%E5%87%BD%E6%95%B0%E5%BC%8F%E7%BC%96%E7%A8%8B/" rel="tag">java8 Lambda 函数式编程</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/java8-Lambda-%E6%B5%81%E8%AE%A1%E7%AE%97/" rel="tag">java8 Lambda 流计算</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/kafka-rocketmq/" rel="tag">kafka rocketmq</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/mybatis/" rel="tag">mybatis</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rocketmq/" rel="tag">rocketmq</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rocketmq-broker-busy-TIMEOUT-CLEAN-QUEUE-PCBUSY-CLEAN-QUEUE/" rel="tag">rocketmq broker busy TIMEOUT_CLEAN_QUEUE PCBUSY_CLEAN_QUEUE</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rocketmq-%E4%B8%BB%E9%A2%98%E6%89%A9%E5%AE%B9-%E5%AE%9E%E6%88%98-%E5%9D%91/" rel="tag">rocketmq 主题扩容 实战 坑</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rocketmq-%E5%A4%9A%E5%89%AF%E6%9C%AC-raft-%E4%B8%BB%E4%BB%8E%E5%88%87%E6%8D%A2/" rel="tag">rocketmq 多副本 raft 主从切换</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rocketmq-%E5%A4%9A%E5%89%AF%E6%9C%AC-raft-%E9%80%89%E4%B8%BB/" rel="tag">rocketmq 多副本 raft 选主</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/sentinel/" rel="tag">sentinel</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E7%A8%8B%E5%BA%8F%E4%BA%BA%E7%94%9F/" rel="tag">程序人生</a></li></ul>
+    <div class="sidebar-inner">
+
+      
+
+      
+
+      <section class="site-overview-wrap sidebar-panel sidebar-panel-active">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name"></p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/">
+              
+                  <span class="site-state-item-count">64</span>
+                  <span class="site-state-item-name">posts</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                <a href="/categories/index.html">
+                  <span class="site-state-item-count">7</span>
+                  <span class="site-state-item-name">categories</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                <a href="/tags/index.html">
+                  <span class="site-state-item-count">32</span>
+                  <span class="site-state-item-name">tags</span>
+                </a>
+              </div>
+            
+
+          </nav>
+
+          
+            <div class="feed-link motion-element">
+              <a href="/atom.xml" rel="alternate">
+                <i class="fa fa-rss"></i>
+                RSS
+              </a>
+            </div>
+          
+
+          
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+
+      
+
     </div>
-  </div>
+  </aside>
 
 
-  
-    
-  <div class="widget-wrap">
-    <h3 class="widget-title">标签云</h3>
-    <div class="widget tagcloud">
-      <a href="/tags/java-reference/" style="font-size: 10px;">java reference</a> <a href="/tags/java-%E7%AE%97%E6%B3%95/" style="font-size: 12px;">java 算法</a> <a href="/tags/java8-Lambda-%E5%87%BD%E6%95%B0%E5%BC%8F%E7%BC%96%E7%A8%8B/" style="font-size: 12px;">java8 Lambda 函数式编程</a> <a href="/tags/java8-Lambda-%E6%B5%81%E8%AE%A1%E7%AE%97/" style="font-size: 14px;">java8 Lambda 流计算</a> <a href="/tags/kafka-rocketmq/" style="font-size: 10px;">kafka rocketmq</a> <a href="/tags/mybatis/" style="font-size: 16px;">mybatis</a> <a href="/tags/rocketmq/" style="font-size: 20px;">rocketmq</a> <a href="/tags/rocketmq-broker-busy-TIMEOUT-CLEAN-QUEUE-PCBUSY-CLEAN-QUEUE/" style="font-size: 10px;">rocketmq broker busy TIMEOUT_CLEAN_QUEUE PCBUSY_CLEAN_QUEUE</a> <a href="/tags/rocketmq-%E4%B8%BB%E9%A2%98%E6%89%A9%E5%AE%B9-%E5%AE%9E%E6%88%98-%E5%9D%91/" style="font-size: 10px;">rocketmq 主题扩容 实战 坑</a> <a href="/tags/rocketmq-%E5%A4%9A%E5%89%AF%E6%9C%AC-raft-%E4%B8%BB%E4%BB%8E%E5%88%87%E6%8D%A2/" style="font-size: 10px;">rocketmq 多副本 raft 主从切换</a> <a href="/tags/rocketmq-%E5%A4%9A%E5%89%AF%E6%9C%AC-raft-%E9%80%89%E4%B8%BB/" style="font-size: 10px;">rocketmq 多副本 raft 选主</a> <a href="/tags/sentinel/" style="font-size: 18px;">sentinel</a> <a href="/tags/%E7%A8%8B%E5%BA%8F%E4%BA%BA%E7%94%9F/" style="font-size: 10px;">程序人生</a>
-    </div>
-  </div>
-
-  
-    
-  <div class="widget-wrap">
-    <h3 class="widget-title">归档</h3>
-    <div class="widget">
-      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/12/">十二月 2020</a></li></ul>
-    </div>
-  </div>
-
-
-  
-    
-  <div class="widget-wrap">
-    <h3 class="widget-title">最新文章</h3>
-    <div class="widget">
-      <ul>
-        
-          <li>
-            <a href="/2020/12/09/%E5%BF%AB%E9%80%9F%E6%8E%92%E5%BA%8F%E7%AE%97%E6%B3%95java%E7%89%88%E5%AE%9E%E7%8E%B0/">快速排序算法java版实现</a>
-          </li>
-        
-          <li>
-            <a href="/2020/12/09/%E6%8E%92%E5%BA%8F%E4%BA%8C%E5%8F%89%E6%A0%91JAVA%E7%89%88%E5%AE%9E%E7%8E%B0/">排序二叉树JAVA版实现</a>
-          </li>
-        
-          <li>
-            <a href="/2020/12/09/java%20Reference%20%E5%BC%95%E7%94%A8%E5%AD%A6%E4%B9%A0%E6%80%BB%E7%BB%93/">java Reference 引用学习总结</a>
-          </li>
-        
-          <li>
-            <a href="/2020/12/09/Mybatis%E4%B8%80%E4%BA%8C%E7%BA%A7%E7%BC%93%E5%AD%98%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86%E4%B8%8E%E4%BD%BF%E7%94%A8%E6%8C%87%E5%8D%97/">Mybatis一二级缓存实现原理与使用指南</a>
-          </li>
-        
-          <li>
-            <a href="/2020/12/09/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90Mybatis%E6%8F%92%E4%BB%B6(Plugin)%E6%9C%BA%E5%88%B6%E4%B8%8E%E5%AE%9E%E6%88%98/">源码分析Mybatis插件(Plugin)机制与实战</a>
-          </li>
-        
-      </ul>
-    </div>
-  </div>
-
-  
-</aside>
         
       </div>
-      <footer id="footer">
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">中间件兴趣圈</span>
+
   
-  <div class="outer">
-    <div id="footer-info" class="inner">
-      &copy; 2020 中间件兴趣圈<br>
-      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
-    </div>
-  </div>
-</footer>
-    </div>
-    <nav id="mobile-nav">
+</div>
+
+
+  <div class="powered-by">Powered by <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a></div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">Theme &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Pisces</a> v5.1.4</div>
+
+
+
+
+        
+<div class="busuanzi-count">
+  <script async src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
   
-    <a href="/" class="mobile-nav-link">Home</a>
+    <span class="site-uv">
+      <i class="fa fa-user"></i>总访客
+      <span class="busuanzi-value" id="busuanzi_value_site_uv"></span>
+      人
+    </span>
   
-    <a href="/archives" class="mobile-nav-link">Archives</a>
+
   
-</nav>
+    <span class="site-pv">
+      <i class="fa fa-eye"></i>总访问量
+      <span class="busuanzi-value" id="busuanzi_value_site_pv"></span>
+      次
+    </span>
+  
+</div>
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
     
 
-<script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
-
-
-  
-<link rel="stylesheet" href="/fancybox/jquery.fancybox.css">
-
-  
-<script src="/fancybox/jquery.fancybox.pack.js"></script>
-
-
-
-
-<script src="/js/script.js"></script>
-
-
-
+    
 
   </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.4"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.1.4"></script>
+
+
+
+  
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
 </body>
 </html>
