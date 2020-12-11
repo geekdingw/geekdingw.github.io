@@ -5,7 +5,7 @@
   
 
 
-<html class="theme-next pisces use-motion" lang="zh-CN">
+<html class="theme-next pisces use-motion" lang="zh-Hans">
 <head>
   <meta charset="UTF-8"/>
 <meta http-equiv="X-UA-Compatible" content="IE=edge" />
@@ -68,7 +68,7 @@
 
 
 
-  <meta name="keywords" content="sentinel," />
+  <meta name="keywords" content="sentinel,源码,集群限流," />
 
 
 
@@ -81,30 +81,41 @@
 
 
 
-<meta name="description" content="看到标题中的几个关键字系统自适应限流是不是觉得高大上，这个自适应又是如何实现的呢？ 1、Sentinel 系统自适应概述从官方了解到 Sentienl 系统自适应限流是一个全局的概念，对应用入口流量统一进行统一控制，结合应用的机器负载、CPU 使用率，总体平均响应时间、入口 QPS 和并发线程数等几个维度的监控指标从而决定是否调用进行限流操作。为了有一个直观的感受，我们可以从官方的运维平台看看其系">
+<meta name="description" content="1、集群限流使用场景首先一个服务有三个服务提供者，但这三台集群的硬件配置不一样，如图所示：为了充分利用硬件的资源，诸如 Dubbo 都提供了基于权重的负载均衡机制，例如可以将8C16G的机器设置的权重是4C8G的两倍，这样充分利用硬件资源，假如现在需要引入 Sentinel 的限流机制，例如为一个 Dubbo 服务设置限流规则，这样由于三台集群分担的流量不均匀，会导致无法重复利用高配机器的资源。">
 <meta property="og:type" content="article">
-<meta property="og:title" content="Sentinel 系统自适应限流原理剖析与实战指导">
+<meta property="og:title" content="Sentinel 集群限流设计原理">
 <meta property="og:url" content="http://example.com/posts/a815ae71.html">
 <meta property="og:site_name" content="中间件兴趣圈">
-<meta property="og:description" content="看到标题中的几个关键字系统自适应限流是不是觉得高大上，这个自适应又是如何实现的呢？ 1、Sentinel 系统自适应概述从官方了解到 Sentienl 系统自适应限流是一个全局的概念，对应用入口流量统一进行统一控制，结合应用的机器负载、CPU 使用率，总体平均响应时间、入口 QPS 和并发线程数等几个维度的监控指标从而决定是否调用进行限流操作。为了有一个直观的感受，我们可以从官方的运维平台看看其系">
-<meta property="og:locale" content="zh_CN">
-<meta property="og:image" content="https://img-blog.csdnimg.cn/2020052413411896.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center">
-<meta property="og:image" content="https://img-blog.csdnimg.cn/20200524134158678.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center">
-<meta property="og:image" content="https://img-blog.csdnimg.cn/2020052413421556.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center">
-<meta property="og:image" content="https://img-blog.csdnimg.cn/20200524134428924.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center">
-<meta property="og:image" content="https://img-blog.csdnimg.cn/20200524134513299.png#pic_center">
-<meta property="og:image" content="https://img-blog.csdnimg.cn/20200524134545735.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center">
-<meta property="og:image" content="https://img-blog.csdnimg.cn/20200524134621142.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center">
-<meta property="og:image" content="https://img-blog.csdnimg.cn/20200524134709868.png#pic_center">
-<meta property="og:image" content="https://img-blog.csdnimg.cn/2020052413473576.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center">
-<meta property="og:image" content="https://img-blog.csdnimg.cn/20200524134821496.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center">
-<meta property="og:image" content="https://img-blog.csdnimg.cn/20200524134839941.png#pic_center">
+<meta property="og:description" content="1、集群限流使用场景首先一个服务有三个服务提供者，但这三台集群的硬件配置不一样，如图所示：为了充分利用硬件的资源，诸如 Dubbo 都提供了基于权重的负载均衡机制，例如可以将8C16G的机器设置的权重是4C8G的两倍，这样充分利用硬件资源，假如现在需要引入 Sentinel 的限流机制，例如为一个 Dubbo 服务设置限流规则，这样由于三台集群分担的流量不均匀，会导致无法重复利用高配机器的资源。">
+<meta property="og:locale">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/20200503232733111.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/20200503232832535.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/20200503232919521.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/20200503233012141.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/20200503233045696.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/20200503233111258.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/2020050323322512.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/20200503233259244.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/20200503233319545.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/20200503233418165.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/20200503233520315.png#pic_center">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/20200503233607726.png#pic_center">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/20200503233630847.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/20200503233707407.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/20200503233730680.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/20200503233758997.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/20200503233827875.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/20200503233858200.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/20200503233858165.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/20200503233920874.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center">
 <meta property="article:published_time" content="2020-12-08T15:03:35.000Z">
-<meta property="article:modified_time" content="2020-12-11T04:38:09.505Z">
+<meta property="article:modified_time" content="2020-12-11T14:29:09.335Z">
 <meta property="article:author" content="中间件兴趣圈">
 <meta property="article:tag" content="sentinel">
+<meta property="article:tag" content="源码">
+<meta property="article:tag" content="集群限流">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:image" content="https://img-blog.csdnimg.cn/2020052413411896.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center">
+<meta name="twitter:image" content="https://img-blog.csdnimg.cn/20200503232733111.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center">
 
 
 
@@ -120,7 +131,7 @@
     motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
     duoshuo: {
       userId: '0',
-      author: 'Author'
+      author: '博主'
     },
     algolia: {
       applicationID: '',
@@ -140,7 +151,7 @@
 
 
 
-  <title>Sentinel 系统自适应限流原理剖析与实战指导 | 中间件兴趣圈</title>
+  <title>Sentinel 集群限流设计原理 | 中间件兴趣圈</title>
   
 
 
@@ -152,7 +163,7 @@
 
 <meta name="generator" content="Hexo 5.2.0"></head>
 
-<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
 
   
   
@@ -200,7 +211,7 @@
             
               <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
             
-            Home
+            首页
           </a>
         </li>
       
@@ -210,7 +221,7 @@
             
               <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
             
-            Tags
+            标签
           </a>
         </li>
       
@@ -220,7 +231,7 @@
             
               <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
             
-            Categories
+            分类
           </a>
         </li>
       
@@ -230,15 +241,49 @@
             
               <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
             
-            Archives
+            归档
           </a>
         </li>
       
 
       
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="popup-trigger">
+          
+            
+              <i class="menu-item-icon fa fa-search fa-fw"></i> <br />
+            
+            搜索
+          </a>
+        </li>
+      
     </ul>
   
 
+  
+    <div class="site-search">
+      
+  <div class="popup search-popup local-search-popup">
+  <div class="local-search-header clearfix">
+    <span class="search-icon">
+      <i class="fa fa-search"></i>
+    </span>
+    <span class="popup-btn-close">
+      <i class="fa fa-times-circle"></i>
+    </span>
+    <div class="local-search-input-wrapper">
+      <input autocomplete="off"
+             placeholder="搜索..." spellcheck="false"
+             type="text" id="local-search-input">
+    </div>
+  </div>
+  <div id="local-search-result"></div>
+</div>
+
+
+
+    </div>
   
 </nav>
 
@@ -284,7 +329,7 @@
 
         
         
-          <h1 class="post-title" itemprop="name headline">Sentinel 系统自适应限流原理剖析与实战指导</h1>
+          <h1 class="post-title" itemprop="name headline">Sentinel 集群限流设计原理</h1>
         
 
         <div class="post-meta">
@@ -294,9 +339,9 @@
                 <i class="fa fa-calendar-o"></i>
               </span>
               
-                <span class="post-meta-item-text">Posted on</span>
+                <span class="post-meta-item-text">发表于</span>
               
-              <time title="Post created" itemprop="dateCreated datePublished" datetime="2020-12-08T23:03:35+08:00">
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-12-08T23:03:35+08:00">
                 2020-12-08
               </time>
             
@@ -315,7 +360,7 @@
                 <i class="fa fa-folder-o"></i>
               </span>
               
-                <span class="post-meta-item-text">In</span>
+                <span class="post-meta-item-text">分类于</span>
               
               
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
@@ -332,17 +377,27 @@
 
           
             
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/posts/a815ae71.html#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count valine-comment-count" data-xid="/posts/a815ae71.html" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
           
 
           
           
-             <span id="/posts/a815ae71.html" class="leancloud_visitors" data-flag-title="Sentinel 系统自适应限流原理剖析与实战指导">
+             <span id="/posts/a815ae71.html" class="leancloud_visitors" data-flag-title="Sentinel 集群限流设计原理">
                <span class="post-meta-divider">|</span>
                <span class="post-meta-item-icon">
                  <i class="fa fa-eye"></i>
                </span>
                
-                 <span class="post-meta-item-text">Visitors&#58;</span>
+                 <span class="post-meta-item-text">阅读次数&#58;</span>
                
                  <span class="leancloud-visitors-count"></span>
              </span>
@@ -355,6 +410,37 @@
             </span>
           
 
+          
+            <div class="post-wordcount">
+              
+                
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-file-word-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">字数统计&#58;</span>
+                
+                <span title="字数统计">
+                  2.6k 字
+                </span>
+              
+
+              
+                <span class="post-meta-divider">|</span>
+              
+
+              
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-clock-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">阅读时长 &asymp;</span>
+                
+                <span title="阅读时长">
+                  9 分钟
+                </span>
+              
+            </div>
           
 
           
@@ -372,36 +458,67 @@
       
 
       
-        <div id="vip-container"><p>看到标题中的几个关键字<strong>系统自适应</strong>限流是不是觉得高大上，这个自适应又是如何实现的呢？</p>
-<h2 id="1、Sentinel-系统自适应概述"><a href="#1、Sentinel-系统自适应概述" class="headerlink" title="1、Sentinel 系统自适应概述"></a>1、Sentinel 系统自适应概述</h2><p>从官方了解到 Sentienl 系统自适应限流是一个全局的概念，对应用入口流量统一进行统一控制，结合应用的机器负载、CPU 使用率，总体平均响应时间、入口 QPS 和并发线程数等几个维度的监控指标从而决定是否调用进行限流操作。为了有一个直观的感受，我们可以从官方的运维平台看看其系统自适应限流的操作界面：<br><img src="https://img-blog.csdnimg.cn/2020052413411896.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br>RT、线程数、入口QPS这三个指标是可以通过采集调用信息进行统计计算的，那系统LOAD、CPU使用率是如何获取的呢？大家可以带着这个问题进入本文的学习中来。</p>
-<p>在详细分析系统自适应实现原理之前我们先来思考一下 Sentinel 引入该机制的目的。</p>
-<p>官方文档针对这个问题有过仔细阐述，我们先来看看官方文档对其阐述。</p>
-<p>引入系统自适应限流的主要的目的有如下两个：</p>
+        <div id="vip-container"><h2 id="1、集群限流使用场景"><a href="#1、集群限流使用场景" class="headerlink" title="1、集群限流使用场景"></a>1、集群限流使用场景</h2><p>首先一个服务有三个服务提供者，但这三台集群的硬件配置不一样，如图所示：<br><img src="https://img-blog.csdnimg.cn/20200503232733111.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br>为了充分利用硬件的资源，诸如 Dubbo 都提供了基于权重的负载均衡机制，例如可以将8C16G的机器设置的权重是4C8G的两倍，这样充分利用硬件资源，假如现在需要引入 Sentinel 的限流机制，例如为一个 Dubbo 服务设置限流规则，这样由于三台集群分担的流量不均匀，会导致无法重复利用高配机器的资源。</p>
+<p>假设经过压测，机器配置为C48G最高能承受的TPS为 1500，而机器配置为8C16G能承受的TPS为2800，那如果采取单机限流，其阔值只能设置为1500，因为如果超过1500，会将4C8G的机器压垮。</p>
+<p>解决这种办法的方式就是针对整个集群进行限流，即为整个集群设置一个阔值，例如设置限流TPS为6000。</p>
+<h2 id="2、集群限流与单机限流的异同思考"><a href="#2、集群限流与单机限流的异同思考" class="headerlink" title="2、集群限流与单机限流的异同思考"></a>2、集群限流与单机限流的异同思考</h2><p>限流的一个基本作用就是按照限流规则生成访问许可(Token)，然后根据当前实时的调用信息进行判断是否可以获得许可而决定是否放行。</p>
+<p>集群与单机限流在实时调用信息收集方面应该差别不大，都可以基于滑动窗口进行统计信息的收集。</p>
+<p>集群与单机限流的最主要区别在与许可的生成，单机模式的许可直接在本地生成，但集群限流必须有一个统一的 Token 发放机制，以此来协调当前集群内多机调用，从而基于当前“调用总数”进行限流。</p>
+<h2 id="3、探究集群限流实现原理"><a href="#3、探究集群限流实现原理" class="headerlink" title="3、探究集群限流实现原理"></a>3、探究集群限流实现原理</h2><p>在探究集群限流实现原理之前先来回顾一下单机限流的执行流程图。<br><img src="https://img-blog.csdnimg.cn/20200503232832535.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br>结合流程我们可以看出集群限流的几个关键点 ClusterBuilderSlot、FlowSlot。</p>
+<h4 id="3-1-ClusterBuilderSlot-详解"><a href="#3-1-ClusterBuilderSlot-详解" class="headerlink" title="3.1 ClusterBuilderSlot 详解"></a>3.1 ClusterBuilderSlot 详解</h4><p>在对一个资源进行流控规则判断时，首先将进入到 NodeSelectorSlot，然后就会进入到 ClusterBuilderSlot，为了与单机限流模式，介绍 ClusterBuilderSlot 时与 NodeSelectorSlot 进行一个对比。</p>
+<p>NodeSelectorSlot 的核心实现截图如下所示：<br><img src="https://img-blog.csdnimg.cn/20200503232919521.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"></p>
+<blockquote>
+<p>温馨提示：从该系列之前的文章也能得知，一个 资源对应的一个 NodeSelectorSlot  实例，即多线程访问一个资源时，都会调用同一个 NodeSelectorSlot 实例。</p>
+</blockquote>
+<p>NodeSelectorSlot 的关键点如下：</p>
 <ul>
-<li>保证系统不被拖垮</li>
-<li>在系统稳定的前提下保证系统的吞吐量。</li>
+<li>Map&lt;String, DefaultNode&gt; map<br>在 NodeSelectorSlot 中是以 context Id 为维度进行缓存的，例如官方给出的 Dubbo 适配方法，contexId 为 dubbo 服务的全路径名。即 Dubbo的入口节点对应的缓存 Key 为 context<br>id。</li>
+<li>fireEntry 的 node 参数<br>由于 NodeSelectorSlot 是第一个过滤器，故第一次调用 fireEntry 方法时的 node 参数就是上面创建的 Node，即与 context 相关链的 Node，即所谓的入口节点即 Entrance Node。</li>
 </ul>
-<p>目前我们接触的限流的防护思路都是设定一个指标（阔值），例如系统的负载 load 超过某个阔值后就阻止或减少流量的继续进入，当系统负载降低到某一水平后则恢复流量的进入。通常都是被动的，其实际效果取决与阔值设置是否合理，但往往设置合理不是一件容易的事情。</p>
-<p>那 Sentinel 提供的系统自适应是可以将设定的规则作为一个保护因子，而允许通过的流量由处理请求的能力来决定，即根据请求的响应时间、当前系统正在处理的请求速率来决定。</p>
-<p>那 Sentinel 是如何实现的呢？接下来用源码的手段来揭晓其实现原理。</p>
-<h2 id="2、系统自适应限流原理"><a href="#2、系统自适应限流原理" class="headerlink" title="2、系统自适应限流原理"></a>2、系统自适应限流原理</h2><p>Sentinel 执行系统限流的核心入口类为 SystemSlot，该类实现简单，如下图所示：<br><img src="https://img-blog.csdnimg.cn/20200524134158678.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="SystemRuleManager#checkSystem"><br>从这里可以看出实现的关键在于SystemRuleManager，这里是直接调用 checkSystem 进行是否触发其限流，那我们接下来重点跟踪一下该方法的实现。</p>
-<h4 id="2-1-自适应限流检测流程"><a href="#2-1-自适应限流检测流程" class="headerlink" title="2.1 自适应限流检测流程"></a>2.1 自适应限流检测流程</h4><p>系统自适应限流检测具体由 SystemRuleManager 的 checkSystem 方法实现，接下来详细剖析其实现细节。<br><img src="https://img-blog.csdnimg.cn/2020052413421556.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br>Step1：验证相关资源，主要包含三层验证：</p>
+<p>接下来重点关注一下 ClusterBuilderSlot 的关键点：<br><img src="https://img-blog.csdnimg.cn/20200503233012141.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br>ClusterBuilderSlot 的关键点如下：</p>
 <ul>
-<li>如果资源名称为空，则直接跳过，这个是容错机制。</li>
-<li>如果系统自适应开关为打开，直接放行，该开关初始化时为 false，在加载到一条系统自适应配置规则时该状态会设置为 true，具体在 loadSystemConf 中。</li>
-<li>如果资源的类型不是入口流量(EntryType.IN),则直接放行。<br><img src="https://img-blog.csdnimg.cn/20200524134428924.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br>Step2：从QPS为维度验证是否需要被限流，其实现关键点如下：</li>
-<li>当前的qps，如果 ENTRY_NODE 为空则返回0，否则返回该统计节点的成功 qps，那 ENTRY_NODE 统计节点是“何许人也”，原来是 Sentinel 特定定义了一个资源，其名称为__total_inbound_traffic__，用来采集所有入口调用的信息，当资源进入类型为 ENTRY_TYPE_IN 时，会自动采集信息，其具体统计信息在 StatisticSlot 的 entry 方法中被调用，其截图如下：<br><img src="https://img-blog.csdnimg.cn/20200524134513299.png#pic_center" alt="在这里插入图片描述"></li>
-<li>如果当前调用的 QPS 大于设定的QPS，即触发限流，那这个 qps 又是在什么时候被设置的呢？也是在加载系统限流规则时被设置，如果一个应用同一个限流点（LOAD、QPS)设置了多条规则，最小值生效。<br><img src="https://img-blog.csdnimg.cn/20200524134545735.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br>Step3：关于线程数、响应时间限流模式与QPS类似，就不再重复介绍。<br><img src="https://img-blog.csdnimg.cn/20200524134621142.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br>Step4：如果当前系统的负载超过了设定的阔值的处理逻辑，这里就是自适应的核心所在，并不是超过负载就限流，而是需要根据当前系统的请求处理能力进行综合判断，具体逻辑在 checkBbr 方法中实现。关于如何获得系统负载与 checkBbr 方法稍后会详细介绍。<br><img src="https://img-blog.csdnimg.cn/20200524134709868.png#pic_center" alt="在这里插入图片描述"><br>Step5：如果当前CPU的负载超过了设置的阔值，触发限流，那在JAVA中是如何获取CPU的使用率的呢？稍后详细介绍。</li>
+<li>Map&lt;ResourceWrapper, ClusterNode&gt; clusterNodeMap<br>持有的集群节点缓存表，其键为 Entrance Node 所对应的资源ID，即 Context 中关联的节点信息。</li>
+<li>Node originNode<br>所谓的 orginNode，即在调用 ContextUtil 中 enter(String name, String origin) 方法中的第二个参数，表示这条调用链的源头，在 Dubbo 中默认为 应用的 application。</li>
 </ul>
-<a id="more"></a>
+<p>经过上面两个Slot，整个调用链就基本创建好了，接下来我们来看一下 FlowSlot 关于集群限流的相关处理逻辑。</p>
+<h4 id="3-2-集群限流模式实现原理"><a href="#3-2-集群限流模式实现原理" class="headerlink" title="3.2 集群限流模式实现原理"></a>3.2 集群限流模式实现原理</h4><p><img src="https://img-blog.csdnimg.cn/20200503233045696.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br>FlowSlow FlowSlot 的核心处理逻辑主要是调用 FlowRuleChecker 的 canPassCheck 方法，正如上面看到的一样，根据配置规则，如果是集群模式，则调用的是其 passClusterCheck 方法，接下来我们将重点探讨该方法。<br><img src="https://img-blog.csdnimg.cn/20200503233111258.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="FlowRuleChecker#passClusterCheck"><br>代码@1：获取一个 TokenService 服务类。这里实现关键点：</p>
+<ul>
+<li>如果当前节点的角色为 CLIENT，返回的 TokenService 为 DefaultClusterTokenClient。</li>
+<li>如果当前节点的角色为 SERVER，返回的 TokenService 为 ClusterTokenServer，这里使用了SPI极致，可以通过查看 META-INF/services 目录下的 com.alibaba.csp.sentinel.cluster.TokenService 文件，默认服务端返回 DefaultTokenService。</li>
+</ul>
+<p>代码@2：如果无法获取到集群限流Token服务，如果该限流规则配置了可以退化为单机限流模式，则退化为单机限流。</p>
+<p>代码@3：获取集群限流的流程ID，该 flowId 全局唯一。</p>
+<p>代码@4：通过 TokenService 去申请 token，这里是与单机限流模式最大的差别。</p>
+<p>接下来将分别从 DefaultClusterTokenClient、DefaultTokenService 分别探究集群限流相关的实现原理与细节，更好的指导我们如何使用集群限流功能。</p>
+<h5 id="3-2-1-DefaultClusterTokenClient-详解"><a href="#3-2-1-DefaultClusterTokenClient-详解" class="headerlink" title="3.2.1 DefaultClusterTokenClient 详解"></a>3.2.1 DefaultClusterTokenClient 详解</h5><p>从我们的经验也得知，TokenClient 的主要职责就是发送请求到 TokenService 端，主要是网络相关的细节将不在此篇文章中给出，如果有兴趣，大家可以关注我的 Netty 专栏。</p>
+<p>首先 Sentinel 提供了 SPI 机制，故允许用户自定义 TokenClient 的实现类，官方与 SPI 默认配置的文件如下：<br><img src="https://img-blog.csdnimg.cn/2020050323322512.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br>关于 TokenClient 主要关注其初始化代码，因为我们需要关注一个非常重要的点：<br>DefaultClusterTokenClient#initNewConnection<br><img src="https://img-blog.csdnimg.cn/20200503233259244.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br>在客户端启动的时候会创建与 TokenServer 之间的链接，即这边需要配置服务端的 IP 与端口号，那如何配置呢？其实配置方式完全由自己去实现对应的解析器，下面根据官方的 Demo 示例如下：<br><img src="https://img-blog.csdnimg.cn/20200503233319545.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br>这里需要说明的其配置项由 ClusterGroupEntity 来定义，其字段的定义如下：</p>
+<ul>
+<li>clientSet<br>客户端 Set 集合。</li>
+<li>ip<br>Token 服务端的 IP。</li>
+<li>machinedId<br>Token 服务端的机器ID。</li>
+<li>port<br>Token 服务端的机器端口。</li>
+</ul>
+<p>其配置示例如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">[&#123;&quot;clientSet&quot;:[&quot;112.12.88.66@8729&quot;,&quot;112.12.88.67@8727&quot;],&quot;ip&quot;:&quot;112.12.88.68&quot;,&quot;machineId&quot;:&quot;112.12.88.68@8728&quot;,&quot;port&quot;:11111&#125;]</span><br></pre></td></tr></table></figure>
 
-<h4 id="2-2-根据系统负载自适应算法详解"><a href="#2-2-根据系统负载自适应算法详解" class="headerlink" title="2.2 根据系统负载自适应算法详解"></a>2.2 根据系统负载自适应算法详解</h4><p>正如上面的第4步骤，根据系统 Load 的会采用 TCP BBR 算法来评估是否限流，具体实现代码如下：<br>SystemRuleManager#checkSystem<br><img src="https://img-blog.csdnimg.cn/2020052413473576.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br>在 Sentinel 中估算系统的容量是以 1s 为度量长度，用该秒内通过的最大 qps 与 最小响应时间的乘积来表示，具体的计算细节：</p>
+<p>Client 端接下来就是向服务端发送请求，与网络相关的不在本文的讨论范围内，接下来将重点探讨服务端是如何发放许可的。</p>
+<h5 id="3-2-2-DefaultTokenService-详解"><a href="#3-2-2-DefaultTokenService-详解" class="headerlink" title="3.2.2 DefaultTokenService 详解"></a>3.2.2 DefaultTokenService 详解</h5><p>Token Server 端收到客户的请求，其处理入口为 FlowRequestProcessor，其处理方法为：processRequest，最终会调用 DefaultTokenService 的 requestToken 方法。<br>DefaultTokenService#requestToken<br><img src="https://img-blog.csdnimg.cn/20200503233418165.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br>代码@1：根据 ruleId 获取指定的限流规则。</p>
+<p>代码@2：然后调用 ClusterFlowChecker 的 acquierClusterToken 方法，申请许可。</p>
+<p>许可的发放流程主要由 ClusterFlowChecker 的 acquierClusterToken 方法实现。<br><img src="https://img-blog.csdnimg.cn/20200503233520315.png#pic_center" alt="在这里插入图片描述"><br>Step1：首先判断是否允许本次许可申请，这是因为 TokenServe 支持嵌入式，即支持在应用节点中嵌入一个 TokenServer，为了保证许可申请的请求不对正常业务造成比较大的影响，故对申请许可这个动作进行了限流。</p>
+<p>一旦触发了限流，将向客户端返回 TOO_MANY_REQUEST 状态码，Sentinel 支持按 namespace 进行限流，具体由 GlobalRequestLimiter 实现，该类的内部同样基于滑动窗口进行收集，原理与 FlowSlot 相似，故这里不加以展开，默认的限流TPS为3W，有关于 Sentinel 相关的配置，将在后续文章专门梳理。<br><img src="https://img-blog.csdnimg.cn/20200503233607726.png#pic_center" alt="在这里插入图片描述"><br>Step2：根据流程ID获取指标采集器。<br><img src="https://img-blog.csdnimg.cn/20200503233630847.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br>Step3：计算 latestQps、globalThreashold、 nextRemaining 三个阔值，三个的含义分别如下：</p>
 <ul>
-<li>maxSuccessQps 的计算取当前采样窗口的最大值乘以1s内滑动窗口的个数，这里其实并不是十分准确。</li>
-<li>minRt 最小响应时间取自当前采样窗口中的最小响应时间。<br>故得出了上述计算公式，除以1000是因为 minRt 的时间单位是毫秒，统一为秒。从这里可以看出根据系统负载做限流，最终的判断依据是线程数量。</li>
+<li>latestQps<br>获取当前正常访问的QPS。</li>
+<li>globalThreashold<br>根据限流配置规则得出其总许可数量，其主要根据阔值的方式其有所不同，其配置阔值有两种方式：<br>1）FLOW_THRESHOLD_GLOBAL<br>总数，即集群中的许可等于限流规则中配置的 count 值。<br>2）FLOW_THRESHOLD_AVG_LOCAL<br>单机分摊模式，此时限流规则中配置的值只是单机的 count 值，集群中的许可数等于 count * 集群中客户端的个数。<br>注意：这里还可以通过 exceedCount 设置来运行超过其最大阔值，默认为1表示不允许超过。</li>
+<li>nextRemainging<br>表示处理完本次请求后剩余的许可数量。<br><img src="https://img-blog.csdnimg.cn/20200503233707407.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述">Step4：如果剩余的许可数大于0，则本次申请成功，将当前的调用计入指标采集器中，然后返回给客户即可。</li>
 </ul>
-<h4 id="2-3-JAVA如何获得操作系统负载情况"><a href="#2-3-JAVA如何获得操作系统负载情况" class="headerlink" title="2.3 JAVA如何获得操作系统负载情况"></a>2.3 JAVA如何获得操作系统负载情况</h4><p>在 Sentinel 中获取操作系统负载情况的类是：SystemStatusListener，每秒采集一次。<br>SystemStatusListener#run<br><img src="https://img-blog.csdnimg.cn/20200524134821496.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br>原来可以通过JDK中的 com.sun.management.OperatingSystemMXBean 获取操作系统相关的信息。<br>温馨提示：上述只对 Linux/Unix 操作系统有效，对 windows 无效。</p>
-<h2 id="3、实践思考"><a href="#3、实践思考" class="headerlink" title="3、实践思考"></a>3、实践思考</h2><p>经过上面的分析，Sentinel 中的系统自适应其实指的是按照应用所在机器的操作系统负载，再结合应用本身的请求处理能力进行的自适应，操作系统的负载情况可以通过 top 命令输出，其示例如下：<br><img src="https://img-blog.csdnimg.cn/20200524134839941.png#pic_center" alt="在这里插入图片描述"><br>尽管 Sentienl 的系统规则配置类型分为 LOAD、CPU、RT、线程数、入口QPS等维度进行限流，但自适应主要是针对 LOAD 这种情况的。<br>Sentinel 系统级别的限流规则并不是针对某一个资源，而是针对应用所有定义EntryType.IN的资源，在使用时尤其需要注意，特别是如果一个机器上部署了多个应用，可能会造成应用本身负载不高，但所在的机器由于其他应用程序导致资源负载偏高，从而触发限流。</p>
+<p>接下来所有流程步骤都是基于没有剩余许可数的处理逻辑。<br><img src="https://img-blog.csdnimg.cn/20200503233730680.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br>Step5：当前许可数不足的情况，并且该请求为高优先级的处理逻辑：</p>
+<ul>
+<li>获取当前等待的TPS（即1s为维度，当前等待的请求数量）</li>
+<li>如果当前等待的TPS低于可借用未来窗口的许可阔值时，可通过，但设置其等待时间，可以通过 maxOccupyRatio 来设置借用的最大比值。<br><img src="https://img-blog.csdnimg.cn/20200503233758997.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述">Step6：如果当前许可不足，并且该请求为普通优先级的处理逻辑，增加阻塞相关指标的统计数，并返回 BLOCKED。</li>
+</ul>
+<p>TokenServer 返回申请许可之后，那 Token Client 如何处理呢？其处理代码在 FlowRuleChecker#applyTokenResult<br><img src="https://img-blog.csdnimg.cn/20200503233827875.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br>我们可以发现，如果服务端返回OK，则顺利通过，返回BLOCKED，则直接返回 false，会抛出 FlowException，如果是 token 限流，如果规则运行退化为单机限流模式，则进行单机限流。</p>
+<p>集群限流的基本实现原理就介绍到这里了。</p>
+<h2 id="4、总结"><a href="#4、总结" class="headerlink" title="4、总结"></a>4、总结</h2><p>集群限流的基本原理接介绍到这里了，与单机限流模式最大的区别就是集群限流模式的需要引入 TokenService，提供许可的发放服务，该服务可以嵌入应用节点，也可以独立于应用之外。这边借用官方文档上的两张图来简单介绍一下嵌入模式与独立模式的架构：<br><img src="https://img-blog.csdnimg.cn/20200503233858200.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br><img src="https://img-blog.csdnimg.cn/20200503233858165.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>集群模式使用注意，如果使用的是集群模式限流，则如下两个配置则失效：<br><img src="https://img-blog.csdnimg.cn/20200503233920874.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br><strong>最后抛出一个思考题：集群模式应该算是高大上，但我们项目中真的需要吗？集群限流模式有哪些缺点、哪些优点，欢迎大家留言探讨。</strong></p>
 </div>
 
 			<script src="https://my.openwrite.cn/js/readmore.js" type="text/javascript"></script>
@@ -437,6 +554,10 @@
           
             <a href="/tags/sentinel/" rel="tag"># sentinel</a>
           
+            <a href="/tags/%E6%BA%90%E7%A0%81/" rel="tag"># 源码</a>
+          
+            <a href="/tags/%E9%9B%86%E7%BE%A4%E9%99%90%E6%B5%81/" rel="tag"># 集群限流</a>
+          
         </div>
       
 
@@ -458,8 +579,8 @@
 
           <div class="post-nav-prev post-nav-item">
             
-              <a href="/posts/b9d8cad7.html" rel="prev" title="结合 Sentinel 专栏谈谈我的源码阅读技巧">
-                结合 Sentinel 专栏谈谈我的源码阅读技巧 <i class="fa fa-chevron-right"></i>
+              <a href="/posts/a815ae71.html" rel="prev" title="Sentinel 系统自适应限流原理剖析与实战指导">
+                Sentinel 系统自适应限流原理剖析与实战指导 <i class="fa fa-chevron-right"></i>
               </a>
             
           </div>
@@ -490,6 +611,9 @@
           
 
   
+    <div class="comments" id="comments">
+    </div>
+  
 
 
 
@@ -514,10 +638,10 @@
       
         <ul class="sidebar-nav motion-element">
           <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
-            Table of Contents
+            文章目录
           </li>
           <li class="sidebar-nav-overview" data-target="site-overview-wrap">
-            Overview
+            站点概览
           </li>
         </ul>
       
@@ -537,8 +661,8 @@
               
                 <a href="/archives/">
               
-                  <span class="site-state-item-count">64</span>
-                  <span class="site-state-item-name">posts</span>
+                  <span class="site-state-item-count">71</span>
+                  <span class="site-state-item-name">日志</span>
                 </a>
               </div>
             
@@ -548,8 +672,8 @@
               
               <div class="site-state-item site-state-categories">
                 <a href="/categories/index.html">
-                  <span class="site-state-item-count">7</span>
-                  <span class="site-state-item-name">categories</span>
+                  <span class="site-state-item-count">9</span>
+                  <span class="site-state-item-name">分类</span>
                 </a>
               </div>
             
@@ -559,8 +683,8 @@
               
               <div class="site-state-item site-state-tags">
                 <a href="/tags/index.html">
-                  <span class="site-state-item-count">32</span>
-                  <span class="site-state-item-name">tags</span>
+                  <span class="site-state-item-count">99</span>
+                  <span class="site-state-item-name">标签</span>
                 </a>
               </div>
             
@@ -599,7 +723,7 @@
             
 
             
-              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#1%E3%80%81Sentinel-%E7%B3%BB%E7%BB%9F%E8%87%AA%E9%80%82%E5%BA%94%E6%A6%82%E8%BF%B0"><span class="nav-number">1.</span> <span class="nav-text">1、Sentinel 系统自适应概述</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2%E3%80%81%E7%B3%BB%E7%BB%9F%E8%87%AA%E9%80%82%E5%BA%94%E9%99%90%E6%B5%81%E5%8E%9F%E7%90%86"><span class="nav-number">2.</span> <span class="nav-text">2、系统自适应限流原理</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#2-1-%E8%87%AA%E9%80%82%E5%BA%94%E9%99%90%E6%B5%81%E6%A3%80%E6%B5%8B%E6%B5%81%E7%A8%8B"><span class="nav-number">2.0.1.</span> <span class="nav-text">2.1 自适应限流检测流程</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-2-%E6%A0%B9%E6%8D%AE%E7%B3%BB%E7%BB%9F%E8%B4%9F%E8%BD%BD%E8%87%AA%E9%80%82%E5%BA%94%E7%AE%97%E6%B3%95%E8%AF%A6%E8%A7%A3"><span class="nav-number">2.0.2.</span> <span class="nav-text">2.2 根据系统负载自适应算法详解</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-3-JAVA%E5%A6%82%E4%BD%95%E8%8E%B7%E5%BE%97%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E8%B4%9F%E8%BD%BD%E6%83%85%E5%86%B5"><span class="nav-number">2.0.3.</span> <span class="nav-text">2.3 JAVA如何获得操作系统负载情况</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3%E3%80%81%E5%AE%9E%E8%B7%B5%E6%80%9D%E8%80%83"><span class="nav-number">3.</span> <span class="nav-text">3、实践思考</span></a></li></ol></div>
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#1%E3%80%81%E9%9B%86%E7%BE%A4%E9%99%90%E6%B5%81%E4%BD%BF%E7%94%A8%E5%9C%BA%E6%99%AF"><span class="nav-number">1.</span> <span class="nav-text">1、集群限流使用场景</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2%E3%80%81%E9%9B%86%E7%BE%A4%E9%99%90%E6%B5%81%E4%B8%8E%E5%8D%95%E6%9C%BA%E9%99%90%E6%B5%81%E7%9A%84%E5%BC%82%E5%90%8C%E6%80%9D%E8%80%83"><span class="nav-number">2.</span> <span class="nav-text">2、集群限流与单机限流的异同思考</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3%E3%80%81%E6%8E%A2%E7%A9%B6%E9%9B%86%E7%BE%A4%E9%99%90%E6%B5%81%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86"><span class="nav-number">3.</span> <span class="nav-text">3、探究集群限流实现原理</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#3-1-ClusterBuilderSlot-%E8%AF%A6%E8%A7%A3"><span class="nav-number">3.0.1.</span> <span class="nav-text">3.1 ClusterBuilderSlot 详解</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-2-%E9%9B%86%E7%BE%A4%E9%99%90%E6%B5%81%E6%A8%A1%E5%BC%8F%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86"><span class="nav-number">3.0.2.</span> <span class="nav-text">3.2 集群限流模式实现原理</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#3-2-1-DefaultClusterTokenClient-%E8%AF%A6%E8%A7%A3"><span class="nav-number">3.0.2.1.</span> <span class="nav-text">3.2.1 DefaultClusterTokenClient 详解</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#3-2-2-DefaultTokenService-%E8%AF%A6%E8%A7%A3"><span class="nav-number">3.0.2.2.</span> <span class="nav-text">3.2.2 DefaultTokenService 详解</span></a></li></ol></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4%E3%80%81%E6%80%BB%E7%BB%93"><span class="nav-number">4.</span> <span class="nav-text">4、总结</span></a></li></ol></div>
             
 
           </div>
@@ -626,10 +750,19 @@
   <span class="author" itemprop="copyrightHolder">中间件兴趣圈</span>
 
   
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-area-chart"></i>
+    </span>
+    
+      <span class="post-meta-item-text">Site words total count&#58;</span>
+    
+    <span title="Site words total count">182.2k</span>
+  
 </div>
 
 
-  <div class="powered-by">Powered by <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a></div>
+  <div class="powered-by">由 <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> 强力驱动</div>
 
 
 
@@ -637,14 +770,14 @@
 
 
 
-  <div class="theme-info">Theme &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Pisces</a> v5.1.4</div>
+  <div class="theme-info">主题 &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Pisces</a> v5.1.4</div>
 
 
 
 
         
 <div class="busuanzi-count">
-  <script async src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
 
   
     <span class="site-uv">
@@ -808,9 +941,348 @@
 
 
 
+  <script src="//cdn1.lncld.net/static/js/3.0.4/av-min.js"></script>
+  <script src="//unpkg.com/valine/dist/Valine.min.js"></script>
+  
+  <script type="text/javascript">
+    var GUEST = ['nick','mail','link'];
+    var guest = 'nick,mail,link';
+    guest = guest.split(',').filter(item=>{
+      return GUEST.indexOf(item)>-1;
+    });
+    new Valine({
+        el: '#comments' ,
+        verify: false,
+        notify: false,
+        appId: 'NNEhOL0iOcflg8f1U3HUqiCq-gzGzoHsz',
+        appKey: '7kSmkbbb3DktmHALlShDsBUF',
+        placeholder: '来都来了，不撩一句嘛~，留言记得在上面留下【邮箱】，方便收到回复通知~',
+        avatar:'mm',
+        guest_info:guest,
+        pageSize:'10' || 10,
+    });
+  </script>
+
 
 
   
+
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    var isXml = true;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length === 0) {
+      search_path = "search.xml";
+    } else if (/json$/i.test(search_path)) {
+      isXml = false;
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    var onPopupClose = function (e) {
+      $('.popup').hide();
+      $('#local-search-input').val('');
+      $('.search-result-list').remove();
+      $('#no-result').remove();
+      $(".local-search-pop-overlay").remove();
+      $('body').css('overflow', '');
+    }
+
+    function proceedsearch() {
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay"></div>')
+        .css('overflow', 'hidden');
+      $('.search-popup-overlay').click(onPopupClose);
+      $('.popup').toggle();
+      var $localSearchInput = $('#local-search-input');
+      $localSearchInput.attr("autocapitalize", "none");
+      $localSearchInput.attr("autocorrect", "off");
+      $localSearchInput.focus();
+    }
+
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+      'use strict';
+
+      // start loading animation
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay">' +
+          '<div id="search-loading-icon">' +
+          '<i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>' +
+          '</div>' +
+          '</div>')
+        .css('overflow', 'hidden');
+      $("#search-loading-icon").css('margin', '20% auto 0 auto').css('text-align', 'center');
+
+      $.ajax({
+        url: path,
+        dataType: isXml ? "xml" : "json",
+        async: true,
+        success: function(res) {
+          // get the contents from search data
+          isfetched = true;
+          $('.popup').detach().appendTo('.header-inner');
+          var datas = isXml ? $("entry", res).map(function() {
+            return {
+              title: $("title", this).text(),
+              content: $("content",this).text(),
+              url: $("url" , this).text()
+            };
+          }).get() : res;
+          var input = document.getElementById(search_id);
+          var resultContent = document.getElementById(content_id);
+          var inputEventFunction = function() {
+            var searchText = input.value.trim().toLowerCase();
+            var keywords = searchText.split(/[\s\-]+/);
+            if (keywords.length > 1) {
+              keywords.push(searchText);
+            }
+            var resultItems = [];
+            if (searchText.length > 0) {
+              // perform local searching
+              datas.forEach(function(data) {
+                var isMatch = false;
+                var hitCount = 0;
+                var searchTextCount = 0;
+                var title = data.title.trim();
+                var titleInLowerCase = title.toLowerCase();
+                var content = data.content.trim().replace(/<[^>]+>/g,"");
+                var contentInLowerCase = content.toLowerCase();
+                var articleUrl = decodeURIComponent(data.url);
+                var indexOfTitle = [];
+                var indexOfContent = [];
+                // only match articles with not empty titles
+                if(title != '') {
+                  keywords.forEach(function(keyword) {
+                    function getIndexByWord(word, text, caseSensitive) {
+                      var wordLen = word.length;
+                      if (wordLen === 0) {
+                        return [];
+                      }
+                      var startPosition = 0, position = [], index = [];
+                      if (!caseSensitive) {
+                        text = text.toLowerCase();
+                        word = word.toLowerCase();
+                      }
+                      while ((position = text.indexOf(word, startPosition)) > -1) {
+                        index.push({position: position, word: word});
+                        startPosition = position + wordLen;
+                      }
+                      return index;
+                    }
+
+                    indexOfTitle = indexOfTitle.concat(getIndexByWord(keyword, titleInLowerCase, false));
+                    indexOfContent = indexOfContent.concat(getIndexByWord(keyword, contentInLowerCase, false));
+                  });
+                  if (indexOfTitle.length > 0 || indexOfContent.length > 0) {
+                    isMatch = true;
+                    hitCount = indexOfTitle.length + indexOfContent.length;
+                  }
+                }
+
+                // show search results
+
+                if (isMatch) {
+                  // sort index by position of keyword
+
+                  [indexOfTitle, indexOfContent].forEach(function (index) {
+                    index.sort(function (itemLeft, itemRight) {
+                      if (itemRight.position !== itemLeft.position) {
+                        return itemRight.position - itemLeft.position;
+                      } else {
+                        return itemLeft.word.length - itemRight.word.length;
+                      }
+                    });
+                  });
+
+                  // merge hits into slices
+
+                  function mergeIntoSlice(text, start, end, index) {
+                    var item = index[index.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    var hits = [];
+                    var searchTextCountInSlice = 0;
+                    while (position + word.length <= end && index.length != 0) {
+                      if (word === searchText) {
+                        searchTextCountInSlice++;
+                      }
+                      hits.push({position: position, length: word.length});
+                      var wordEnd = position + word.length;
+
+                      // move to next position of hit
+
+                      index.pop();
+                      while (index.length != 0) {
+                        item = index[index.length - 1];
+                        position = item.position;
+                        word = item.word;
+                        if (wordEnd > position) {
+                          index.pop();
+                        } else {
+                          break;
+                        }
+                      }
+                    }
+                    searchTextCount += searchTextCountInSlice;
+                    return {
+                      hits: hits,
+                      start: start,
+                      end: end,
+                      searchTextCount: searchTextCountInSlice
+                    };
+                  }
+
+                  var slicesOfTitle = [];
+                  if (indexOfTitle.length != 0) {
+                    slicesOfTitle.push(mergeIntoSlice(title, 0, title.length, indexOfTitle));
+                  }
+
+                  var slicesOfContent = [];
+                  while (indexOfContent.length != 0) {
+                    var item = indexOfContent[indexOfContent.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    // cut out 100 characters
+                    var start = position - 20;
+                    var end = position + 80;
+                    if(start < 0){
+                      start = 0;
+                    }
+                    if (end < position + word.length) {
+                      end = position + word.length;
+                    }
+                    if(end > content.length){
+                      end = content.length;
+                    }
+                    slicesOfContent.push(mergeIntoSlice(content, start, end, indexOfContent));
+                  }
+
+                  // sort slices in content by search text's count and hits' count
+
+                  slicesOfContent.sort(function (sliceLeft, sliceRight) {
+                    if (sliceLeft.searchTextCount !== sliceRight.searchTextCount) {
+                      return sliceRight.searchTextCount - sliceLeft.searchTextCount;
+                    } else if (sliceLeft.hits.length !== sliceRight.hits.length) {
+                      return sliceRight.hits.length - sliceLeft.hits.length;
+                    } else {
+                      return sliceLeft.start - sliceRight.start;
+                    }
+                  });
+
+                  // select top N slices in content
+
+                  var upperBound = parseInt('1');
+                  if (upperBound >= 0) {
+                    slicesOfContent = slicesOfContent.slice(0, upperBound);
+                  }
+
+                  // highlight title and content
+
+                  function highlightKeyword(text, slice) {
+                    var result = '';
+                    var prevEnd = slice.start;
+                    slice.hits.forEach(function (hit) {
+                      result += text.substring(prevEnd, hit.position);
+                      var end = hit.position + hit.length;
+                      result += '<b class="search-keyword">' + text.substring(hit.position, end) + '</b>';
+                      prevEnd = end;
+                    });
+                    result += text.substring(prevEnd, slice.end);
+                    return result;
+                  }
+
+                  var resultItem = '';
+
+                  if (slicesOfTitle.length != 0) {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + highlightKeyword(title, slicesOfTitle[0]) + "</a>";
+                  } else {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + title + "</a>";
+                  }
+
+                  slicesOfContent.forEach(function (slice) {
+                    resultItem += "<a href='" + articleUrl + "'>" +
+                      "<p class=\"search-result\">" + highlightKeyword(content, slice) +
+                      "...</p>" + "</a>";
+                  });
+
+                  resultItem += "</li>";
+                  resultItems.push({
+                    item: resultItem,
+                    searchTextCount: searchTextCount,
+                    hitCount: hitCount,
+                    id: resultItems.length
+                  });
+                }
+              })
+            };
+            if (keywords.length === 1 && keywords[0] === "") {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-search fa-5x" /></div>'
+            } else if (resultItems.length === 0) {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-frown-o fa-5x" /></div>'
+            } else {
+              resultItems.sort(function (resultLeft, resultRight) {
+                if (resultLeft.searchTextCount !== resultRight.searchTextCount) {
+                  return resultRight.searchTextCount - resultLeft.searchTextCount;
+                } else if (resultLeft.hitCount !== resultRight.hitCount) {
+                  return resultRight.hitCount - resultLeft.hitCount;
+                } else {
+                  return resultRight.id - resultLeft.id;
+                }
+              });
+              var searchResultList = '<ul class=\"search-result-list\">';
+              resultItems.forEach(function (result) {
+                searchResultList += result.item;
+              })
+              searchResultList += "</ul>";
+              resultContent.innerHTML = searchResultList;
+            }
+          }
+
+          if ('auto' === 'auto') {
+            input.addEventListener('input', inputEventFunction);
+          } else {
+            $('.search-icon').click(inputEventFunction);
+            input.addEventListener('keypress', function (event) {
+              if (event.keyCode === 13) {
+                inputEventFunction();
+              }
+            });
+          }
+
+          // remove loading animation
+          $(".local-search-pop-overlay").remove();
+          $('body').css('overflow', '');
+
+          proceedsearch();
+        }
+      });
+    }
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched === false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+    });
+
+    $('.popup-btn-close').click(onPopupClose);
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+    $(document).on('keyup', function (event) {
+      var shouldDismissSearchPopup = event.which === 27 &&
+        $('.search-popup').is(':visible');
+      if (shouldDismissSearchPopup) {
+        onPopupClose();
+      }
+    });
+  </script>
 
 
 
