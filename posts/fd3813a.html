@@ -1,0 +1,832 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion" lang="zh-CN">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.4" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.4">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.4" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="sentinel," />
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="中间件兴趣圈" type="application/atom+xml" />
+
+
+
+
+
+
+<meta name="description" content="本文是源码分析 Sentinel 系列的第十三篇，已经非常详细的介绍了 Sentinel 的架构体系、滑动窗口、调用链上下文、限流、熔断的实现原理，相信各位读者朋友们对Sentinel有一个较为体系化的认知了，这个时候是该开始如何在生产环境进行运用了。  本文将以 Dubbo 服务调用为案例剖析场景，尝试对官方提供的 Dubbo 适配器做一个研究学习并对此做出自己的评价，抛出我的观点，期待与大家共">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Sentinel Dubbo 适配器看限流与熔断(实战思考篇)">
+<meta property="og:url" content="http://example.com/posts/fd3813a.html">
+<meta property="og:site_name" content="中间件兴趣圈">
+<meta property="og:description" content="本文是源码分析 Sentinel 系列的第十三篇，已经非常详细的介绍了 Sentinel 的架构体系、滑动窗口、调用链上下文、限流、熔断的实现原理，相信各位读者朋友们对Sentinel有一个较为体系化的认知了，这个时候是该开始如何在生产环境进行运用了。  本文将以 Dubbo 服务调用为案例剖析场景，尝试对官方提供的 Dubbo 适配器做一个研究学习并对此做出自己的评价，抛出我的观点，期待与大家共">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/20200510202405377.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/20200510202451273.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/20200510202524603.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/2020051020261021.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/20200510202651125.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/20200510202746713.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/20200510202841580.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center">
+<meta property="article:published_time" content="2020-12-08T15:01:35.000Z">
+<meta property="article:modified_time" content="2020-12-08T15:03:04.020Z">
+<meta property="article:author" content="中间件兴趣圈">
+<meta property="article:tag" content="sentinel">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://img-blog.csdnimg.cn/20200510202405377.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '',
+    scheme: 'Pisces',
+    version: '5.1.4',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://example.com/posts/fd3813a.html"/>
+
+
+
+
+
+  <title>Sentinel Dubbo 适配器看限流与熔断(实战思考篇) | 中间件兴趣圈</title>
+  
+
+
+
+
+
+
+
+
+<meta name="generator" content="Hexo 5.2.0"></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">中间件兴趣圈</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle">关注微信公众号「中间件兴趣圈」，第一时间获取最新干货！</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            Home
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
+            
+            Tags
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
+            
+            Categories
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
+            
+            Archives
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://example.com/posts/fd3813a.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="中间件兴趣圈">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">Sentinel Dubbo 适配器看限流与熔断(实战思考篇)</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2020-12-08T23:01:35+08:00">
+                2020-12-08
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/sentinel/" itemprop="url" rel="index">
+                    <span itemprop="name">sentinel</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+            <span class="post-meta-divider">|</span>
+            <span class="page-pv"><i class="fa fa-file-o"></i>
+            <span class="busuanzi-value" id="busuanzi_value_page_pv" ></span>
+            </span>
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <div id="vip-container"><p>本文是源码分析 Sentinel 系列的第十三篇，已经非常详细的介绍了 Sentinel 的架构体系、滑动窗口、调用链上下文、限流、熔断的实现原理，相信各位读者朋友们对Sentinel有一个较为体系化的认知了，这个时候是该开始如何在生产环境进行运用了。</p>
+<blockquote>
+<p>本文将以 Dubbo 服务调用为案例剖析场景，尝试对官方提供的 Dubbo 适配器做一个研究学习并对此做出自己的评价，抛出我的观点，期待与大家共同探讨，交流。</p>
+</blockquote>
+<p>一个 Dubbo RPC 的简易调用过程如下图所示：<br><img src="https://img-blog.csdnimg.cn/20200510202405377.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br>消费者会维护一个服务提供者列表，然后再发一起一个服务调用的时候会首先根据负载均衡算法从中选择一个服务提供者，然后发起 RPC 调用，在请求真实发送之前会依次通过客户端设置的过滤器链(Filter)，然后经过网络传输到到达服务提供者，并执行完服务提供者端的 Filter，最后进入到业务逻辑执行并返回结果。</p>
+<p>Sentinel 与 Dubbo 的整合就是利用了 Dubbo 的 Filter 机制，为 Dubbo 提供对应的 过滤器，无缝实现限流、熔断等功能，做到业务无感知，即业务代码无需使用 Sentinel 相关的 API。</p>
+<p>接下来请大家带着在 Dubbo 中如何使用限流、熔断方面来看官方给出的解决方案。</p>
+<blockquote>
+<p>思考题：在看接下来的内容之前，建议大家稍作停顿，思考一下，在服务调用模型中，限流、熔断通常在哪个端做比较合适。</p>
+</blockquote>
+<h2 id="1、从消费端来看限流与熔断"><a href="#1、从消费端来看限流与熔断" class="headerlink" title="1、从消费端来看限流与熔断"></a>1、从消费端来看限流与熔断</h2><p><img src="https://img-blog.csdnimg.cn/20200510202451273.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述">从消费端的视角，虽然提供了服务端的负载均衡，但从客户端不管是向192.168.1.3还是向192.168.1.4发送RPC调用，都会经过同一个 Sentinel Dubbo Filter。这个看似简单明了，但这是我们接下来思考的最基本最核心的点。</p>
+<p>我们先来看看官方提供的 Dubbo 适配器的核心实现：<br>SentinelDubboConsumerFilter#invoke<br><img src="https://img-blog.csdnimg.cn/20200510202524603.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br>消费端这边使用到了两个资源名称，一个是接口级别，例如 com.demo.service.UserService，另外一是方法级别，例如 com.demo.servcie.UserServce#findUser(Ljava.lang.String)。<br>定义了两个资源后，Sentinel 会使用滑动窗口机制，为上述两个资源收集实时的调用信息，为后续的限流、熔断提供数据依据。</p>
+<a id="more"></a>
+
+<p>限流规则是依附于具体某一个项目的，例如如下图所示：<br><img src="https://img-blog.csdnimg.cn/2020051020261021.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述">限流、熔断都是根据资源级别，如果需要对消费端的调用进行限流的话，就需要为这两个资源配置对应的限流规则，如果不配置则默认通过，表示不限流。</p>
+<h4 id="1-1-服务调用端-消费方-是否需要配置限流规则"><a href="#1-1-服务调用端-消费方-是否需要配置限流规则" class="headerlink" title="1.1 服务调用端(消费方)是否需要配置限流规则"></a>1.1 服务调用端(消费方)是否需要配置限流规则</h4><p>在 dubbo 的服务调用场景中，在消费端设置限流的规则的话，这个调用链是针对整个集群所有服务提供者的，例如当前集群中包含3个服务提供者，每个服务提供者用于1000tps的服务能力，那消费端的限流，应该配置的限流TPS应该为3000tps，如果设置为1000tps，则无法完整的利用服务端的能力，基于这样的情况，通常消费端无需配置限流规则。</p>
+<p>那是不是说消费端就没必要配置限流规则呢？其实也不是，有如下这个场景，例如调用第三方外部的计费类服务接口，对方通常为特定的账户等级设置对应的TPS上限，如果超过该调用频率就会抛出错误，这种情况还是需要设置限流规则，确保消费端以不超过要求进行调用，避免业务异常。</p>
+<h4 id="1-2-服务调用端-消费方-是否需要配置熔断"><a href="#1-2-服务调用端-消费方-是否需要配置熔断" class="headerlink" title="1.2 服务调用端(消费方)是否需要配置熔断"></a>1.2 服务调用端(消费方)是否需要配置熔断</h4><p>引入熔断的目的是避免服务端单节点响应慢而导致这个服务不稳定，例如示例中有3个服务提供者，如果192.168.1.3的服务提供者由于触发了BUG导致响应时间大大增加，导致发往该服务提供者的请求大概率超时，在这样的情况下希望在接下来某段时间内消费方发往这这个服务提供者的请求快速熔断降级，返回错误，由客户端重试其他服务提供者。其实现效果如下：<br><img src="https://img-blog.csdnimg.cn/20200510202651125.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br>当前的 Sentinel 默认是否能满足上述的需求呢？</p>
+<p>我们以 Sentinel 基于异常比例熔断策略来进行阐述，如果资源的调用异常比例超过一定值是会触发降级熔断，抛出 DegradeException 异常。</p>
+<p>由于总共只有三个服务提供者，其中发往192.168.1.3的请求大概率会由于超时失败，则异常比例会超过设置的熔断降级规则，会触发降级，造成的效果是整个服务调用都会发送熔断降级，即调用192.168.1.4,5两个请求都不会被熔断，造成整个服务调用不可用，与期望不一致。即还是会出现一个节点的不稳定而导致整个服务不稳定的情况。</p>
+<p>其造成的根本原因是因为其资源的定义并没有包含服务提供者的信息，改进的初步方案：</p>
+<ol>
+<li>在过滤器中再定义一个资源，加上服务提供的IP与端口号，例如 SphU.entry(“com.d.s.UserService@ip:port”)，对单个服务提供者进行单独收集调用信息，并且需要提供一可配置的项，用来标记该类型的资源在做熔断判断可使用某一个资源的配置，例如配置为 com.d.s.UserService，表示用这个配置规则来判断熔断。</li>
+<li>在熔断规则判断的时候，该资源使用被引用资源的熔断规则进行判断。</li>
+</ol>
+<p>最后来解答一下，熔断规则通常只需要配置在调用方即可。</p>
+<h2 id="2、从服务来看限流与熔断"><a href="#2、从服务来看限流与熔断" class="headerlink" title="2、从服务来看限流与熔断"></a>2、从服务来看限流与熔断</h2><p>由于服务端看限流与熔断就比较简单，因为服务端与客户端存在一个非常大的区别是客户端存在负载均衡机制，一个消费端对于同一资源来说，会调用多个服务提供者，而服务提供者对于一个资源来就是其自身，故限流规则，熔断规则都是针对个体，其复杂度降低。</p>
+<p>为了知识体系的完备性，我们来看一下 Sentinel Dubbo 在服务端的适配器的实现。</p>
+<p>SentinelDubboProviderFilter#invoke<br><img src="https://img-blog.csdnimg.cn/20200510202746713.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br>这里有二个关键点：</p>
+<ol>
+<li>使用了 ContextUtil 的 entry 方法，定义本次调用的上下文环境名称为：resourceName，默认为接口名与方法名、参数列表，例如 com.d.s.UserServce#findUser(Ljava.lang.String),源头为消费端的应用名称。</li>
+<li>定义两个资源，这里与消费端相同，就不做重复解读。</li>
+</ol>
+<p>关于这个 ContextUtil 的 entry 方法非常关键，因为 Sentinel 中数据节点的统计是以 ContextName 为维度的。</p>
+<p>例如想对一个应用所有的操作 redis 操作统一设置为一个资源名，redisOpsResource，即想控制该应用整体的 redis 操作 tps，其场景如下：<br><img src="https://img-blog.csdnimg.cn/20200510202841580.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br>例如初衷设计为 opsReisTotal 的整个 tps 为 500，例如从UserService#findser链路的访问 redis tps 为 400，而从 Order#createOrder 链路访问 redis tps 为 400，此时 redis 的整体 tps 已经达到了 800 tps，但你会发现并不会触发限流，因为对资源 RredisOpResource 的调用信息统计是以 context name 为维度的，不同的 context name 互不影响，从而无法做到全局控制。</p>
+<h2 id="3、总结"><a href="#3、总结" class="headerlink" title="3、总结"></a>3、总结</h2><p>本文结合 Sentinel 官方对于 Dubbo 提供的适配器并加以理解，提出了如下观点，欢迎大家留言探讨，相互交流，共同进步。</p>
+<ol>
+<li>限流规则根据不同的使用场景可以在客户端、服务端配置。</li>
+<li>熔断规则通常在服务调用方配置即可。</li>
+<li>Sentinel 目前的熔断还实现的比较简单，无法解决集群中因为某一个节点的访问慢而触发熔断，并使服务稳定的能力。</li>
+<li>Sentienl 的实时统计是以调用上下文(Context Name)，即 ContextUtil.entry 方法定义的上下文为维度的，这点非常关键，不然容易踩坑。</li>
+</ol>
+</div>
+
+			<script src="https://my.openwrite.cn/js/readmore.js" type="text/javascript"></script>
+			<script>
+			var isMobile = navigator.userAgent.match(/(phone|pad|pod|iPhone|iPod|ios|iPad|Android|Mobile|BlackBerry|IEMobile|MQQBrowser|JUC|Fennec|wOSBrowser|BrowserNG|WebOS|Symbian|Windows Phone)/i);
+			if (!isMobile) {
+			    var btw = new BTWPlugin();
+			    btw.init({
+			        "id": "vip-container",
+			        "blogId": "18019-1573088808868-542",
+			        "name": "中间件兴趣圈",
+			        "qrcode": "https://img-blog.csdnimg.cn/20190314214003962.jpg",
+			        "keyword": "more"
+			    });
+			}
+			</script>
+		
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/sentinel/" rel="tag"># sentinel</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/posts/e01036e8.html" rel="next" title="Sentinel 集群限流设计原理">
+                <i class="fa fa-chevron-left"></i> Sentinel 集群限流设计原理
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/posts/a815ae71.html" rel="prev" title="Sentinel 系统自适应限流原理剖析与实战指导">
+                Sentinel 系统自适应限流原理剖析与实战指导 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            Overview
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name"></p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/">
+              
+                  <span class="site-state-item-count">64</span>
+                  <span class="site-state-item-name">posts</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                <a href="/categories/index.html">
+                  <span class="site-state-item-count">7</span>
+                  <span class="site-state-item-name">categories</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                <a href="/tags/index.html">
+                  <span class="site-state-item-count">32</span>
+                  <span class="site-state-item-name">tags</span>
+                </a>
+              </div>
+            
+
+          </nav>
+
+          
+            <div class="feed-link motion-element">
+              <a href="/atom.xml" rel="alternate">
+                <i class="fa fa-rss"></i>
+                RSS
+              </a>
+            </div>
+          
+
+          
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#1%E3%80%81%E4%BB%8E%E6%B6%88%E8%B4%B9%E7%AB%AF%E6%9D%A5%E7%9C%8B%E9%99%90%E6%B5%81%E4%B8%8E%E7%86%94%E6%96%AD"><span class="nav-number">1.</span> <span class="nav-text">1、从消费端来看限流与熔断</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-1-%E6%9C%8D%E5%8A%A1%E8%B0%83%E7%94%A8%E7%AB%AF-%E6%B6%88%E8%B4%B9%E6%96%B9-%E6%98%AF%E5%90%A6%E9%9C%80%E8%A6%81%E9%85%8D%E7%BD%AE%E9%99%90%E6%B5%81%E8%A7%84%E5%88%99"><span class="nav-number">1.0.1.</span> <span class="nav-text">1.1 服务调用端(消费方)是否需要配置限流规则</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-2-%E6%9C%8D%E5%8A%A1%E8%B0%83%E7%94%A8%E7%AB%AF-%E6%B6%88%E8%B4%B9%E6%96%B9-%E6%98%AF%E5%90%A6%E9%9C%80%E8%A6%81%E9%85%8D%E7%BD%AE%E7%86%94%E6%96%AD"><span class="nav-number">1.0.2.</span> <span class="nav-text">1.2 服务调用端(消费方)是否需要配置熔断</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2%E3%80%81%E4%BB%8E%E6%9C%8D%E5%8A%A1%E6%9D%A5%E7%9C%8B%E9%99%90%E6%B5%81%E4%B8%8E%E7%86%94%E6%96%AD"><span class="nav-number">2.</span> <span class="nav-text">2、从服务来看限流与熔断</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3%E3%80%81%E6%80%BB%E7%BB%93"><span class="nav-number">3.</span> <span class="nav-text">3、总结</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">中间件兴趣圈</span>
+
+  
+</div>
+
+
+  <div class="powered-by">Powered by <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a></div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">Theme &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Pisces</a> v5.1.4</div>
+
+
+
+
+        
+<div class="busuanzi-count">
+  <script async src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+  
+    <span class="site-uv">
+      <i class="fa fa-user"></i>总访客
+      <span class="busuanzi-value" id="busuanzi_value_site_uv"></span>
+      人
+    </span>
+  
+
+  
+    <span class="site-pv">
+      <i class="fa fa-eye"></i>总访问量
+      <span class="busuanzi-value" id="busuanzi_value_site_pv"></span>
+      次
+    </span>
+  
+</div>
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.4"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.1.4"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.4"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

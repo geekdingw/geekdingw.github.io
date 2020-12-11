@@ -1,0 +1,1002 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion" lang="zh-CN">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.4" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.4">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.4" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="java8,Lambda,流计算," />
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="中间件兴趣圈" type="application/atom+xml" />
+
+
+
+
+
+
+<meta name="description" content="本文中的部分示例基于如下场景：餐厅点菜，Dish为餐厅中可提供的菜品，Dish的定义如下： 123456789101112131415161718192021public class Dish &amp;#123;    &#x2F;** 菜品名称 *&#x2F;	private final String name;	&#x2F;** 是否是素食 *&#x2F;	private final boolean">
+<meta property="og:type" content="article">
+<meta property="og:title" content="初识Stream、流的基本操作（流计算）">
+<meta property="og:url" content="http://example.com/posts/3f62c87c.html">
+<meta property="og:site_name" content="中间件兴趣圈">
+<meta property="og:description" content="本文中的部分示例基于如下场景：餐厅点菜，Dish为餐厅中可提供的菜品，Dish的定义如下： 123456789101112131415161718192021public class Dish &amp;#123;    &#x2F;** 菜品名称 *&#x2F;	private final String name;	&#x2F;** 是否是素食 *&#x2F;	private final boolean">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/20190518134242508.png">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/20190518134853228.png">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/20190518134944653.png">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/20190518135118267.png">
+<meta property="article:published_time" content="2020-12-09T14:32:35.000Z">
+<meta property="article:modified_time" content="2020-12-11T04:25:28.567Z">
+<meta property="article:author" content="中间件兴趣圈">
+<meta property="article:tag" content="java8">
+<meta property="article:tag" content="Lambda">
+<meta property="article:tag" content="流计算">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://img-blog.csdnimg.cn/20190518134242508.png">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '',
+    scheme: 'Pisces',
+    version: '5.1.4',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://example.com/posts/3f62c87c.html"/>
+
+
+
+
+
+  <title>初识Stream、流的基本操作（流计算） | 中间件兴趣圈</title>
+  
+
+
+
+
+
+
+
+
+<meta name="generator" content="Hexo 5.2.0"></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">中间件兴趣圈</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle">关注微信公众号「中间件兴趣圈」，第一时间获取最新干货！</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            Home
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
+            
+            Tags
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
+            
+            Categories
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
+            
+            Archives
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://example.com/posts/3f62c87c.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="中间件兴趣圈">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">初识Stream、流的基本操作（流计算）</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2020-12-09T22:32:35+08:00">
+                2020-12-09
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/java8/" itemprop="url" rel="index">
+                    <span itemprop="name">java8</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+            <span class="post-meta-divider">|</span>
+            <span class="page-pv"><i class="fa fa-file-o"></i>
+            <span class="busuanzi-value" id="busuanzi_value_page_pv" ></span>
+            </span>
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <div id="vip-container"><p>本文中的部分示例基于如下场景：餐厅点菜，Dish为餐厅中可提供的菜品，Dish的定义如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">public class Dish &#123;</span><br><span class="line">    &#x2F;** 菜品名称 *&#x2F;</span><br><span class="line">	private final String name;</span><br><span class="line">	&#x2F;** 是否是素食 *&#x2F;</span><br><span class="line">	private final boolean vegetarian;</span><br><span class="line">	&#x2F;** 含卡路里 *&#x2F;</span><br><span class="line">	private final int calories;</span><br><span class="line">	&#x2F;** 类型 *&#x2F;</span><br><span class="line">	private final Type type;</span><br><span class="line">	</span><br><span class="line">	public Dish(String name, boolean vegetarian, int calories, Type type) &#123;</span><br><span class="line">		this.name &#x3D; name;</span><br><span class="line">		this.vegetarian &#x3D; vegetarian;</span><br><span class="line">		this.calories &#x3D; calories;</span><br><span class="line">		this.type &#x3D; type;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	public enum Type &#123; MEAT, FISH, OTHER &#125;</span><br><span class="line">	</span><br><span class="line">	&#x2F;&#x2F; 省略set get方法</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>菜单的数据如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">List&lt;Dish&gt; menu &#x3D; Arrays.asList(</span><br><span class="line">new Dish(&quot;pork&quot;, false, 800, Dish.Type.MEAT),</span><br><span class="line">new Dish(&quot;beef&quot;, false, 700, Dish.Type.MEAT),</span><br><span class="line">new Dish(&quot;chicken&quot;, false, 400, Dish.Type.MEAT),</span><br><span class="line">new Dish(&quot;french fries&quot;, true, 530, Dish.Type.OTHER),</span><br><span class="line">new Dish(&quot;rice&quot;, true, 350, Dish.Type.OTHER),</span><br><span class="line">new Dish(&quot;season fruit&quot;, true, 120, Dish.Type.OTHER),</span><br><span class="line">new Dish(&quot;pizza&quot;, true, 550, Dish.Type.OTHER),</span><br><span class="line">new Dish(&quot;prawns&quot;, false, 300, Dish.Type.FISH),</span><br><span class="line">new Dish(&quot;salmon&quot;, false, 450, Dish.Type.FISH) );</span><br></pre></td></tr></table></figure>
+<p>我们以一个简单的示例来引入流：从菜单列表中，查找出是素食的菜品，并打印其菜品的名称。</p>
+<p>在Java8之前，我们通常是这样实现该需求的：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">List&lt;String&gt; dishNames &#x3D; new ArrayList&lt;&gt;();</span><br><span class="line">for(Dish d menu) &#123;</span><br><span class="line">    if(d.isVegetarian()) &#123;</span><br><span class="line">        dishNames.add(d.getName()); </span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line">&#x2F;&#x2F;输出帅选出来的菜品的名称：</span><br><span class="line">for(String n : dishNames) &#123;</span><br><span class="line">    System.out.println(n);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>那在java8中，我们可以这样写：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">menu.streams() .filter( Dish::isVegetarian).map( Dish::getName) .forEach( a -&gt; System.out.println(a) );</span><br></pre></td></tr></table></figure>
+<p>其运行输出的结果：<br><img src="https://img-blog.csdnimg.cn/20190518134242508.png" alt="在这里插入图片描述"><br>怎么样，神奇吧！！！</p>
+<p>在解释上面的代码之前，我们先对流做一个理论上的介绍。</p>
+<h2 id="1、流是什么？"><a href="#1、流是什么？" class="headerlink" title="1、流是什么？"></a>1、流是什么？</h2><p>流，就是数据流，是元素序列，在Java8中，流的接口定义在 java.util.stream.Stream包中，并且在Collection(集合)接口中新增一个方法：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">default Stream&lt;E&gt; stream() &#123;</span><br><span class="line">        return StreamSupport.stream(spliterator(), false);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>流的简短定义：从支持数据处理操作的源生成的元素序列。例如集合、数组都是支持数据操作的数据结构（容器），都可以做为流的创建源，该定义的核心要素如下：</p>
+<ul>
+<li>源<br>流是从一个源创建来而来，而且这个源是支持数据处理的，例如集合、数组等。</li>
+<li>元素序列<br>流代表一个元素序列（流水线），因为是从根据一个数据处理源而创建得来的。</li>
+<li>数据处理操作<br>流的侧重点并不在数据存储，而在于数据处理，例如示例中的filter、map、forEach等。</li>
+<li>迭代方式<br>流的迭代方式为内部迭代，而集合的迭代方式为外部迭代。例如我们遍历Collection接口需要用户去做迭代，例如for-each，然后在循环体中写对应的处理代码，这叫外部迭代。相反，Stream库使用内部迭代，我们只需要对流传入对应的函数即可，表示要做什么就行。</li>
+</ul>
+<blockquote>
+<p>注意：流和迭代器Iterator一样，只能遍历一次，如果要多次遍历，请创建多个流。</p>
+</blockquote>
+<p>接下来我们将重点先介绍流的常用操作方法。</p>
+<h2 id="2、常用的流操作方法"><a href="#2、常用的流操作方法" class="headerlink" title="2、常用的流操作方法"></a>2、常用的流操作方法</h2><h4 id="2-1-filter"><a href="#2-1-filter" class="headerlink" title="2.1 filter"></a>2.1 filter</h4><p>filter函数的方法声明如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">java.util.stream.Stream#filter</span><br><span class="line">Stream&lt;T&gt; filter(Predicate&lt;? super T&gt; predicate);</span><br></pre></td></tr></table></figure>
+<p>该方法接收一个谓词，返回一个流，即filter方法接收的lambda表达式需要满足 （  T  -&gt; Boolean ）。</p>
+<p>示例：从菜单中选出所有是素食的菜品：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">List&lt;Dish&gt; vegetarianDishs &#x3D; menu.stream().filter(  Dish::isVegetarian )    &#x2F;&#x2F; 使用filter过滤流中的菜品。</span><br><span class="line">                                          .collect(toList())；              &#x2F;&#x2F; 将流转换成List，该方法将在后面介绍。</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>温馨提示：流的操作可以分成中间件操作和终端操作。中间操作通常的返回结果还是流，并且在调用终端操作之前，并不会立即调用，等终端方法调用后，中间操作才会真正触发执行，该示例中的collect方法为终端方法。</p>
+</blockquote>
+<p>我们类比一下数据库查询操作，除了基本的筛选动作外，还有去重，分页等功能，那java8的流API能支持这些操作吗？<br>答案当然是肯定。</p>
+<h4 id="2-1-1-distinct"><a href="#2-1-1-distinct" class="headerlink" title="2.1.1 distinct"></a>2.1.1 distinct</h4><p>distinct，类似于数据库中的排重函数，就是对结果集去重。<br>例如有一个数值numArr = [1,5,8,6,5,2,6]，现在要输出该数值中的所有奇数并且不能重复输出，那该如何实现呢？</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Arrays.stream(numArr).filter(  a -&gt; a % 2 &#x3D;&#x3D; 0 ).distinict().forEach(System.out::println);</span><br></pre></td></tr></table></figure>
+<h4 id="2-1-2-limit"><a href="#2-1-2-limit" class="headerlink" title="2.1.2 limit"></a>2.1.2 limit</h4><p>截断流，返回一个i不超过指定元素个数的流。<br>还是以上例举例，如果要输出的元素是偶数，不能重复输出，并且只输出1个元素，那又该如何实现呢？</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Arrays.stream(numArr).filter(  a -&gt; a % 2 &#x3D;&#x3D; 0 ).distinict().limit(1).forEach(System.out::println);</span><br></pre></td></tr></table></figure>
+<h4 id="2-1-3-skip"><a href="#2-1-3-skip" class="headerlink" title="2.1.3 skip"></a>2.1.3 skip</h4><p>跳过指定元素，返回剩余元素的流，与limit互补。</p>
+<a id="more"></a>
+
+<h4 id="2-2-Map"><a href="#2-2-Map" class="headerlink" title="2.2 Map"></a>2.2 Map</h4><p>还是类比数据库操作，我们通常可以只选择一个表中的某一列，java8流操作也提供了类似的方法。<br>例如，我们需要从菜单中提取所有菜品的名称，在java8中我们可以使用如下代码实现：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">版本1：List&lt;String&gt; dishNames &#x3D; menu.stream().map( (Dish d) -&gt; d.getName() ).collect(Collectors.toList());</span><br><span class="line">版本2：List&lt;String&gt; dishNames &#x3D; menu.stream().map( d -&gt; d.getName() ).collect(Collectors.toList());</span><br><span class="line">版本3：List&lt;String&gt; dishNames &#x3D; menu.stream().map(Dish::getName).collect(Collectors.toList());</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>文章的后续部分尽量使用最简洁的lambda表达式。</p>
+</blockquote>
+<p>我们来看一下Stream关于map方法的声明：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&lt;R&gt; Stream&lt;R&gt; map(Function&lt;? super T, ? extends R&gt; mapper)</span><br></pre></td></tr></table></figure>
+<p>接受一个函数Function，其函数声明为：T -&gt; R，接收一个T类型的对象，返回一个R类型的对象。</p>
+<p>当然，java为了高效的处理基础数据类型（避免装箱、拆箱带来性能损耗）也定义了如下方法：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">IntStream mapToInt(ToIntFunction&lt;? super T&gt; mapper)</span><br><span class="line">LongStream mapToLong(ToLongFunction&lt;? super T&gt; mapper)</span><br><span class="line">DoubleStream mapToDouble(ToDoubleFunction&lt;? super T&gt; mapper)</span><br></pre></td></tr></table></figure>
+
+<p>思考题：对于字符数值[“Hello”,”World”] ，输出字符序列，并且去重。<br>第一次尝试：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">public static void test_flat_map() &#123;</span><br><span class="line">    String[] strArr &#x3D; new String[] &#123;&quot;hello&quot;, &quot;world&quot;&#125;;</span><br><span class="line">    List&lt;String&gt; strList &#x3D; Arrays.asList(strArr);</span><br><span class="line">    strList.stream().map( s -&gt; s.split(&quot;&quot;))</span><br><span class="line">                    .distinct().forEach(System.out::println);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>输出结果：<br><img src="https://img-blog.csdnimg.cn/20190518134853228.png" alt="在这里插入图片描述"><br>为什么会返回两个String[]元素呢？因为map(s -&gt; s.split()) 此时返回的流为Stream&lt;String[]&gt;，那我们是不是可以继续对该Steam[String[]],把String[]转换为字符流，其代码如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">public static void test_flat_map() &#123;</span><br><span class="line">    String[] strArr &#x3D; new String[] &#123;&quot;hello&quot;, &quot;world&quot;&#125;;</span><br><span class="line">    List&lt;String&gt; strList &#x3D; Arrays.asList(strArr);</span><br><span class="line">    strList.stream().map( s -&gt; s.split(&quot;&quot;))</span><br><span class="line">                    .map(Arrays::stream)</span><br><span class="line">                    .distinct().forEach(System.out::println);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>其返回结果：<br><img src="https://img-blog.csdnimg.cn/20190518134944653.png" alt="在这里插入图片描述"><br>还是不符合预期，其实原因也很好理解，再次经过map(Arrays:stream)后，返回的结果为 Stream&lt;Stream&lt; String&gt;&gt;，即包含两个元素，每一个元素为一个字符流，可以通过如下代码验证：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">public static void test_flat_map() &#123;</span><br><span class="line">    String[] strArr &#x3D; new String[] &#123;&quot;hello&quot;, &quot;world&quot;&#125;;</span><br><span class="line">    List&lt;String&gt; strList &#x3D; Arrays.asList(strArr);</span><br><span class="line">    strList.stream().map( s -&gt; s.split(&quot;&quot;))</span><br><span class="line">                    .map(Arrays::stream)</span><br><span class="line">                    .forEach(  (Stream&lt;String&gt; s) -&gt; &#123;</span><br><span class="line">                        System.out.println(&quot;\n --start---&quot;);</span><br><span class="line">                        s.forEach(a -&gt; System.out.print(a + &quot; &quot;));</span><br><span class="line">                        System.out.println(&quot;\n --end---&quot;);</span><br><span class="line">                    &#125; );</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>综合上述分析，之所以不符合预期，主要是原数组中的两个字符，经过map后返回的是两个独立的流，那有什么方法将这两个流合并成一个流，然后再进行disinic去重呢？</p>
+<p>答案当然是可以的，flatMap方法闪亮登场：先看代码和显示结果：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">public static void test_flat_map() &#123;</span><br><span class="line">    String[] strArr &#x3D; new String[] &#123;&quot;hello&quot;, &quot;world&quot;&#125;;</span><br><span class="line">    List&lt;String&gt; strList &#x3D; Arrays.asList(strArr);</span><br><span class="line">    strList.stream().map( s -&gt; s.split(&quot;&quot;))</span><br><span class="line">                    .flatMap(Arrays::stream)</span><br><span class="line">                    .distinct().forEach( a -&gt; System.out.print(a +&quot; &quot;));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>其输出结果：<br><img src="https://img-blog.csdnimg.cn/20190518135118267.png" alt="在这里插入图片描述"><br>符合预期。一言以蔽之，flatMap可以把两个流合并成一个流进行操作。</p>
+<h4 id="2-3-查找和匹配"><a href="#2-3-查找和匹配" class="headerlink" title="2.3 查找和匹配"></a>2.3 查找和匹配</h4><p>Stream API提供了allMatch、anyMatch、noneMatch、findFirst和findAny方法来实现对流中数据的匹配与查找。</p>
+<h5 id="2-3-1-allMatch"><a href="#2-3-1-allMatch" class="headerlink" title="2.3.1 allMatch"></a>2.3.1 allMatch</h5><p>我们先看一下该方法的声明：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">boolean allMatch(Predicate&lt;? super T&gt; predicate);</span><br></pre></td></tr></table></figure>
+<p>接收一个谓词函数(T-&gt;boolean)，返回一个boolean值，是一个终端操作，用于判断流中的所有元素是否与Predicate相匹配，只要其中一个元素不复合，该表达式将返回false。<br>示例如下：例如存在这样一个List a,其中元素为 1,2,4,6,8。判断流中的元素是否都是偶数。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">boolean result &#x3D; a.stream().allMatch(  a -&gt; a % 2 &#x3D;&#x3D; 0 )；  &#x2F;&#x2F; 将返回false。</span><br></pre></td></tr></table></figure>
+
+<h5 id="2-3-2-anyMatch"><a href="#2-3-2-anyMatch" class="headerlink" title="2.3.2 anyMatch"></a>2.3.2 anyMatch</h5><p>该方法的函数声明如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">boolean anyMatch(Predicate&lt;? super T&gt; predicate)</span><br></pre></td></tr></table></figure>
+<p>同样接收一个谓词Predicate( T -&gt; boolean )，表示只要流中的元素至少一个匹配谓词，即返回真。</p>
+<p>示例如下：例如存在这样一个List a,其中元素为 1,2,4,6,8。判断流中的元素是否包含偶数。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">boolean result &#x3D; a.stream().anyMatch(  a -&gt; a % 2 &#x3D;&#x3D; 0 )；  &#x2F;&#x2F; 将返回true。</span><br></pre></td></tr></table></figure>
+
+<h5 id="2-3-3-noneMatch"><a href="#2-3-3-noneMatch" class="headerlink" title="2.3.3 noneMatch"></a>2.3.3 noneMatch</h5><p>该方法的函数声明如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">boolean noneMatch(Predicate&lt;? super T&gt; predicate);</span><br></pre></td></tr></table></figure>
+<p>同样接收一个谓词Predicate( T -&gt; boolean )，表示只要流中的元素全部不匹配谓词表达式，则返回true。</p>
+<p>示例如下：例如存在这样一个List a,其中元素为 2,4,6,8。判断流中的所有元素都不式奇数。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">boolean result &#x3D; a.stream().noneMatch(  a -&gt; a % 2 &#x3D;&#x3D; 1 )；  &#x2F;&#x2F; 将返回true。</span><br></pre></td></tr></table></figure>
+
+<h5 id="2-3-4-findFirst"><a href="#2-3-4-findFirst" class="headerlink" title="2.3.4 findFirst"></a>2.3.4 findFirst</h5><p>查找流中的一个元素，其函数声明如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Optional&lt;T&gt; findFirst();</span><br></pre></td></tr></table></figure>
+<p>返回流中的一个元素。其返回值为Optional<T>，这是jdk8中引入的一个类，俗称值容器类，其主要左右是用来避免值空指针，一种更加优雅的方式来处理null。该类的具体使用将在下一篇详细介绍。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">public static void test_find_first(List&lt;Dish&gt; menu) &#123;</span><br><span class="line">    Optional&lt;Dish&gt; dish &#x3D; menu.stream().findFirst();</span><br><span class="line">    &#x2F;&#x2F; 这个方法表示，Optional中包含Dish对象，则执行里面的代码，否则什么事不干，是不是比判断是否为null更友好</span><br><span class="line">    dish.ifPresent(a -&gt; System.out.println(a.getName()));  </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h5 id="2-3-5-findAny"><a href="#2-3-5-findAny" class="headerlink" title="2.3.5 findAny"></a>2.3.5 findAny</h5><p>返回流中任意一个元素，其函数声明如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Optional&lt;T&gt; findAny();</span><br></pre></td></tr></table></figure>
+<h4 id="2-4-reduce"><a href="#2-4-reduce" class="headerlink" title="2.4 reduce"></a>2.4 reduce</h4><p>reduce归约，看过大数据的人用过会非常敏感，目前的java8的流操作是不是有点map-reduce的味道，归约，就是对流中所有的元素进行统计分析，归约成一个数值。<br>首先我们看一下reduce的函数说明：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">T reduce(T identity, BinaryOperator&lt;T&gt; accumulator)</span><br></pre></td></tr></table></figure>
+<ul>
+<li>T identity：累积器的初始值。</li>
+<li>BinaryOperator&lt; T&gt; accumulator：累积函数。BinaryOperator&lt; T&gt; extend BiFunction&lt;T, U, R&gt;。BinaryOperator<T>的函数式表示，接受两个T类型的入参，返回T类型的返回值。<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Optional&lt;T&gt; reduce(BinaryOperator&lt;T&gt; accumulator);</span><br></pre></td></tr></table></figure>
+可以理解为没有初始值的归约，如果流为空，则会返回空，故其返回值使用了Optional类来优雅处理null值。</li>
+</ul>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&lt;U&gt; U reduce(U identity, BiFunction&lt;U, ? super T, U&gt; accumulator, BinaryOperator&lt;U&gt; combiner);</span><br></pre></td></tr></table></figure>
+<p>首先，最后的返回值类型为U。</p>
+<ul>
+<li>U identity：累积函数的初始值。</li>
+<li>BiFunction&lt;U, ? super T, U&gt; accumulator：累积器函数，对流中的元素使用该累积器进行归约，在具体执行时accumulator.apply(  identity,  第二个参数的类型不做限制 )，只要最终返回U即可。</li>
+<li>BinaryOperator&lt; U&gt; combiner：组合器。对累积器的结果进行组合，因为归约reduce，java流计算内部使用了fork-join框架，会对流的中的元素使用并行累积，每个线程处理流中一部分数据，最后对结果进行组合，得出最终的值。</li>
+</ul>
+<blockquote>
+<p>温馨提示：对流API的学习，一个最最重点的就是要掌握这些函数式编程接口，然后掌握如何使用Lambda表达式进行行为参数化（lambda表达当成参数传入到函数中）。</p>
+</blockquote>
+<p>接下来我们举例来展示如何使用reduce。<br>示例1：对集合中的元素求和</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">List&lt;Integer&gt; goodsNumber &#x3D; Arrays.asList(   3, 5, 8, 4, 2, 13 );</span><br><span class="line">java7之前的示例：</span><br><span class="line">int sum &#x3D; 0;</span><br><span class="line">for(Integer i : goodsNumber) &#123;</span><br><span class="line">sum +&#x3D; i;&#x2F;&#x2F;  sum &#x3D; sum + i;</span><br><span class="line">&#125;</span><br><span class="line">System.out.println(&quot;sum:&quot; + sum);</span><br></pre></td></tr></table></figure>
+<p>求和运算符： c = a + b，也就是接受2个参数，返回一个值，并且这三个值的类型一致。</p>
+<p>故我们可以使用T reduce(T identity, BinaryOperator&lt; T&gt; accumulator)来实现我们的需求：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">public static void test_reduce() &#123;</span><br><span class="line">    List&lt;Integer&gt; goodsNumber &#x3D; Arrays.asList(   3, 5, 8, 4, 2, 13 );</span><br><span class="line">    int sum &#x3D; goodsNumber.stream().reduce(0, (a,b) -&gt; a + b);</span><br><span class="line">    &#x2F;&#x2F;这里也可以写成这样：</span><br><span class="line">    &#x2F;&#x2F; int sum &#x3D; goodsNumber.stream().reduce(0, Integer::sum);</span><br><span class="line">    System.out.println(sum);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>不知大家是否只读(a,b)这两个参数的来源，其实第一个参数为初始值T identity，第二个参数为流中的元素。</p>
+<p>那三个参数的reduce函数主要用在什么场景下呢？接下来还是用求和的例子来展示其使用场景。在java多线程编程模型中，引入了fork-join框架，就是对一个大的任务进行先拆解，用多线程分别并行执行，最终再两两进行合并，得出最终的结果。reduce函数的第三个函数，就是组合这个动作，下面给出并行执行的流式处理示例代码如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line"> public static void test_reduce_combiner() &#123;</span><br><span class="line"></span><br><span class="line">    &#x2F;** 初始化待操作的流 *&#x2F;</span><br><span class="line">    List&lt;Integer&gt; nums &#x3D; new ArrayList&lt;&gt;();</span><br><span class="line">    int s &#x3D; 0;</span><br><span class="line">    for(int i &#x3D; 0; i &lt; 200; i ++) &#123;</span><br><span class="line">        nums.add(i);</span><br><span class="line">        s &#x3D; s + i;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    &#x2F;&#x2F; 对流进行归并，求和,这里使用了流的并行执行版本 parallelStream，内部使用Fork-Join框架多线程并行执行，</span><br><span class="line">    &#x2F;&#x2F; 关于流的内部高级特性，后续再进行深入，目前先以掌握其用法为主。</span><br><span class="line">    int sum2 &#x3D; nums.parallelStream().reduce(0,Integer::sum, Integer::sum);</span><br><span class="line">    System.out.println(&quot;和为：&quot; + sum2);</span><br><span class="line"></span><br><span class="line">    &#x2F;&#x2F; 下面给出上述版本的debug版本。</span><br><span class="line"></span><br><span class="line">    &#x2F;&#x2F; 累积器执行的次数</span><br><span class="line">    AtomicInteger accumulatorCount &#x3D; new AtomicInteger(0);</span><br><span class="line"></span><br><span class="line">    &#x2F;&#x2F; 组合器执行的次数（其实就是内部并行度）</span><br><span class="line">    AtomicInteger combinerCount &#x3D; new AtomicInteger(0);</span><br><span class="line"></span><br><span class="line">    int sum &#x3D; nums.parallelStream().reduce(0,(a,b) -&gt; &#123;</span><br><span class="line">                accumulatorCount.incrementAndGet();</span><br><span class="line">                return a + b;</span><br><span class="line">           &#125;, (c,d) -&gt; &#123;</span><br><span class="line">                combinerCount.incrementAndGet();</span><br><span class="line">                return  c+d;</span><br><span class="line">        &#125;);</span><br><span class="line"></span><br><span class="line">    System.out.println(&quot;accumulatorCount:&quot; + accumulatorCount.get());</span><br><span class="line">    System.out.println(&quot;combinerCountCount:&quot; + combinerCount.get());</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>从结果上可以看出，执行了100次累积动作，但只进行了15次合并。</p>
+<p>流的基本操作就介绍到这里，在此总结一下，目前接触到的流操作：<br>1、filter</p>
+<ul>
+<li>函数功能：过滤</li>
+<li>操作类型：中间操作</li>
+<li>返回类型：Stream<T></li>
+<li>函数式接口：Predicate<T></li>
+<li>函数描述符：T -&gt; boolean</li>
+</ul>
+<p>2、distinct</p>
+<ul>
+<li>函数功能：去重</li>
+<li>操作类型：中间操作</li>
+<li>返回类型：Stream<T></li>
+</ul>
+<p>3、skip</p>
+<ul>
+<li>函数功能：跳过n个元素</li>
+<li>操作类型：中间操作</li>
+<li>返回类型：Stream<T></li>
+<li>接受参数：long</li>
+</ul>
+<p>4、limit</p>
+<ul>
+<li>函数功能：截断流，值返回前n个元素的流</li>
+<li>操作类型：中间操作</li>
+<li>返回类型：Stream<T></li>
+<li>接受参数：long</li>
+</ul>
+<p>5、map</p>
+<ul>
+<li>函数功能：映射</li>
+<li>操作类型：中间操作</li>
+<li>返回类型：Stream<R></li>
+<li>函数式接口：Function&lt;T,R&gt;</li>
+<li>函数描述符：T -&gt; R<br>6、flatMap</li>
+<li>函数功能：扁平化流，将多个流合并成一个流</li>
+<li>操作类型：中间操作</li>
+<li>返回类型：Stream<R></li>
+<li>函数式接口：Function&lt;T, Stream<R>&gt;</li>
+<li>函数描述符：T -&gt; Stream<R><br>7、sorted</li>
+<li>函数功能：排序</li>
+<li>操作类型：中间操作</li>
+<li>返回类型：Stream<T></li>
+<li>函数式接口：Comparator<T></li>
+<li>函数描述符：(T,T) -&gt; int<br>8、anyMatch</li>
+<li>函数功能：流中任意一个匹配则返回true</li>
+<li>操作类型：终端操作</li>
+<li>返回类型：boolean</li>
+<li>函数式接口：Predicate<T></li>
+<li>函数描述符：T -&gt; boolean<br>9、allMatch</li>
+<li>函数功能：流中全部元素匹配则返回true</li>
+<li>操作类型：终端操作</li>
+<li>返回类型：boolean</li>
+<li>函数式接口：Predicate<T></li>
+<li>函数描述符：T -&gt; boolean<br>10、 noneMatch</li>
+<li>函数功能：流中所有元素都不匹配则返回true</li>
+<li>操作类型：终端操作</li>
+<li>返回类型：boolean</li>
+<li>函数式接口：Predicate<T></li>
+<li>函数描述符：T -&gt; boolean<br>11、findAny</li>
+<li>函数功能：从流中任意返回一个元素</li>
+<li>操作类型：终端操作</li>
+<li>返回类型：Optional<T><br>12、findFirst</li>
+<li>函数功能：返回流中第一个元素</li>
+<li>操作类型：终端操作</li>
+<li>返回类型：Optional<T><br>13、forEach</li>
+<li>函数功能：遍历流</li>
+<li>操作类型：终端操作</li>
+<li>返回类型：void</li>
+<li>函数式接口：Consumer<T></li>
+<li>函数描述符：T -&gt; void<br>14、collect</li>
+<li>函数功能：将流进行转换</li>
+<li>操作类型：终端操作</li>
+<li>返回类型：R</li>
+<li>函数式接口：Collector&lt;T,A,R&gt;</li>
+</ul>
+<p>15、reduce</p>
+<ul>
+<li><p>函数功能：规约流</p>
+</li>
+<li><p>操作类型：终端操作 </p>
+</li>
+<li><p>返回类型：Optional<T></p>
+</li>
+<li><p>函数式接口：BinaryOperator<T></p>
+</li>
+<li><p>函数描述符：(T,T) -&gt; T</p>
+<p>16、count</p>
+</li>
+<li><p>函数功能：返回流中总元素个数</p>
+</li>
+<li><p>操作类型：终端操作</p>
+</li>
+<li><p>返回类型：long</p>
+</li>
+</ul>
+<p>由于篇幅的原因，流的基本计算就介绍到这里了，下文还将重点介绍流的创建，数值流与Optional类的使用。</p>
+</div>
+
+			<script src="https://my.openwrite.cn/js/readmore.js" type="text/javascript"></script>
+			<script>
+			var isMobile = navigator.userAgent.match(/(phone|pad|pod|iPhone|iPod|ios|iPad|Android|Mobile|BlackBerry|IEMobile|MQQBrowser|JUC|Fennec|wOSBrowser|BrowserNG|WebOS|Symbian|Windows Phone)/i);
+			if (!isMobile) {
+			    var btw = new BTWPlugin();
+			    btw.init({
+			        "id": "vip-container",
+			        "blogId": "18019-1573088808868-542",
+			        "name": "中间件兴趣圈",
+			        "qrcode": "https://img-blog.csdnimg.cn/20190314214003962.jpg",
+			        "keyword": "more"
+			    });
+			}
+			</script>
+		
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/java8/" rel="tag"># java8</a>
+          
+            <a href="/tags/Lambda/" rel="tag"># Lambda</a>
+          
+            <a href="/tags/%E6%B5%81%E8%AE%A1%E7%AE%97/" rel="tag"># 流计算</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/posts/4c12373d.html" rel="next" title="复合Lambda表达式">
+                <i class="fa fa-chevron-left"></i> 复合Lambda表达式
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/posts/fcb673e6.html" rel="prev" title="数值流、Stream创建与Optional类的使用">
+                数值流、Stream创建与Optional类的使用 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            Overview
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name"></p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/">
+              
+                  <span class="site-state-item-count">64</span>
+                  <span class="site-state-item-name">posts</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                <a href="/categories/index.html">
+                  <span class="site-state-item-count">7</span>
+                  <span class="site-state-item-name">categories</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                <a href="/tags/index.html">
+                  <span class="site-state-item-count">32</span>
+                  <span class="site-state-item-name">tags</span>
+                </a>
+              </div>
+            
+
+          </nav>
+
+          
+            <div class="feed-link motion-element">
+              <a href="/atom.xml" rel="alternate">
+                <i class="fa fa-rss"></i>
+                RSS
+              </a>
+            </div>
+          
+
+          
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#1%E3%80%81%E6%B5%81%E6%98%AF%E4%BB%80%E4%B9%88%EF%BC%9F"><span class="nav-number">1.</span> <span class="nav-text">1、流是什么？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2%E3%80%81%E5%B8%B8%E7%94%A8%E7%9A%84%E6%B5%81%E6%93%8D%E4%BD%9C%E6%96%B9%E6%B3%95"><span class="nav-number">2.</span> <span class="nav-text">2、常用的流操作方法</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#2-1-filter"><span class="nav-number">2.0.1.</span> <span class="nav-text">2.1 filter</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-1-1-distinct"><span class="nav-number">2.0.2.</span> <span class="nav-text">2.1.1 distinct</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-1-2-limit"><span class="nav-number">2.0.3.</span> <span class="nav-text">2.1.2 limit</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-1-3-skip"><span class="nav-number">2.0.4.</span> <span class="nav-text">2.1.3 skip</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-2-Map"><span class="nav-number">2.0.5.</span> <span class="nav-text">2.2 Map</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-3-%E6%9F%A5%E6%89%BE%E5%92%8C%E5%8C%B9%E9%85%8D"><span class="nav-number">2.0.6.</span> <span class="nav-text">2.3 查找和匹配</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#2-3-1-allMatch"><span class="nav-number">2.0.6.1.</span> <span class="nav-text">2.3.1 allMatch</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#2-3-2-anyMatch"><span class="nav-number">2.0.6.2.</span> <span class="nav-text">2.3.2 anyMatch</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#2-3-3-noneMatch"><span class="nav-number">2.0.6.3.</span> <span class="nav-text">2.3.3 noneMatch</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#2-3-4-findFirst"><span class="nav-number">2.0.6.4.</span> <span class="nav-text">2.3.4 findFirst</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#2-3-5-findAny"><span class="nav-number">2.0.6.5.</span> <span class="nav-text">2.3.5 findAny</span></a></li></ol></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-4-reduce"><span class="nav-number">2.0.7.</span> <span class="nav-text">2.4 reduce</span></a></li></ol></li></ol></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">中间件兴趣圈</span>
+
+  
+</div>
+
+
+  <div class="powered-by">Powered by <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a></div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">Theme &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Pisces</a> v5.1.4</div>
+
+
+
+
+        
+<div class="busuanzi-count">
+  <script async src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+  
+    <span class="site-uv">
+      <i class="fa fa-user"></i>总访客
+      <span class="busuanzi-value" id="busuanzi_value_site_uv"></span>
+      人
+    </span>
+  
+
+  
+    <span class="site-pv">
+      <i class="fa fa-eye"></i>总访问量
+      <span class="busuanzi-value" id="busuanzi_value_site_pv"></span>
+      次
+    </span>
+  
+</div>
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.4"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.1.4"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.4"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

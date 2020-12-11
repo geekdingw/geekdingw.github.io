@@ -1,0 +1,874 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion" lang="zh-CN">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.4" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.4">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.4" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="sentinel," />
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="中间件兴趣圈" type="application/atom+xml" />
+
+
+
+
+
+
+<meta name="description" content="上篇详细介绍了Sentinel FlowSlot 限流实现原理(文末附流程图与总结)的限流实现机制，但主要介绍的策略限流的快速失败机制，在Sentinel 中除了快速失败，还提供了匀速排队，预热等限流策略，但我发现 Sentinel 的匀速排队、预热机制是基于 guava 的 RateLimiter，为了更加彻底的理解 Sentienl 限流相关的内容，从本文开始先来学习一下 RateLimite">
+<meta property="og:type" content="article">
+<meta property="og:title" content="源码分析 RateLimiter SmoothBursty 实现原理(文末附流程图)">
+<meta property="og:url" content="http://example.com/posts/f4f9d0d8.html">
+<meta property="og:site_name" content="中间件兴趣圈">
+<meta property="og:description" content="上篇详细介绍了Sentinel FlowSlot 限流实现原理(文末附流程图与总结)的限流实现机制，但主要介绍的策略限流的快速失败机制，在Sentinel 中除了快速失败，还提供了匀速排队，预热等限流策略，但我发现 Sentinel 的匀速排队、预热机制是基于 guava 的 RateLimiter，为了更加彻底的理解 Sentienl 限流相关的内容，从本文开始先来学习一下 RateLimite">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/20200322143507663.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/20200322144556364.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center">
+<meta property="article:published_time" content="2020-12-08T14:51:35.000Z">
+<meta property="article:modified_time" content="2020-12-08T14:52:48.518Z">
+<meta property="article:author" content="中间件兴趣圈">
+<meta property="article:tag" content="sentinel">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://img-blog.csdnimg.cn/20200322143507663.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '',
+    scheme: 'Pisces',
+    version: '5.1.4',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://example.com/posts/f4f9d0d8.html"/>
+
+
+
+
+
+  <title>源码分析 RateLimiter SmoothBursty 实现原理(文末附流程图) | 中间件兴趣圈</title>
+  
+
+
+
+
+
+
+
+
+<meta name="generator" content="Hexo 5.2.0"></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">中间件兴趣圈</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle">关注微信公众号「中间件兴趣圈」，第一时间获取最新干货！</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            Home
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
+            
+            Tags
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
+            
+            Categories
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
+            
+            Archives
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://example.com/posts/f4f9d0d8.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="中间件兴趣圈">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">源码分析 RateLimiter SmoothBursty 实现原理(文末附流程图)</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2020-12-08T22:51:35+08:00">
+                2020-12-08
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/sentinel/" itemprop="url" rel="index">
+                    <span itemprop="name">sentinel</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+            <span class="post-meta-divider">|</span>
+            <span class="page-pv"><i class="fa fa-file-o"></i>
+            <span class="busuanzi-value" id="busuanzi_value_page_pv" ></span>
+            </span>
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <div id="vip-container"><p>上篇详细介绍了<a target="_blank" rel="noopener" href="https://blog.csdn.net/prestigeding/article/details/104884255">Sentinel FlowSlot 限流实现原理(文末附流程图与总结)</a>的限流实现机制，但主要介绍的策略限流的快速失败机制，在Sentinel 中除了快速失败，还提供了匀速排队，预热等限流策略，但我发现 Sentinel 的匀速排队、预热机制是基于 guava 的 RateLimiter，为了更加彻底的理解 Sentienl 限流相关的内容，从本文开始先来学习一下 RateLimiter 的相关实现原理。</p>
+<blockquote>
+<p>温馨提示：文章的末尾会总结 SmoothBursty 的核心流程图与实现原理，本文将展示笔者是如何一步一步揭晓其实现原理的方法。</p>
+<p>@<a href="%E6%9C%AC%E8%8A%82%E7%9B%AE%E5%BD%95">TOC</a></p>
+</blockquote>
+<h2 id="1、RateLimiter-类设计图"><a href="#1、RateLimiter-类设计图" class="headerlink" title="1、RateLimiter 类设计图"></a>1、RateLimiter 类设计图</h2><p><img src="https://img-blog.csdnimg.cn/20200322143507663.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"></p>
+<ul>
+<li>RateLimiter<br>限流抽象类，定义限流器的基本接口。</li>
+<li>SmoothRateLimiter<br>平滑限流实现器，也是一个抽象类。</li>
+<li>SmoothWarmingUp<br>自带预热机制的限流器实现类型。</li>
+<li>SmoothBursty<br>适应于突发流量的限流器。</li>
+</ul>
+<p>上述类这些属性，在讲解 SmoothBursty、SmoothWarmingUp 时再详细介绍。</p>
+<blockquote>
+<p>温馨提示：可以看看这些类上的注释，先初步了解其设计思想。</p>
+</blockquote>
+<h2 id="2、寻找入口"><a href="#2、寻找入口" class="headerlink" title="2、寻找入口"></a>2、寻找入口</h2><p>我们首先从 guava 的测试用例中尝试寻找一下 RateLimiterTest。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">testSimple</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    RateLimiter limiter = RateLimiter.create(stopwatch, <span class="number">5.0</span>);</span><br><span class="line">    limiter.acquire(); <span class="comment">// R0.00, since it&#x27;s the first request</span></span><br><span class="line">    limiter.acquire(); <span class="comment">// R0.20</span></span><br><span class="line">    limiter.acquire(); <span class="comment">// R0.20</span></span><br><span class="line">    assertEvents(<span class="string">&quot;R0.00&quot;</span>, <span class="string">&quot;R0.20&quot;</span>, <span class="string">&quot;R0.20&quot;</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>从这里基本可以看出，首先通过 RateLimiter.create 的静态方法创建一个限流器，然后应用程序在执行业务逻辑之前先调研限流器的 acquire 方法申请许可，接下来我们将循着这个流程来探讨其实现思路。</p>
+<h2 id="3、探究-SmoothBursty-实现原理"><a href="#3、探究-SmoothBursty-实现原理" class="headerlink" title="3、探究 SmoothBursty 实现原理"></a>3、探究 SmoothBursty 实现原理</h2><h4 id="3-1-SmoothBursty-创建流程"><a href="#3-1-SmoothBursty-创建流程" class="headerlink" title="3.1 SmoothBursty 创建流程"></a>3.1 SmoothBursty 创建流程</h4><p>从上面的示例来看，应用程序首先通过 RateLimiter 的静态方法创建一个限流器，其代码如下：<br>RateLimiter#create</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> RateLimiter <span class="title">create</span><span class="params">(SleepingStopwatch stopwatch, <span class="keyword">double</span> permitsPerSecond)</span> </span>&#123; <span class="comment">// @1</span></span><br><span class="line">    RateLimiter rateLimiter = <span class="keyword">new</span> SmoothBursty(stopwatch, <span class="number">1.0</span>);                                  <span class="comment">// @2</span></span><br><span class="line">    rateLimiter.setRate(permitsPerSecond);                                                                    <span class="comment">// @3</span></span><br><span class="line">    <span class="keyword">return</span> rateLimiter;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>代码@1：首先先介绍方法的参数：</p>
+<ul>
+<li>SleepingStopwatch stopwatch<br>秒表，主要是实现当前从启动开始已消耗的时间，有点类似计算一个操作耗时，实现精度纳秒。</li>
+<li>double permitsPerSecond<br>每秒的许可数，即通常我们说的限流TPS。</li>
+</ul>
+<p>代码@2：创建 SmoothBursty 对象。</p>
+<p>代码@3：调用 setRate API 设置其速率器。<br>接下来我们对其进行展开。</p>
+<h5 id="3-1-1-SmoothBursty-构造函数"><a href="#3-1-1-SmoothBursty-构造函数" class="headerlink" title="3.1.1 SmoothBursty 构造函数"></a>3.1.1 SmoothBursty 构造函数</h5><p>SmoothBursty 构造函数</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">SmoothBursty(SleepingStopwatch stopwatch, <span class="keyword">double</span> maxBurstSeconds) &#123;</span><br><span class="line">    <span class="keyword">super</span>(stopwatch);</span><br><span class="line">    <span class="keyword">this</span>.maxBurstSeconds = maxBurstSeconds;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这里主要是为 stopWatch 与 maxBurstSeconds 赋值，其中 maxBurstSeconds 为允许的突发流量的时间，这里默认为 1.0，表示一秒，会影响最大可存储的许可数。</p>
+<h5 id="3-1-2-RateLimiter-setRate-方法详解"><a href="#3-1-2-RateLimiter-setRate-方法详解" class="headerlink" title="3.1.2 RateLimiter setRate 方法详解"></a>3.1.2 RateLimiter setRate 方法详解</h5><p>RateLimiter#setRate</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">final</span> <span class="keyword">void</span> <span class="title">setRate</span><span class="params">(<span class="keyword">double</span> permitsPerSecond)</span> </span>&#123;</span><br><span class="line">    checkArgument(</span><br><span class="line">        permitsPerSecond &gt; <span class="number">0.0</span> &amp;&amp; !Double.isNaN(permitsPerSecond), <span class="string">&quot;rate must be positive&quot;</span>);</span><br><span class="line">    <span class="keyword">synchronized</span> (mutex()) &#123; <span class="comment">// @1</span></span><br><span class="line">      doSetRate(permitsPerSecond, stopwatch.readMicros()); <span class="comment">// @2</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>代码@1：该方法需要获取该类的监视器，在同步代码块中执行，实现线程安全性。</p>
+<p>代码@2：调用 doSetRate 设置速率，将调用其具体实现类 SmoothRateLimiter 的 doSetRate 方法。</p>
+<p>SmoothRateLimiter#doSetRate</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">final</span> <span class="keyword">void</span> <span class="title">doSetRate</span><span class="params">(<span class="keyword">double</span> permitsPerSecond, <span class="keyword">long</span> nowMicros)</span> </span>&#123; <span class="comment">// @1</span></span><br><span class="line">    resync(nowMicros);   <span class="comment">// @2</span></span><br><span class="line">    <span class="keyword">double</span> stableIntervalMicros = SECONDS.toMicros(<span class="number">1L</span>) / permitsPerSecond;  <span class="comment">// @3</span></span><br><span class="line">    <span class="keyword">this</span>.stableIntervalMicros = stableIntervalMicros;                                              </span><br><span class="line">    doSetRate(permitsPerSecond, stableIntervalMicros);                                      <span class="comment">// @4</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>代码@1：先来介绍一下该方法的参数的含义：</p>
+<ul>
+<li>double permitsPerSecond<br>每秒的许可数，即TPS。</li>
+<li>long nowMicros<br>系统已运行时间。</li>
+</ul>
+<p>代码@2：基于当前时间重置 SmoothRateLimiter 内部的 storedPermits (已存储的许可数量) 与 nextFreeTicketMicros (下一次可以免费获取许可的时间) 值，所谓的免费指的是无需等待就可以获取设定速率的许可，该方法对理解限流许可的产生非常关键，稍后详细介绍。</p>
+<a id="more"></a>
+
+<p>代码@3：根据 TPS 算出一个稳定的获取1个许可的时间。以一秒发放5个许可，即限速为5TPS，那发放一个许可的世界间隔为 200ms，stableIntervalMicros 变量是以微妙为单位。</p>
+<p>代码@4：调用 SmoothRateLimiter 的抽象方法 doSetRate 设置速率，这里会调用 SmoothBursty 的 doSetRate 方法。</p>
+<p>在介绍 SmoothBursty 的 doSetRate 方法之前，我们先来看看 resync 方法的实现细节。</p>
+<p>SmoothRateLimiter#resync</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">resync</span><span class="params">(<span class="keyword">long</span> nowMicros)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (nowMicros &gt; nextFreeTicketMicros) &#123;  <span class="comment">// @1 </span></span><br><span class="line">      <span class="keyword">double</span> newPermits = (nowMicros - nextFreeTicketMicros) / coolDownIntervalMicros();  <span class="comment">// @2</span></span><br><span class="line">      storedPermits = min(maxPermits, storedPermits + newPermits);    <span class="comment">// @3</span></span><br><span class="line">      nextFreeTicketMicros = nowMicros;   <span class="comment">// @4</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>代码@1：如果当前已启动时间大于 nextFreeTicketMicros（下一次可以免费获取许可的时间），则需要重新计算许可，即又可以向许可池中添加许可。</p>
+<p>代码@2：根据当前时间可增加的许可数量，在 SmoothBursty 的  coolDownIntervalMicros 方法返回的就是上文提到的 stableIntervalMicros (发放一个许可所需要的时间)，故本次可以增加的许可数的算法也好理解，即用当前时间戳减去 nextFreeTicketMicros 的差值，再除以发送一个许可所需要的时间即可。</p>
+<p>代码@3：计算当前可用的许可。</p>
+<p>代码@4：更新下一次可增加计算许可的时间。</p>
+<p>接下来再继续看 SmoothBursty 的 doSetRate 方法。</p>
+<p>SmoothBursty#doSetRate</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">doSetRate</span><span class="params">(<span class="keyword">double</span> permitsPerSecond, <span class="keyword">double</span> stableIntervalMicros)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">double</span> oldMaxPermits = <span class="keyword">this</span>.maxPermits;</span><br><span class="line">    maxPermits = maxBurstSeconds * permitsPerSecond;</span><br><span class="line">    <span class="keyword">if</span> (oldMaxPermits == Double.POSITIVE_INFINITY) &#123;</span><br><span class="line">        storedPermits = maxPermits;</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        storedPermits =</span><br><span class="line">            (oldMaxPermits == <span class="number">0.0</span>)</span><br><span class="line">                ? <span class="number">0.0</span> <span class="comment">// initial state</span></span><br><span class="line">                : storedPermits * maxPermits / oldMaxPermits;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这里主要是初始化 storedPermits 的值，该限速器支持在运行过程中动态改变 permitsPerSecond 的值。</p>
+<h4 id="3-2-SmoothBursty-acquire-工作流程"><a href="#3-2-SmoothBursty-acquire-工作流程" class="headerlink" title="3.2 SmoothBursty acquire 工作流程"></a>3.2 SmoothBursty acquire 工作流程</h4><p>RateLimiter 中的 acquire 方法如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">double</span> <span class="title">acquire</span><span class="params">(<span class="keyword">int</span> permits)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">long</span> microsToWait = reserve(permits);    <span class="comment">// @1</span></span><br><span class="line">    stopwatch.sleepMicrosUninterruptibly(microsToWait);   <span class="comment">// @2</span></span><br><span class="line">    <span class="keyword">return</span> <span class="number">1.0</span> * microsToWait / SECONDS.toMicros(<span class="number">1L</span>);   <span class="comment">// @3</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>代码@1：根据当前剩余的许可与本次申请的许可来判断本次申请需要等待的时长，如果返回0则表示无需等待。</p>
+<p>代码@2：如果需要等待的时间不为0，表示触发限速，睡眠指定时间后唤醒。</p>
+<p>代码@3：返回本次申请等待的时长。</p>
+<p>接下来重点介绍 reserve 方法的实现原理。</p>
+<p>RateLimiter#reserve</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">final</span> <span class="keyword">long</span> <span class="title">reserve</span><span class="params">(<span class="keyword">int</span> permits)</span> </span>&#123;</span><br><span class="line">    checkPermits(permits);</span><br><span class="line">    <span class="keyword">synchronized</span> (mutex()) &#123;  <span class="comment">// @1</span></span><br><span class="line">      <span class="keyword">return</span> reserveAndGetWaitLength(permits, stopwatch.readMicros()); <span class="comment">// @2</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>代码@1：限速器主要维护的重要数据字段( storedPermits )，对其进行维护时都需要先获取锁。</p>
+<p>代码@2：调用内部方法 reserveAndGetWaitLength 来计算需要等待时间。</p>
+<p>继续跟踪 reserveAndGetWaitLength 方法。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">final</span> <span class="keyword">long</span> <span class="title">reserveAndGetWaitLength</span><span class="params">(<span class="keyword">int</span> permits, <span class="keyword">long</span> nowMicros)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">long</span> momentAvailable = reserveEarliestAvailable(permits, nowMicros);   <span class="comment">// @1</span></span><br><span class="line">    <span class="keyword">return</span> max(momentAvailable - nowMicros, <span class="number">0</span>);  <span class="comment">// @2</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>代码@1：根据当前拥有的许可数量、当前时间判断待申请许可最早能得到满足的最早时间，用momentAvailable 表示。</p>
+<p>代码@2：然后计算 momentAvailable 与 nowMicros 的差值与0做比较，得出需要等待的时间。</p>
+<p>继续跟踪 reserveEarliestAvailable方法，该方法在 RateLimiter 中一个抽象方法，具体实现在其子类 SmoothRateLimiter 中。</p>
+<p>SmoothRateLimiter#reserveEarliestAvailable</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">final</span> <span class="keyword">long</span> <span class="title">reserveEarliestAvailable</span><span class="params">(<span class="keyword">int</span> requiredPermits, <span class="keyword">long</span> nowMicros)</span> </span>&#123;</span><br><span class="line">    resync(nowMicros);   <span class="comment">// @1</span></span><br><span class="line">    <span class="keyword">long</span> returnValue = nextFreeTicketMicros;</span><br><span class="line">    <span class="keyword">double</span> storedPermitsToSpend = min(requiredPermits, <span class="keyword">this</span>.storedPermits); <span class="comment">// @2</span></span><br><span class="line">    <span class="keyword">double</span> freshPermits = requiredPermits - storedPermitsToSpend; <span class="comment">// @3</span></span><br><span class="line">    <span class="keyword">long</span> waitMicros =</span><br><span class="line">        storedPermitsToWaitTime(<span class="keyword">this</span>.storedPermits, storedPermitsToSpend)</span><br><span class="line">            + (<span class="keyword">long</span>) (freshPermits * stableIntervalMicros);  <span class="comment">// @4</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">this</span>.nextFreeTicketMicros = LongMath.saturatedAdd(nextFreeTicketMicros, waitMicros);  <span class="comment">// @5</span></span><br><span class="line">    <span class="keyword">this</span>.storedPermits -= storedPermitsToSpend;    <span class="comment">// @6</span></span><br><span class="line">    <span class="keyword">return</span> returnValue;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>代码@1：在尝试申请许可之前，先根据当前时间即发放许可速率更新 storedPermits 与 nextFreeTicketMicros（下一次可以免费获取许可的时间）。</p>
+<p>代码@2：计算本次能从 storedPermits 中消耗的许可数量，取需要申请的许可数量与当前可用的许可数量的最小值，用 storedPermitsToSpend 表示。</p>
+<p>代码@3：如果需要申请的许可数量( requiredPermits )大于当前剩余许可数量( storedPermits )，则还需要等待新的许可生成，用 freshPermits 表示，即如果该值大于0，则表示本次申请需要阻塞一定时间。</p>
+<p>代码@4：计算本次申请需要等待的时间，storedPermitsToWaitTime 方法在 SmoothBursty 的实现中默认返回 0，即 SmoothBursty 的等待时间主要来自按照速率生成 freshPermits 个许可的时间，生成一个许可的时间为 stableIntervalMicros，故需要等待的时长为 freshPermits * stableIntervalMicros。</p>
+<p>代码@5：更新 nextFreeTicketMicros 为当前时间加上需要等待的时间。</p>
+<p>代码@6：更新 storedPermits 的值，即减少本次已消耗的许可数量。</p>
+<p>代码@7：请注意这里返回的 returnValue 的值，并没有包含由于剩余许可需要等待创建新许可的时间，即允许一定的突发流量，故本次计算需要的等待时间将对下一次请求生效，这也是框架作者将该限速器取名为 SmoothBursty 的缘由。</p>
+<p>SmoothBursty 的 acquire 方法就介绍到这里了。</p>
+<h2 id="4、总结"><a href="#4、总结" class="headerlink" title="4、总结"></a>4、总结</h2><p>由于源码分析会显得枯燥与不直观，我们先给出如下流程图：<br><img src="https://img-blog.csdnimg.cn/20200322144556364.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br>SmoothBursty 的核心设计思想基本与令牌桶类似，但还是有些不同。<br>基本思想：</p>
+<ol>
+<li>SmoothBursty 以指定的速率生成许可，在 SmoothBursty 中用 storedPermits 表示。</li>
+<li>当一个请求需要申请许可时，如果需要申请的许可数小于 storedPermits ，则消耗指定许可，直接返回，无需等待。</li>
+<li>当一个请求需要申请的许可大于 storedPermits 时，则计算需要等待的时间，更新下一次许可可发放时间，直接返回，即当请求消耗掉所有许可后，当前请求并不会阻塞，而是影响下一个请求，即支持突发流量。</li>
+</ol>
+</div>
+
+			<script src="https://my.openwrite.cn/js/readmore.js" type="text/javascript"></script>
+			<script>
+			var isMobile = navigator.userAgent.match(/(phone|pad|pod|iPhone|iPod|ios|iPad|Android|Mobile|BlackBerry|IEMobile|MQQBrowser|JUC|Fennec|wOSBrowser|BrowserNG|WebOS|Symbian|Windows Phone)/i);
+			if (!isMobile) {
+			    var btw = new BTWPlugin();
+			    btw.init({
+			        "id": "vip-container",
+			        "blogId": "18019-1573088808868-542",
+			        "name": "中间件兴趣圈",
+			        "qrcode": "https://img-blog.csdnimg.cn/20190314214003962.jpg",
+			        "keyword": "more"
+			    });
+			}
+			</script>
+		
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/sentinel/" rel="tag"># sentinel</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/posts/d83864c8.html" rel="next" title="Sentinel FlowSlot 限流实现原理(文末附流程图与总结)">
+                <i class="fa fa-chevron-left"></i> Sentinel FlowSlot 限流实现原理(文末附流程图与总结)
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/posts/6c0cb4a9.html" rel="prev" title="源码分析RateLimiter SmoothWarmingUp 实现原理(文末附流程图)">
+                源码分析RateLimiter SmoothWarmingUp 实现原理(文末附流程图) <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            Overview
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name"></p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/">
+              
+                  <span class="site-state-item-count">64</span>
+                  <span class="site-state-item-name">posts</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                <a href="/categories/index.html">
+                  <span class="site-state-item-count">7</span>
+                  <span class="site-state-item-name">categories</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                <a href="/tags/index.html">
+                  <span class="site-state-item-count">32</span>
+                  <span class="site-state-item-name">tags</span>
+                </a>
+              </div>
+            
+
+          </nav>
+
+          
+            <div class="feed-link motion-element">
+              <a href="/atom.xml" rel="alternate">
+                <i class="fa fa-rss"></i>
+                RSS
+              </a>
+            </div>
+          
+
+          
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#1%E3%80%81RateLimiter-%E7%B1%BB%E8%AE%BE%E8%AE%A1%E5%9B%BE"><span class="nav-number">1.</span> <span class="nav-text">1、RateLimiter 类设计图</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2%E3%80%81%E5%AF%BB%E6%89%BE%E5%85%A5%E5%8F%A3"><span class="nav-number">2.</span> <span class="nav-text">2、寻找入口</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3%E3%80%81%E6%8E%A2%E7%A9%B6-SmoothBursty-%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86"><span class="nav-number">3.</span> <span class="nav-text">3、探究 SmoothBursty 实现原理</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#3-1-SmoothBursty-%E5%88%9B%E5%BB%BA%E6%B5%81%E7%A8%8B"><span class="nav-number">3.0.1.</span> <span class="nav-text">3.1 SmoothBursty 创建流程</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#3-1-1-SmoothBursty-%E6%9E%84%E9%80%A0%E5%87%BD%E6%95%B0"><span class="nav-number">3.0.1.1.</span> <span class="nav-text">3.1.1 SmoothBursty 构造函数</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#3-1-2-RateLimiter-setRate-%E6%96%B9%E6%B3%95%E8%AF%A6%E8%A7%A3"><span class="nav-number">3.0.1.2.</span> <span class="nav-text">3.1.2 RateLimiter setRate 方法详解</span></a></li></ol></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-2-SmoothBursty-acquire-%E5%B7%A5%E4%BD%9C%E6%B5%81%E7%A8%8B"><span class="nav-number">3.0.2.</span> <span class="nav-text">3.2 SmoothBursty acquire 工作流程</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4%E3%80%81%E6%80%BB%E7%BB%93"><span class="nav-number">4.</span> <span class="nav-text">4、总结</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">中间件兴趣圈</span>
+
+  
+</div>
+
+
+  <div class="powered-by">Powered by <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a></div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">Theme &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Pisces</a> v5.1.4</div>
+
+
+
+
+        
+<div class="busuanzi-count">
+  <script async src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+  
+    <span class="site-uv">
+      <i class="fa fa-user"></i>总访客
+      <span class="busuanzi-value" id="busuanzi_value_site_uv"></span>
+      人
+    </span>
+  
+
+  
+    <span class="site-pv">
+      <i class="fa fa-eye"></i>总访问量
+      <span class="busuanzi-value" id="busuanzi_value_site_pv"></span>
+      次
+    </span>
+  
+</div>
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.4"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.1.4"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.4"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

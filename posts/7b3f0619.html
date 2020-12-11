@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion" lang="zh-CN">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.4" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.4">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.4" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="程序人生,职场感悟," />
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="中间件兴趣圈" type="application/atom+xml" />
+
+
+
+
+
+
+<meta name="description" content="2020年04年01，对我来说一个非常值得纪念的日子，因为10年前的今天我从一个普通二类本科的大学毕业生正式步入职场，开启了我人生的新篇章。 经过10年的成长，我从一个青涩少年依然蜕变为一个“中年大叔”了，也取得了一定的成绩，为了突破“中年危机”，将持续努力。 首先先来一个自我介绍：丁威，《RocketMQ技术内幕》作者、『中间件兴趣圈』公众号维护者、2019年RocketMQ社区优秀布道师评选斩">
+<meta property="og:type" content="article">
+<meta property="og:title" content="10年IT老兵给职场新人的一些建议">
+<meta property="og:url" content="http://example.com/posts/7b3f0619.html">
+<meta property="og:site_name" content="中间件兴趣圈">
+<meta property="og:description" content="2020年04年01，对我来说一个非常值得纪念的日子，因为10年前的今天我从一个普通二类本科的大学毕业生正式步入职场，开启了我人生的新篇章。 经过10年的成长，我从一个青涩少年依然蜕变为一个“中年大叔”了，也取得了一定的成绩，为了突破“中年危机”，将持续努力。 首先先来一个自我介绍：丁威，《RocketMQ技术内幕》作者、『中间件兴趣圈』公众号维护者、2019年RocketMQ社区优秀布道师评选斩">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2020-12-07T12:37:01.000Z">
+<meta property="article:modified_time" content="2020-12-11T04:15:07.344Z">
+<meta property="article:author" content="中间件兴趣圈">
+<meta property="article:tag" content="程序人生">
+<meta property="article:tag" content="职场感悟">
+<meta name="twitter:card" content="summary">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '',
+    scheme: 'Pisces',
+    version: '5.1.4',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://example.com/posts/7b3f0619.html"/>
+
+
+
+
+
+  <title>10年IT老兵给职场新人的一些建议 | 中间件兴趣圈</title>
+  
+
+
+
+
+
+
+
+
+<meta name="generator" content="Hexo 5.2.0"></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">中间件兴趣圈</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle">关注微信公众号「中间件兴趣圈」，第一时间获取最新干货！</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            Home
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
+            
+            Tags
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
+            
+            Categories
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
+            
+            Archives
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://example.com/posts/7b3f0619.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="中间件兴趣圈">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">10年IT老兵给职场新人的一些建议</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2020-12-07T20:37:01+08:00">
+                2020-12-07
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E7%A8%8B%E5%BA%8F%E4%BA%BA%E7%94%9F/" itemprop="url" rel="index">
+                    <span itemprop="name">程序人生</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+            <span class="post-meta-divider">|</span>
+            <span class="page-pv"><i class="fa fa-file-o"></i>
+            <span class="busuanzi-value" id="busuanzi_value_page_pv" ></span>
+            </span>
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <div id="vip-container"><p>2020年04年01，对我来说一个非常值得纪念的日子，因为10年前的今天我从一个<strong>普通二类本科</strong>的大学毕业生正式步入职场，开启了我人生的新篇章。</p>
+<p>经过10年的成长，我从一个青涩少年依然蜕变为一个“中年大叔”了，也取得了一定的成绩，为了突破“中年危机”，将持续努力。</p>
+<p>首先先来一个自我介绍：丁威，《RocketMQ技术内幕》作者、『中间件兴趣圈』公众号维护者、2019年RocketMQ社区优秀布道师评选斩获第一名、2019年度CSDN博客之星TOP10获得者，目前就任中通科技技术平台部担任资深架构师，负责消息中间件与全链路压测在科技中心的落地与实施工作。</p>
+<a id="more"></a>
+
+<p>回想这10年的工作经历，我个人觉得有很多点可以和大家一起来分享分享。</p>
+<p>首先我职业生涯的前面四年，是呆在一家国企控股公司，主要从事的业务是电子政务方面的业务，是一个传统行业，虽然我很努力，解决工作中的问题显得得心应手，在公司所在的部门也能得到领导的赏识、同事们的认可，但受限于所在平台的局限性以及公司的规模，薪资无法得到较大幅度的提升，萌生了离开的想法。但让我所料不及的是我满怀信心去找工作的时候让我备受打击，阿里系企业直接将我秒杀，诸如HashMap的内存结构是什么？HashMap为什么不是线程安全的，什么大数据、高并发这些场景更是连想都没有相关，后面就选择一家外部公司，开始了探究互联网相关的技能。</p>
+<p><strong>回想这段经验，我有如下感悟与建议</strong><br><strong>1、第一份工作真的很重要，如果有好的学历背景，找工作时不能将就。</strong><br><strong>2、如果没有好的学历背景，也无需气馁，要一开始就为自己树立一个远大的目标：一定要凭着自己的努力，励志要进入一线互联网企业。</strong><br><strong>3、有了目标，在工作的第一年主要还是要扩大知识面，点到为止，以便功能好的完成工作，进入工作第二年后，就要开始打牢基础，探究原理，快速成长。</strong></p>
+<p>那如何打牢基础，探究原理，快速成长呢？</p>
+<p>在经过阿里系面试打击后，我决定先离开工作了4年的环境，寻找了一家有机会接触互联网相关技术的公司，开始打拼，这个时候，在完成工作的情况下，我会利用业余时间进行学习，越努力越幸运，我的运气还不错，认识了MyCat社区的负责人，为我指明了方向，融入开源社区，但那个时候的我发现我无看懂MyCat的源码，也就无法深层次参与其开源建设，那如何破解。</p>
+<p>后面痛定思痛，既然没有能力看懂MyCat源码，那就从JAVA的基础开始，故与2016年9月正式开通CSDN博客，从源码分析Java集合、JUC(Java并发包)、Java NIO、Netty，经过了半年源码研究分析，基础终于打牢，一鼓作气在CSDNS上发表了源码分析MyCat专栏，并且还对MyCat开源社区贡献过代码，在MyCat形成了一定的社区影响力。</p>
+<p>正式由于在MyCat社区活跃的表现，终于迎来职业生涯一个非常重要的转折点：一家公司在生产环境大规模使用MyCat，但缺乏专业人士对其进行维护，故通过MyCat社区的介绍，我正式入职该公司，从此正式进入亿级数据规模，我所学的知识终于有了用武之地，而且能应付自如，在一家拥有300号人的科技公司崭露头角。</p>
+<p><strong>回顾这段经验，有如下感悟我觉得可以分享一下。<br>如果当我们没有一个好的平台，无法接触高并发，大数据这样的场景时，我们该如何破解，无需气馁，努力学习高并发、大数据相关的基础知识，例如Java并发、Netty网络，各主流中间件的原理、以及JVM诊断的理论基础，相信总会有伯乐找到你，让你的能力得到施展。</strong></p>
+<p>在成功进入好的平台后，不能松懈，继续在工作之余学习了互联网架构中中主流的中间件，陆续发表了源码研究RocketMQ、Dubbo、ElasticJob等专栏。越努力越幸运，由于源码分析RocketMQ专栏总共发表了40余篇，成体系的剖析了RocketMQ的实现原理，被出版社相中，邀请我出书，最终成功出版了《RocketMQ技术内幕》一书，并且获得了广大读者朋友一致好评，并受我其中一个读者的邀请，最终入职了中通科技，进入更加广阔的平台，继续努力打拼。</p>
+<p><strong>这段建议给我的感悟就是：越努力越幸运，唯有坚持不懈。</strong></p>
+</div>
+
+			<script src="https://my.openwrite.cn/js/readmore.js" type="text/javascript"></script>
+			<script>
+			var isMobile = navigator.userAgent.match(/(phone|pad|pod|iPhone|iPod|ios|iPad|Android|Mobile|BlackBerry|IEMobile|MQQBrowser|JUC|Fennec|wOSBrowser|BrowserNG|WebOS|Symbian|Windows Phone)/i);
+			if (!isMobile) {
+			    var btw = new BTWPlugin();
+			    btw.init({
+			        "id": "vip-container",
+			        "blogId": "18019-1573088808868-542",
+			        "name": "中间件兴趣圈",
+			        "qrcode": "https://img-blog.csdnimg.cn/20190314214003962.jpg",
+			        "keyword": "more"
+			    });
+			}
+			</script>
+		
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/%E7%A8%8B%E5%BA%8F%E4%BA%BA%E7%94%9F/" rel="tag"># 程序人生</a>
+          
+            <a href="/tags/%E8%81%8C%E5%9C%BA%E6%84%9F%E6%82%9F/" rel="tag"># 职场感悟</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/posts/b9e3e3ee.html" rel="prev" title="Kafka与RocketMQ性能对比大揭秘">
+                Kafka与RocketMQ性能对比大揭秘 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+
+      <section class="site-overview-wrap sidebar-panel sidebar-panel-active">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name"></p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/">
+              
+                  <span class="site-state-item-count">64</span>
+                  <span class="site-state-item-name">posts</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                <a href="/categories/index.html">
+                  <span class="site-state-item-count">7</span>
+                  <span class="site-state-item-name">categories</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                <a href="/tags/index.html">
+                  <span class="site-state-item-count">32</span>
+                  <span class="site-state-item-name">tags</span>
+                </a>
+              </div>
+            
+
+          </nav>
+
+          
+            <div class="feed-link motion-element">
+              <a href="/atom.xml" rel="alternate">
+                <i class="fa fa-rss"></i>
+                RSS
+              </a>
+            </div>
+          
+
+          
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">中间件兴趣圈</span>
+
+  
+</div>
+
+
+  <div class="powered-by">Powered by <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a></div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">Theme &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Pisces</a> v5.1.4</div>
+
+
+
+
+        
+<div class="busuanzi-count">
+  <script async src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+  
+    <span class="site-uv">
+      <i class="fa fa-user"></i>总访客
+      <span class="busuanzi-value" id="busuanzi_value_site_uv"></span>
+      人
+    </span>
+  
+
+  
+    <span class="site-pv">
+      <i class="fa fa-eye"></i>总访问量
+      <span class="busuanzi-value" id="busuanzi_value_site_pv"></span>
+      次
+    </span>
+  
+</div>
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.4"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.1.4"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.4"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

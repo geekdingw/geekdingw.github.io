@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion" lang="zh-CN">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.4" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.4">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.4" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="sentinel," />
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="中间件兴趣圈" type="application/atom+xml" />
+
+
+
+
+
+
+<meta name="description" content="温馨提示，如果大家对源码不感兴趣，可以直接跳到本文的总结部分，了解一下预热实现原理的一些实战建议。 首先先回顾一下 Sentinel 流控效果相关的类图：DefaultController 快速失败已经在上文详细介绍过，本文将详细介绍其他两种策略的实现原理。  首先我们应该知道，一条流控规则(FlowRule)对应一个 TrafficShapingController 对象。 1、RateLim">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Sentienl 流控效果之匀速排队与预热实现原理与实战建议">
+<meta property="og:url" content="http://example.com/posts/c534f93a.html">
+<meta property="og:site_name" content="中间件兴趣圈">
+<meta property="og:description" content="温馨提示，如果大家对源码不感兴趣，可以直接跳到本文的总结部分，了解一下预热实现原理的一些实战建议。 首先先回顾一下 Sentinel 流控效果相关的类图：DefaultController 快速失败已经在上文详细介绍过，本文将详细介绍其他两种策略的实现原理。  首先我们应该知道，一条流控规则(FlowRule)对应一个 TrafficShapingController 对象。 1、RateLim">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/20200406112941248.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/20200406114151249.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center">
+<meta property="article:published_time" content="2020-12-08T14:55:35.000Z">
+<meta property="article:modified_time" content="2020-12-08T14:56:02.652Z">
+<meta property="article:author" content="中间件兴趣圈">
+<meta property="article:tag" content="sentinel">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://img-blog.csdnimg.cn/20200406112941248.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '',
+    scheme: 'Pisces',
+    version: '5.1.4',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://example.com/posts/c534f93a.html"/>
+
+
+
+
+
+  <title>Sentienl 流控效果之匀速排队与预热实现原理与实战建议 | 中间件兴趣圈</title>
+  
+
+
+
+
+
+
+
+
+<meta name="generator" content="Hexo 5.2.0"></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">中间件兴趣圈</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle">关注微信公众号「中间件兴趣圈」，第一时间获取最新干货！</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            Home
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
+            
+            Tags
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
+            
+            Categories
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
+            
+            Archives
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://example.com/posts/c534f93a.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="中间件兴趣圈">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">Sentienl 流控效果之匀速排队与预热实现原理与实战建议</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2020-12-08T22:55:35+08:00">
+                2020-12-08
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/sentinel/" itemprop="url" rel="index">
+                    <span itemprop="name">sentinel</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+            <span class="post-meta-divider">|</span>
+            <span class="page-pv"><i class="fa fa-file-o"></i>
+            <span class="busuanzi-value" id="busuanzi_value_page_pv" ></span>
+            </span>
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <div id="vip-container"><blockquote>
+<p>温馨提示，如果大家对源码不感兴趣，可以直接跳到本文的总结部分，了解一下预热实现原理的一些实战建议。</p>
+<p>首先先回顾一下 Sentinel 流控效果相关的类图：<br><img src="https://img-blog.csdnimg.cn/20200406112941248.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br>DefaultController 快速失败已经在上文详细介绍过，本文将详细介绍其他两种策略的实现原理。</p>
+</blockquote>
+<p>首先我们应该知道，一条流控规则(FlowRule)对应一个 TrafficShapingController 对象。</p>
+<h2 id="1、RateLimiterController"><a href="#1、RateLimiterController" class="headerlink" title="1、RateLimiterController"></a>1、RateLimiterController</h2><p>匀速排队策略实现类，首先我们先来介绍一下该类的几个成员变量的含义：</p>
+<ul>
+<li>int maxQueueingTimeMs<br>排队等待的最大超时时间，如果等待超过该时间，将会抛出 FlowException。</li>
+<li>double count<br>流控规则中的阔值，即令牌的总个数，以QPS为例，如果该值设置为1000，则表示1s可并发的请求数量。</li>
+<li>AtomicLong latestPassedTime<br>上一次成功通过的时间戳。</li>
+</ul>
+<p>接下来我们详细来看一下其算法的实现：<br>RateLimiterController#canPass</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">boolean</span> <span class="title">canPass</span><span class="params">(Node node, <span class="keyword">int</span> acquireCount, <span class="keyword">boolean</span> prioritized)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (acquireCount &lt;= <span class="number">0</span>) &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">true</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (count &lt;= <span class="number">0</span>) &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">false</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">long</span> currentTime = TimeUtil.currentTimeMillis();</span><br><span class="line">    <span class="keyword">long</span> costTime = Math.round(<span class="number">1.0</span> * (acquireCount) / count * <span class="number">1000</span>);    <span class="comment">// @1</span></span><br><span class="line">    <span class="keyword">long</span> expectedTime = costTime + latestPassedTime.get();                <span class="comment">// @2</span></span><br><span class="line">    <span class="keyword">if</span> (expectedTime &lt;= currentTime) &#123;                                                    <span class="comment">// @3</span></span><br><span class="line">        latestPassedTime.set(currentTime);</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">true</span>;</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="keyword">long</span> waitTime = costTime + latestPassedTime.get() - TimeUtil.currentTimeMillis();   <span class="comment">// @4</span></span><br><span class="line">        <span class="keyword">if</span> (waitTime &gt; maxQueueingTimeMs) &#123;                                                                        <span class="comment">// @5</span></span><br><span class="line">            <span class="keyword">return</span> <span class="keyword">false</span>;</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            <span class="keyword">long</span> oldTime = latestPassedTime.addAndGet(costTime);                                     <span class="comment">// @6</span></span><br><span class="line">            <span class="keyword">try</span> &#123;</span><br><span class="line">                waitTime = oldTime - TimeUtil.currentTimeMillis();                                            </span><br><span class="line">                <span class="keyword">if</span> (waitTime &gt; maxQueueingTimeMs) &#123;</span><br><span class="line">                    latestPassedTime.addAndGet(-costTime);</span><br><span class="line">                    <span class="keyword">return</span> <span class="keyword">false</span>;</span><br><span class="line">                &#125;</span><br><span class="line">		<span class="keyword">if</span> (waitTime &gt; <span class="number">0</span>) &#123;                                                     <span class="comment">// @7</span></span><br><span class="line">                    Thread.sleep(waitTime);</span><br><span class="line">                &#125;</span><br><span class="line">                <span class="keyword">return</span> <span class="keyword">true</span>;</span><br><span class="line">            &#125; <span class="keyword">catch</span> (InterruptedException e) &#123;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">false</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>代码@1：首先算出每一个请求之间最小的间隔，时间单位为毫秒。例如 cout 设置为 1000,表示一秒可以通过 1000个请求，匀速排队，那每个请求的间隔为 1 / 1000(s)，乘以1000将时间单位转换为毫秒，如果一次需要2个令牌，则其间隔时间为2ms，用 costTime 表示。</p>
+<p>代码@2：计算下一个请求的期望达到时间，等于上一次通过的时间戳 + costTime ，用 expectedTime 表示。</p>
+<p>代码@3：如果 expectedTime 小于等于当前时间，说明在期望的时间没有请求到达，说明没有按照期望消耗令牌，故本次请求直接通过，并更新上次通过的时间为当前时间。</p>
+<p>代码@4：如果 expectedTime 大于当前时间，说明还没到令牌发放时间，当前请求需要等待。首先先计算需要等待是时间，用 waitTime 表示。</p>
+<p>代码@5：如果计算的需要等待的时间大于允许排队的时间，则返回 false，即本次请求将被限流，返回 FlowException。</p>
+<p>代码@6：进入排队，默认是本次请求通过，故先将上一次通过流量的时间戳增加 costTime，然后直接调用 Thread 的 sleep 方法，将当前请求先阻塞一会，然后返回 true 表示请求通过。</p>
+<blockquote>
+<p>匀速排队模式的实现的关键：主要是记录上一次请求通过的时间戳，然后根据流控规则，判断两次请求之间最小的间隔，并加入一个排队时间。</p>
+</blockquote>
+<h2 id="2、WarmUpController"><a href="#2、WarmUpController" class="headerlink" title="2、WarmUpController"></a>2、WarmUpController</h2><p>预热策略的实现，首先我们先来介绍一下该类的几个成员变量的含义：</p>
+<ul>
+<li>double count<br>流控规则设定的阔值。</li>
+<li>int coldFactor<br>冷却因子。</li>
+<li>int warningToken<br>告警token，对应 Guava 中的 RateLimiter 中的 </li>
+<li>int maxToken<br>double slope<br>AtomicLong storedTokens<br>AtomicLong lastFilledTime</li>
+</ul>
+<h4 id="2-1-WarmUpController-构造函数"><a href="#2-1-WarmUpController-构造函数" class="headerlink" title="2.1 WarmUpController 构造函数"></a>2.1 WarmUpController 构造函数</h4><p>内部的构造函数，最终将调用 construct 方法。<br>WarmUpController#construct</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">construct</span><span class="params">(<span class="keyword">double</span> count, <span class="keyword">int</span> warmUpPeriodInSec, <span class="keyword">int</span> coldFactor)</span> </span>&#123; <span class="comment">// @1</span></span><br><span class="line">	<span class="keyword">if</span> (coldFactor &lt;= <span class="number">1</span>) &#123;</span><br><span class="line">		<span class="keyword">throw</span> <span class="keyword">new</span> IllegalArgumentException(<span class="string">&quot;Cold factor should be larger than 1&quot;</span>);</span><br><span class="line">         &#125;</span><br><span class="line">	<span class="keyword">this</span>.count = count;  </span><br><span class="line">	<span class="keyword">this</span>.coldFactor = coldFactor;   </span><br><span class="line">	warningToken = (<span class="keyword">int</span>)(warmUpPeriodInSec * count) / (coldFactor - <span class="number">1</span>);   <span class="comment">// @2</span></span><br><span class="line">	maxToken = warningToken + (<span class="keyword">int</span>)(<span class="number">2</span> * warmUpPeriodInSec * count / (<span class="number">1.0</span> + coldFactor));  <span class="comment">// @3</span></span><br><span class="line">	slope = (coldFactor - <span class="number">1.0</span>) / count / (maxToken - warningToken);  </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>要理解该方法，就需要理解 Guava 框架的 SmoothWarmingUp 相关的预热算法，其算法原理如图所示：<br><img src="https://img-blog.csdnimg.cn/20200406114151249.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br>关于该图的详细介绍，请参考笔者的另外一篇博文：<a target="_blank" rel="noopener" href="https://blog.csdn.net/prestigeding/article/details/105262127">源码分析RateLimiter SmoothWarmingUp 实现原理</a>，对该图进行了详细解读。</p>
+<p>代码@1：首先介绍该方法的参数列表：</p>
+<ul>
+<li>double count<br>限流规则配置的阔值，例如是按 TPS 类型来限流，如果限制为100tps，则该值为100。</li>
+<li>int warmUpPeriodInSec<br>预热时间，单位为秒，通用在限流规则页面可配置。</li>
+<li>int coldFactor<br>冷却因子，这里默认为3，与 RateLimiter 中的冷却因子保持一致，表示的含义为 coldIntervalMicros 与  stableIntervalMicros 的比值。</li>
+</ul>
+<p>代码@2：计算 warningToken 的值，与 Guava 中的 RateLimiter 中的 thresholdPermits 的计算算法公式相同，thresholdPermits = 0.5 * warmupPeriod / stableInterval，在Sentienl 中，而 stableInteral = 1 / count，thresholdPermits  表达式中的 0.5 就是因为 codeFactor 为3，因为 warm up period与 stable   面积之比等于 (coldIntervalMicros - stableIntervalMicros ) 与 stableIntervalMicros 的比值，这个比值又等于 coldIntervalMicros / stableIntervalMicros  - stableIntervalMicros / stableIntervalMicros 等于 coldFactor - 1。</p>
+<p>代码@3：同样根据 Guava 中的 RateLimiter 关于 maxToken 也能理解。</p>
+<a id="more"></a>
+
+<h4 id="2-2-canPass-方法详解"><a href="#2-2-canPass-方法详解" class="headerlink" title="2.2 canPass 方法详解"></a>2.2 canPass 方法详解</h4><p>WarmUpController#canPass </p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">boolean</span> <span class="title">canPass</span><span class="params">(Node node, <span class="keyword">int</span> acquireCount, <span class="keyword">boolean</span> prioritized)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">long</span> passQps = (<span class="keyword">long</span>) node.passQps(); <span class="comment">// @1</span></span><br><span class="line">    <span class="keyword">long</span> previousQps = (<span class="keyword">long</span>) node.previousPassQps();  <span class="comment">// @2</span></span><br><span class="line">    syncToken(previousQps);  <span class="comment">// @3</span></span><br><span class="line">	<span class="comment">// 开始计算它的斜率</span></span><br><span class="line">    <span class="comment">// 如果进入了警戒线，开始调整他的qps</span></span><br><span class="line">    <span class="keyword">long</span> restToken = storedTokens.get();</span><br><span class="line">    <span class="keyword">if</span> (restToken &gt;= warningToken) &#123;    <span class="comment">// @4</span></span><br><span class="line">        <span class="keyword">long</span> aboveToken = restToken - warningToken;</span><br><span class="line">        <span class="comment">// 消耗的速度要比warning快，但是要比慢</span></span><br><span class="line">        <span class="comment">// current interval = restToken*slope+1/count</span></span><br><span class="line">        <span class="keyword">double</span> warningQps = Math.nextUp(<span class="number">1.0</span> / (aboveToken * slope + <span class="number">1.0</span> / count));</span><br><span class="line">        <span class="keyword">if</span> (passQps + acquireCount &lt;= warningQps) &#123;</span><br><span class="line">            <span class="keyword">return</span> <span class="keyword">true</span>;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;   <span class="comment">// @5</span></span><br><span class="line">        <span class="keyword">if</span> (passQps + acquireCount &lt;= count) &#123;</span><br><span class="line">            <span class="keyword">return</span> <span class="keyword">true</span>;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">false</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>代码@1：先获取当前节点已通过的QPS。</p>
+<p>代码@2：获取当前滑动窗口的前一个窗口收集的已通过QPS。</p>
+<p>代码@3：调用 syncToken 更新 storedTokens 与 lastFilledTime 的值，即按照令牌发放速率发送指定令牌，将在下文详细介绍 syncToken 方法内部的实现细节。</p>
+<p>代码@4：如果当前存储的许可大于warningToken的处理逻辑，主要是在预热阶段允许通过的速率会比限流规则设定的速率要低，判断是否通过的依据就是当前通过的TPS与申请的许可数是否小于当前的速率（这个值加入斜率，即在预热期间，速率是慢慢达到设定速率的。</p>
+<p>代码@5：当前存储的许可小于warningToken，则按照规则设定的速率进行判定。</p>
+<blockquote>
+<p>不知大家有没有一个疑问，为什么 storedTokens 剩余许可数越大，限制其通过的速率竟然会越慢，这又怎么理解呢？大家可以思考一下这个问题，将在本文的总结部分进行解答。</p>
+</blockquote>
+<p>我们先来看一下 syncToken 的实现细节，即更新 storedTokens 的逻辑。<br>WarmUpController#syncToken </p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">protected</span> <span class="keyword">void</span> <span class="title">syncToken</span><span class="params">(<span class="keyword">long</span> passQps)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">long</span> currentTime = TimeUtil.currentTimeMillis();</span><br><span class="line">    currentTime = currentTime - currentTime % <span class="number">1000</span>;    <span class="comment">// @1</span></span><br><span class="line">    <span class="keyword">long</span> oldLastFillTime = lastFilledTime.get();</span><br><span class="line">    <span class="keyword">if</span> (currentTime &lt;= oldLastFillTime) &#123;                          <span class="comment">// @2</span></span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">long</span> oldValue = storedTokens.get();</span><br><span class="line">    <span class="keyword">long</span> newValue = coolDownTokens(currentTime, passQps);   <span class="comment">// @3</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (storedTokens.compareAndSet(oldValue, newValue)) &#123;  </span><br><span class="line">        <span class="keyword">long</span> currentValue = storedTokens.addAndGet(<span class="number">0</span> - passQps);    <span class="comment">// @4</span></span><br><span class="line">        <span class="keyword">if</span> (currentValue &lt; <span class="number">0</span>) &#123;</span><br><span class="line">            storedTokens.set(<span class="number">0L</span>);</span><br><span class="line">        &#125;</span><br><span class="line">        lastFilledTime.set(currentTime);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>代码@1：这个是计算出当前时间秒的最开始时间。例如当前是 2020-04-06 08:29:01:056，该方法返回的时间为 2020-04-06 08:29:01:000。</p>
+<p>代码@2：如果当前时间小于等于上次发放许可的时间，则跳过，无法发放令牌，即每秒发放一次令牌。</p>
+<p>代码@3：具体方法令牌的逻辑，稍后详细介绍。</p>
+<p>代码@4：更新剩余令牌，即生成的许可后要减去上一秒通过的令牌。</p>
+<p>我们详细来看一下 coolDownTokens 方法。<br>WarmUpController#coolDownTokens </p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">long</span> <span class="title">coolDownTokens</span><span class="params">(<span class="keyword">long</span> currentTime, <span class="keyword">long</span> passQps)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">long</span> oldValue = storedTokens.get();</span><br><span class="line">    <span class="keyword">long</span> newValue = oldValue;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 添加令牌的判断前提条件:</span></span><br><span class="line">    <span class="comment">// 当令牌的消耗程度远远低于警戒线的时候</span></span><br><span class="line">    <span class="keyword">if</span> (oldValue &lt; warningToken) &#123;    <span class="comment">// @1</span></span><br><span class="line">        newValue = (<span class="keyword">long</span>)(oldValue + (currentTime - lastFilledTime.get()) * count / <span class="number">1000</span>);</span><br><span class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> (oldValue &gt; warningToken) &#123;   <span class="comment">// @2</span></span><br><span class="line">        <span class="keyword">if</span> (passQps &lt; (<span class="keyword">int</span>)count / coldFactor) &#123;</span><br><span class="line">            newValue = (<span class="keyword">long</span>)(oldValue + (currentTime - lastFilledTime.get()) * count / <span class="number">1000</span>);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> Math.min(newValue, maxToken);<span class="comment">// @3</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>代码@1：如果当前剩余的 token 小于警戒线，可以按照正常速率发放许可。</p>
+<p>代码@2：如果当前剩余的 token 大于警戒线但前一秒的QPS小于 (count 与 冷却因子的比)，也发放许可（这里我不是太明白其用意）。</p>
+<p>代码@3：这里是关键点，第一次运行，由于 lastFilledTime 等于0，这里将返回的是 maxToken，故这里一开始的许可就会超过 warningToken，启动预热机制，进行速率限制。</p>
+<h2 id="3、总结"><a href="#3、总结" class="headerlink" title="3、总结"></a>3、总结</h2><p>WarmUpController 这个预热算法还是挺复杂的，接下来我们来总结一下它的特征。</p>
+<p>不知大家有没有一个疑问，为什么 storedTokens 剩余许可数越大，限制其通过的速率竟然会越慢，这又怎么理解呢？</p>
+<p>这里感觉有点逆向思维的味道，因为一开始就会将 storedTokens 的值设置为 maxToken，即开始就会超过 warningToken，从而一开始进入到预热阶段，此时的速率有一个爬坡的过程，类似于数学中的斜率，达到其他启动预热的效果。</p>
+<p><strong>实战指南：注意 warmUpPeriodInSec 与 coldFactor 的设置，将会影响最终的限流效果。</strong></p>
+<p>为了更加直观的理解，我们举例如下，warningToken 与 maxToken 的生成公式如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">warningToken = (<span class="keyword">int</span>)(warmUpPeriodInSec * count) / (coldFactor - <span class="number">1</span>);  </span><br><span class="line">maxToken = warningToken + (<span class="keyword">int</span>)(<span class="number">2</span> * warmUpPeriodInSec * count / (<span class="number">1.0</span> + coldFactor));  </span><br></pre></td></tr></table></figure>
+<p>coldFactor 设定为 3，例如限流规则中配置每秒允许通过的许可数量为 10，即 count 值等于 10，我们改变 warmUpPeriodInSec 的值来看一下 warningToken 与 maxToken 的值，以此来探究 Sentinel WarmUpController 的工作机制或工作效果。</p>
+<table>
+<thead>
+<tr>
+<th>warmUpPeriodInSec</th>
+<th>warningToken</th>
+<th>maxToken</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td>5</td>
+<td>10</td>
+</tr>
+<tr>
+<td>2</td>
+<td>10</td>
+<td>20</td>
+</tr>
+<tr>
+<td>3</td>
+<td>15</td>
+<td>30</td>
+</tr>
+<tr>
+<td>4</td>
+<td>20</td>
+<td>40</td>
+</tr>
+</tbody></table>
+<p>根据上面的算法，如果 warningToken  的值小于 count，则限流会变的更严厉，即最终的限流TPS会小于设置的TPS。即 warmUpPeriodInSec   设置过大过小都不合适，其标准是要使得 warningToken  的值大于 count。</p>
+</div>
+
+			<script src="https://my.openwrite.cn/js/readmore.js" type="text/javascript"></script>
+			<script>
+			var isMobile = navigator.userAgent.match(/(phone|pad|pod|iPhone|iPod|ios|iPad|Android|Mobile|BlackBerry|IEMobile|MQQBrowser|JUC|Fennec|wOSBrowser|BrowserNG|WebOS|Symbian|Windows Phone)/i);
+			if (!isMobile) {
+			    var btw = new BTWPlugin();
+			    btw.init({
+			        "id": "vip-container",
+			        "blogId": "18019-1573088808868-542",
+			        "name": "中间件兴趣圈",
+			        "qrcode": "https://img-blog.csdnimg.cn/20190314214003962.jpg",
+			        "keyword": "more"
+			    });
+			}
+			</script>
+		
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/sentinel/" rel="tag"># sentinel</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/posts/6c0cb4a9.html" rel="next" title="源码分析RateLimiter SmoothWarmingUp 实现原理(文末附流程图)">
+                <i class="fa fa-chevron-left"></i> 源码分析RateLimiter SmoothWarmingUp 实现原理(文末附流程图)
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/posts/45a744cd.html" rel="prev" title="源码分析 Sentinel DegradeSlot 熔断实现原理">
+                源码分析 Sentinel DegradeSlot 熔断实现原理 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            Overview
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name"></p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/">
+              
+                  <span class="site-state-item-count">64</span>
+                  <span class="site-state-item-name">posts</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                <a href="/categories/index.html">
+                  <span class="site-state-item-count">7</span>
+                  <span class="site-state-item-name">categories</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                <a href="/tags/index.html">
+                  <span class="site-state-item-count">32</span>
+                  <span class="site-state-item-name">tags</span>
+                </a>
+              </div>
+            
+
+          </nav>
+
+          
+            <div class="feed-link motion-element">
+              <a href="/atom.xml" rel="alternate">
+                <i class="fa fa-rss"></i>
+                RSS
+              </a>
+            </div>
+          
+
+          
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#1%E3%80%81RateLimiterController"><span class="nav-number">1.</span> <span class="nav-text">1、RateLimiterController</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2%E3%80%81WarmUpController"><span class="nav-number">2.</span> <span class="nav-text">2、WarmUpController</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#2-1-WarmUpController-%E6%9E%84%E9%80%A0%E5%87%BD%E6%95%B0"><span class="nav-number">2.0.1.</span> <span class="nav-text">2.1 WarmUpController 构造函数</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-2-canPass-%E6%96%B9%E6%B3%95%E8%AF%A6%E8%A7%A3"><span class="nav-number">2.0.2.</span> <span class="nav-text">2.2 canPass 方法详解</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3%E3%80%81%E6%80%BB%E7%BB%93"><span class="nav-number">3.</span> <span class="nav-text">3、总结</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">中间件兴趣圈</span>
+
+  
+</div>
+
+
+  <div class="powered-by">Powered by <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a></div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">Theme &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Pisces</a> v5.1.4</div>
+
+
+
+
+        
+<div class="busuanzi-count">
+  <script async src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+  
+    <span class="site-uv">
+      <i class="fa fa-user"></i>总访客
+      <span class="busuanzi-value" id="busuanzi_value_site_uv"></span>
+      人
+    </span>
+  
+
+  
+    <span class="site-pv">
+      <i class="fa fa-eye"></i>总访问量
+      <span class="busuanzi-value" id="busuanzi_value_site_pv"></span>
+      次
+    </span>
+  
+</div>
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.4"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.1.4"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.4"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>
