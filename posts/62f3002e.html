@@ -1,0 +1,1408 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.4" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.4">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.4" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="dubbo," />
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="中间件兴趣圈" type="application/atom+xml" />
+
+
+
+
+
+
+<meta name="description" content="本节主要阐述如下两个问题：  Dubbo自定义标签实现。  dubbo通过Spring加载配置文件后，是如何触发注册中心、服务提供者、服务消费者按照Dubbo的设计执行相关的功能。 所谓的执行相关功能如下：    注册中心启动，监听消息提供者的注册服务、接收消息消费者的服务订阅（服务注册与发现机制）。  服务提供者向注册中心注册服务。  服务消费者向注册中心订阅服务。 接下来从使用dubbo的角">
+<meta property="og:type" content="article">
+<meta property="og:title" content="源码分析Dubbo前置篇-寻找注册中心、服务提供者、服务消费者功能入口">
+<meta property="og:url" content="http://example.com/posts/62f3002e.html">
+<meta property="og:site_name" content="中间件兴趣圈">
+<meta property="og:description" content="本节主要阐述如下两个问题：  Dubbo自定义标签实现。  dubbo通过Spring加载配置文件后，是如何触发注册中心、服务提供者、服务消费者按照Dubbo的设计执行相关的功能。 所谓的执行相关功能如下：    注册中心启动，监听消息提供者的注册服务、接收消息消费者的服务订阅（服务注册与发现机制）。  服务提供者向注册中心注册服务。  服务消费者向注册中心订阅服务。 接下来从使用dubbo的角">
+<meta property="og:locale">
+<meta property="og:image" content="https://img-blog.csdn.net/20180528231944883?watermark/2/text/aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70">
+<meta property="og:image" content="https://img-blog.csdn.net/20180528232923748?watermark/2/text/aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70">
+<meta property="article:published_time" content="2020-12-12T14:40:01.000Z">
+<meta property="article:modified_time" content="2020-12-12T14:41:07.703Z">
+<meta property="article:author" content="中间件兴趣圈">
+<meta property="article:tag" content="dubbo">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://img-blog.csdn.net/20180528231944883?watermark/2/text/aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '',
+    scheme: 'Pisces',
+    version: '5.1.4',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://example.com/posts/62f3002e.html"/>
+
+
+
+
+
+  <title>源码分析Dubbo前置篇-寻找注册中心、服务提供者、服务消费者功能入口 | 中间件兴趣圈</title>
+  
+
+
+
+
+
+
+
+
+<meta name="generator" content="Hexo 5.2.0"></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">中间件兴趣圈</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle">关注微信公众号「中间件兴趣圈」，第一时间获取最新干货！</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="popup-trigger">
+          
+            
+              <i class="menu-item-icon fa fa-search fa-fw"></i> <br />
+            
+            搜索
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <div class="popup search-popup local-search-popup">
+  <div class="local-search-header clearfix">
+    <span class="search-icon">
+      <i class="fa fa-search"></i>
+    </span>
+    <span class="popup-btn-close">
+      <i class="fa fa-times-circle"></i>
+    </span>
+    <div class="local-search-input-wrapper">
+      <input autocomplete="off"
+             placeholder="搜索..." spellcheck="false"
+             type="text" id="local-search-input">
+    </div>
+  </div>
+  <div id="local-search-result"></div>
+</div>
+
+
+
+    </div>
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://example.com/posts/62f3002e.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="中间件兴趣圈">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">源码分析Dubbo前置篇-寻找注册中心、服务提供者、服务消费者功能入口</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-12-12T22:40:01+08:00">
+                2020-12-12
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/dubbo/" itemprop="url" rel="index">
+                    <span itemprop="name">dubbo</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/posts/62f3002e.html#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count valine-comment-count" data-xid="/posts/62f3002e.html" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+             <span id="/posts/62f3002e.html" class="leancloud_visitors" data-flag-title="源码分析Dubbo前置篇-寻找注册中心、服务提供者、服务消费者功能入口">
+               <span class="post-meta-divider">|</span>
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               
+                 <span class="post-meta-item-text">阅读次数&#58;</span>
+               
+                 <span class="leancloud-visitors-count"></span>
+             </span>
+          
+
+          
+            <span class="post-meta-divider">|</span>
+            <span class="page-pv"><i class="fa fa-file-o"></i>
+            <span class="busuanzi-value" id="busuanzi_value_page_pv" ></span>
+            </span>
+          
+
+          
+            <div class="post-wordcount">
+              
+                
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-file-word-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">字数统计&#58;</span>
+                
+                <span title="字数统计">
+                  2.3k 字
+                </span>
+              
+
+              
+                <span class="post-meta-divider">|</span>
+              
+
+              
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-clock-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">阅读时长 &asymp;</span>
+                
+                <span title="阅读时长">
+                  9 分钟
+                </span>
+              
+            </div>
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <div id="vip-container"><p> 本节主要阐述如下两个问题：</p>
+<ol>
+<li><p>Dubbo自定义标签实现。</p>
+</li>
+<li><p>dubbo通过Spring加载配置文件后，是如何触发注册中心、服务提供者、服务消费者按照Dubbo的设计执行相关的功能。</p>
+<p>所谓的执行相关功能如下：</p>
+</li>
+</ol>
+<ul>
+<li><p>注册中心启动，监听消息提供者的注册服务、接收消息消费者的服务订阅（服务注册与发现机制）。</p>
+</li>
+<li><p>服务提供者向注册中心注册服务。</p>
+</li>
+<li><p>服务消费者向注册中心订阅服务。</p>
+<p>接下来从使用dubbo的角度，从配置文件入手：</p>
+</li>
+</ul>
+<h2 id="1、Dubbo服务提供者的一般配置如下："><a href="#1、Dubbo服务提供者的一般配置如下：" class="headerlink" title="1、Dubbo服务提供者的一般配置如下："></a>1、Dubbo服务提供者的一般配置如下：</h2><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">&lt;!-- 提供方应用信息，用于计算依赖关系 --&gt;</span><br><span class="line">&lt;dubbo:application name&#x3D;&quot;uop&quot; owner&#x3D;&quot;uce&quot;&#x2F;&gt;</span><br><span class="line">&lt;!-- 使用zookeeper注册中心暴露服务地址 --&gt;</span><br><span class="line">&lt;dubbo:registry protocol&#x3D;&quot;zookeeper&quot; address&#x3D;&quot;zookeeper:&#x2F;&#x2F;192.168.xx.xx:2181?backup&#x3D;192.168.xx.xx:2182,192.168.xx.xx:2183&quot; &#x2F;&gt;</span><br><span class="line">&lt;!--dubbox中引入Kryo和FST这两种高效Java序列化实现，来逐步取代原生dubbo中的hessian2,如果使用kryo记得添加依赖 --&gt;</span><br><span class="line">&lt;dubbo:protocol name&#x3D;&quot;dubbo&quot; serialization&#x3D;&quot;kryo&quot;  port&#x3D;&quot;20990&quot;  &#x2F;&gt;</span><br><span class="line">&lt;!-- 定义服务提供者默认属性值 --&gt;</span><br><span class="line">&lt;dubbo:provider timeout&#x3D;&quot;5000&quot; threadpool&#x3D;&quot;fixed&quot;  threads&#x3D;&quot;100&quot; accepts&#x3D;&quot;1000&quot; token&#x3D;&quot;true&quot;&#x2F;&gt;</span><br><span class="line">&lt;!-- 暴露服务接口 一个服务可以用多个协议暴露，一个服务也可以注册到多个注册中心--&gt;</span><br><span class="line">&lt;!--Provider上尽量多配置Consumer端的属性，让Provider实现者一开始就思考Provider服务特点、服务质量的问题--&gt;</span><br><span class="line">&lt;dubbo:service interface&#x3D;&quot;com.yingjun.dubbox.api.UserService&quot; ref&#x3D;&quot;userService&quot; &#x2F;&gt;</span><br></pre></td></tr></table></figure>
+<p>上面通过dubbo提供的dubbo:application、dubbo:registry、dubbo:protocol、dubbo:provider、dubbo:service分别定义dubbo应用程序名、注册中心、协议、服务提供者参数默认值、服务提供者，这些配置后面的实现原理是什么呢？是如何启动并发挥相关作用的呢？</p>
+<a id="more"></a>
+
+<h2 id="2、Spring自定义标签即命令空间实现"><a href="#2、Spring自定义标签即命令空间实现" class="headerlink" title="2、Spring自定义标签即命令空间实现"></a>2、Spring自定义标签即命令空间实现</h2><p>dubbo自定义标签与命名空间其实现代码在模块dubbo-config中，其核心实现如下：</p>
+<h3 id="2-1-DubboNamespaceHandler"><a href="#2-1-DubboNamespaceHandler" class="headerlink" title="2.1 DubboNamespaceHandler"></a>2.1 DubboNamespaceHandler</h3><p>dubbo 命名空间实现 handler，其全路径：com.alibaba.dubbo.config.spring.schema.DubboNamespaceHandler，其源码实现如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">public class DubboNamespaceHandler extends NamespaceHandlerSupport &#123;</span><br><span class="line">    static &#123;</span><br><span class="line">        Version.checkDuplicate(DubboNamespaceHandler.class);</span><br><span class="line">    &#125;</span><br><span class="line">    @Override</span><br><span class="line">    public void init() &#123;</span><br><span class="line">        registerBeanDefinitionParser(&quot;application&quot;, new DubboBeanDefinitionParser(ApplicationConfig.class, true));</span><br><span class="line">        registerBeanDefinitionParser(&quot;module&quot;, new DubboBeanDefinitionParser(ModuleConfig.class, true));</span><br><span class="line">        registerBeanDefinitionParser(&quot;registry&quot;, new DubboBeanDefinitionParser(RegistryConfig.class, true));</span><br><span class="line">        registerBeanDefinitionParser(&quot;monitor&quot;, new DubboBeanDefinitionParser(MonitorConfig.class, true));</span><br><span class="line">        registerBeanDefinitionParser(&quot;provider&quot;, new DubboBeanDefinitionParser(ProviderConfig.class, true));</span><br><span class="line">        registerBeanDefinitionParser(&quot;consumer&quot;, new DubboBeanDefinitionParser(ConsumerConfig.class, true));</span><br><span class="line">        registerBeanDefinitionParser(&quot;protocol&quot;, new DubboBeanDefinitionParser(ProtocolConfig.class, true));</span><br><span class="line">        registerBeanDefinitionParser(&quot;service&quot;, new DubboBeanDefinitionParser(ServiceBean.class, true));</span><br><span class="line">        registerBeanDefinitionParser(&quot;reference&quot;, new DubboBeanDefinitionParser(ReferenceBean.class, false));</span><br><span class="line">        registerBeanDefinitionParser(&quot;annotation&quot;, new AnnotationBeanDefinitionParser());</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>从这里可以看出，dubbo自定义的标签主要包括：application、module、registry、monitor、provider、consumer、protocol、service、reference、annotation，其具体解析实现类主要包括：DubboBeanDefinitionParser(基于xml配置文件)、AnnotationBeanDefinitionParser(基于注解)，下文会详细分析上述两个解析类的实现。</p>
+<h3 id="2-2-定义dubbo-xsd-文件"><a href="#2-2-定义dubbo-xsd-文件" class="headerlink" title="2.2 定义dubbo.xsd 文件"></a>2.2 定义dubbo.xsd 文件</h3><p> 在dubbo-config-spring模块下的 src/main/resouce/META-INF中分别定义dubbo.xsd、spring.handlers、spring.schemas。<br> 关于Spring如何新增命名空间与标签，在源码分析ElasticJob时已经详细介绍过，再这里就不做 过多重复，如需了解，请查看：<a target="_blank" rel="noopener" href="https://blog.csdn.net/prestigeding/article/details/79751023">https://blog.csdn.net/prestigeding/article/details/79751023</a></p>
+<h2 id="3、Bean解析机制-Spring基础知识"><a href="#3、Bean解析机制-Spring基础知识" class="headerlink" title="3、Bean解析机制(Spring基础知识)"></a>3、Bean解析机制(Spring基础知识)</h2><p> 我们应该知道，Spirng的配置支持xml配置文件与注解的方式,故Dubbo也支持两种配置方式，xml与注解方式。</p>
+<h3 id="3-1-xml配置方式解析"><a href="#3-1-xml配置方式解析" class="headerlink" title="3.1 xml配置方式解析"></a>3.1 xml配置方式解析</h3><p><img src="https://img-blog.csdn.net/20180528231944883?watermark/2/text/aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70" alt="这里写图片描述"><br> BeanDefinitionParser：Spring定义的bean解析器，要实现自定义标签，则需要实现该接口，然后通过NamespaceHandlerSupport将Bean定义解析器注册到Spring bean解析器中。从接口中可以看出，其终极目标就是将Element element(xml节点)解析成BeanDefinition，有关于Spring BeanDefinition，请参考：<a target="_blank" rel="noopener" href="https://blog.csdn.net/prestigeding/article/details/80490206">https://blog.csdn.net/prestigeding/article/details/80490206</a><br> DubboBeanDefinitionParser构造函数如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">public DubboBeanDefinitionParser(Class&lt;?&gt; beanClass, boolean required) &#123;</span><br><span class="line">        this.beanClass &#x3D; beanClass;</span><br><span class="line">        this.required &#x3D; required;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p> beanClass：该xml标签节点最终会被Spring实例化的类名。<br> required：该标签的ID是否必须。<br>| 标签名称          |       类名        |<br>| —————– | :—————: |<br>| dubbo:application | ApplicationConfig |<br>| dubbo:module      |   ModuleConfig    |<br>| dubbo:registry    |  RegistryConfig   |<br>| dubbo:monitor     |   MonitorConfig   |<br>| dubbo:provider    |  ProviderConfig   |<br>| dubbo:consumer    |  ConsumerConfig   |<br>| dubbo:protocol    |  ProtocolConfig   |<br>| dubbo:service     |    ServiceBean    |<br>| dubbo:reference   |   ReferenceBean   |<br> 注，包名：com.alibaba.dubbo.config<br> bean解析器的主要目的就是将上述标签，解析成对应的BeanDifinition，以便Spring构建上述类的实例。<br>本节不拷贝DubboBeanDefinitionParser根据xml定义的标签与属性转换成BeanDefinitionParser的每一行代码，本节只给出其大体关键点。<br> Step1：解析id属性，如果DubboBeanDefinitionParser对象的required属性为true，如果id为空，则根据如下规则构建一个id。</p>
+<ul>
+<li><p>如果name属性不为空，则取name的值，如果已存在，则为 name + 序号,例如  name,name1,name2。</p>
+</li>
+<li><p>如果name属性为空，如果是dubbo:protocol标签，则取protocol属性，其他的则取interface属性，如果不为空，则取该值，但如果已存在，和name处理相同，在后面追加序号。</p>
+</li>
+<li><p>如果第二步还未空，则取beanClass的名称，如果已存在，则追加序号。</p>
+<p>Step2：根据不同的标签解析特殊属性。</p>
+</li>
+<li><p>dubbo:protocol,添加protocol属性(BeanDefinition)。</p>
+</li>
+<li><p>dubbo:service,添加ref属性。</p>
+</li>
+<li><p>dubbo:provider，嵌套解析,dubbo:provider标签有两个可选的子标签,dubbo:service、dubbo:parameter,这里需要嵌套解析dubbo:service标签<br>知识点：dubbo:provider是配置服务提供者的默认参数，在dubbo spring配置文件中可以配置多个dubbo:provider,那dubbo:service标签如何选取一个合适的dubbo:provider作为其默认参数呢？有两种办法：</p>
+</li>
+</ul>
+<ol>
+<li>将dubbo:service标签直接声明在dubbo:provider方法</li>
+<li>在dubbo:service中通过provider属性指定一个provider配置，如果不填，并且存在多个dubbo:provider配置，则会抛出错误。</li>
+</ol>
+<ul>
+<li>dubbo:customer：解析嵌套标签，其原理与dubbo:provider解析一样。</li>
+</ul>
+<p>Step3：解析标签，将属性与值填充到BeanDefinition的propertyValues中。最终返回BeanDefinition实例，供Spring实例化Bean。</p>
+<p>上述已经解答了Dubbo自定义标签的解析实现，主要完成了ApplicationConfig、RegistryConfig、ServiceBean、ReferenceBean实例的初始化，那什么时候构建与注册中心的连接、服务提供者什么时候会向注册中心注册服务，服务消费者向注册中心订阅服务呢？</p>
+<p>通过上述步骤，我们已经知道已经成功解析注册中心、服务提供者、服务消费者的配置元信息，并将其实例化，按照我们的思路，配置对象生成后，下一步应该是实现Dubbo服务的注册与发现机制，但代码中无法找到相关代码。</p>
+<p>据我目前所掌握的知识，Spring在对象实例化，一般有两种方式来对Bean做一些定制化处理。</p>
+<ol>
+<li><p>实现BeanPostProcessor Spring后置处理器，在Bean初始化前后执行相关操作。</p>
+</li>
+<li><p>Bean实现InitializingBean接口(init-method)</p>
+<p>浏览表格中所有Bean的声明，发现了两个类非常特殊：<br><img src="https://img-blog.csdn.net/20180528232923748?watermark/2/text/aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70" alt="这里写图片描述"><br>ServiceBean(服务提供者)与ReferenceBean(服务消费者)比较特殊，实现了Spring与Bean生命周期相关的接口。</p>
+</li>
+</ol>
+<ul>
+<li>InitializingBean，其声明的接口为afterPropertiesSet方法，顾名思义，就是在bean初始化所有属性之后调用。</li>
+<li>DisposableBean：其声明的接口为destroy()方法，在Spring BeanFactory销毁一个单例实例之前调用。</li>
+<li>ApplicationContextAware：其声明的接口为void setApplicationContext(ApplicationContext applicationContext)，实现了该接口，Spring容器在初始化Bean时会调用该方法，注入ApplicationContext，已方便该实例可以直接调用applicationContext获取其他Bean。</li>
+<li>ApplicationListener&lt; ContextRefreshedEvent&gt;：容器重新刷新时执行事件函数。</li>
+<li>BeanNameAware：其声明的接口为：void setBeanName(String name)，实现该接口的Bean，其实例可以获取该实例在BeanFactory的id或name。</li>
+<li>FactoryBean：Spring初始化Bean的另外一种方式，例如dubbo:reference，需要返回的对象并不是ReferenceBean,而是要返回ref指定的代理类来执行业务操作，故这里使用FactoryBean非常合适，FactoryBean定义了如下三个方法：<ul>
+<li>T getObject() throws Exception：获取需要返回的结果对象。</li>
+<li>Class&lt;?&gt; getObjectType()：获取返回对象的类型。</li>
+<li>boolean isSingleton()：返回是否是单例。</li>
+</ul>
+</li>
+</ul>
+<p>看到这里，不免有一点小激动，似乎已经摸到Dubbo服务注册与发现机制（Dubbo服务提供者、Dubbo服务消费者、注册中心的启动流程入口点了，下一步就是分析ServiceBean、ReferenceBean的实现原理，试图揭开Dubbo服务注册与发现机制，该部分内容将在下一篇中详细分析。</p>
+<h3 id="3-2-注解配置方式解析"><a href="#3-2-注解配置方式解析" class="headerlink" title="3.2 注解配置方式解析"></a>3.2 注解配置方式解析</h3><p>注解配置方式的解析入口类：AnnotationBeanDefinitionParser，也是基于Spring注解解析逻辑，这部分在将在未来《Spring系列进阶篇-源码分析注解解析实现原理》中详细分析，目前暂未深究，读者朋友们，如果有兴趣，可以以AnnotationBeanDefinitionParser为入口，进行进一步的分析。</p>
+<p>本节就讲解到这里了，下一篇将重点分析ServiceBean(服务提供者启动流程)。</p>
+</div>
+
+			<script src="https://my.openwrite.cn/js/readmore.js" type="text/javascript"></script>
+			<script>
+			var isMobile = navigator.userAgent.match(/(phone|pad|pod|iPhone|iPod|ios|iPad|Android|Mobile|BlackBerry|IEMobile|MQQBrowser|JUC|Fennec|wOSBrowser|BrowserNG|WebOS|Symbian|Windows Phone)/i);
+			if (!isMobile) {
+			    var btw = new BTWPlugin();
+			    btw.init({
+			        "id": "vip-container",
+			        "blogId": "18019-1573088808868-542",
+			        "name": "中间件兴趣圈",
+			        "qrcode": "https://img-blog.csdnimg.cn/20190314214003962.jpg",
+			        "keyword": "more"
+			    });
+			}
+			</script>
+		
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/dubbo/" rel="tag"># dubbo</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/posts/80b68fd8.html" rel="next" title="源码分析Dubbo服务提供者启动流程-上篇">
+                <i class="fa fa-chevron-left"></i> 源码分析Dubbo服务提供者启动流程-上篇
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/posts/380ae8bd.html" rel="prev" title="源码分析Dubbo服务提供者启动流程-下篇">
+                源码分析Dubbo服务提供者启动流程-下篇 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+    <div class="comments" id="comments">
+    </div>
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name"></p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/">
+              
+                  <span class="site-state-item-count">90</span>
+                  <span class="site-state-item-name">日志</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                <a href="/categories/index.html">
+                  <span class="site-state-item-count">12</span>
+                  <span class="site-state-item-name">分类</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                <a href="/tags/index.html">
+                  <span class="site-state-item-count">144</span>
+                  <span class="site-state-item-name">标签</span>
+                </a>
+              </div>
+            
+
+          </nav>
+
+          
+            <div class="feed-link motion-element">
+              <a href="/atom.xml" rel="alternate">
+                <i class="fa fa-rss"></i>
+                RSS
+              </a>
+            </div>
+          
+
+          
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#1%E3%80%81Dubbo%E6%9C%8D%E5%8A%A1%E6%8F%90%E4%BE%9B%E8%80%85%E7%9A%84%E4%B8%80%E8%88%AC%E9%85%8D%E7%BD%AE%E5%A6%82%E4%B8%8B%EF%BC%9A"><span class="nav-number">1.</span> <span class="nav-text">1、Dubbo服务提供者的一般配置如下：</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2%E3%80%81Spring%E8%87%AA%E5%AE%9A%E4%B9%89%E6%A0%87%E7%AD%BE%E5%8D%B3%E5%91%BD%E4%BB%A4%E7%A9%BA%E9%97%B4%E5%AE%9E%E7%8E%B0"><span class="nav-number">2.</span> <span class="nav-text">2、Spring自定义标签即命令空间实现</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-DubboNamespaceHandler"><span class="nav-number">2.1.</span> <span class="nav-text">2.1 DubboNamespaceHandler</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-%E5%AE%9A%E4%B9%89dubbo-xsd-%E6%96%87%E4%BB%B6"><span class="nav-number">2.2.</span> <span class="nav-text">2.2 定义dubbo.xsd 文件</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3%E3%80%81Bean%E8%A7%A3%E6%9E%90%E6%9C%BA%E5%88%B6-Spring%E5%9F%BA%E7%A1%80%E7%9F%A5%E8%AF%86"><span class="nav-number">3.</span> <span class="nav-text">3、Bean解析机制(Spring基础知识)</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-1-xml%E9%85%8D%E7%BD%AE%E6%96%B9%E5%BC%8F%E8%A7%A3%E6%9E%90"><span class="nav-number">3.1.</span> <span class="nav-text">3.1 xml配置方式解析</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-2-%E6%B3%A8%E8%A7%A3%E9%85%8D%E7%BD%AE%E6%96%B9%E5%BC%8F%E8%A7%A3%E6%9E%90"><span class="nav-number">3.2.</span> <span class="nav-text">3.2 注解配置方式解析</span></a></li></ol></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">中间件兴趣圈</span>
+
+  
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-area-chart"></i>
+    </span>
+    
+      <span class="post-meta-item-text">Site words total count&#58;</span>
+    
+    <span title="Site words total count">238.6k</span>
+  
+</div>
+
+
+  <div class="powered-by">由 <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> 强力驱动</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Pisces</a> v5.1.4</div>
+
+
+
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+  
+    <span class="site-uv">
+      <i class="fa fa-user"></i>总访客
+      <span class="busuanzi-value" id="busuanzi_value_site_uv"></span>
+      人
+    </span>
+  
+
+  
+    <span class="site-pv">
+      <i class="fa fa-eye"></i>总访问量
+      <span class="busuanzi-value" id="busuanzi_value_site_pv"></span>
+      次
+    </span>
+  
+</div>
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.4"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.1.4"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.4"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+  <script src="//cdn1.lncld.net/static/js/3.0.4/av-min.js"></script>
+  <script src="//unpkg.com/valine/dist/Valine.min.js"></script>
+  
+  <script type="text/javascript">
+    var GUEST = ['nick','mail','link'];
+    var guest = 'nick,mail,link';
+    guest = guest.split(',').filter(item=>{
+      return GUEST.indexOf(item)>-1;
+    });
+    new Valine({
+        el: '#comments' ,
+        verify: false,
+        notify: false,
+        appId: 'NNEhOL0iOcflg8f1U3HUqiCq-gzGzoHsz',
+        appKey: '7kSmkbbb3DktmHALlShDsBUF',
+        placeholder: '来都来了，不撩一句嘛~，留言记得在上面留下【邮箱】，方便收到回复通知~',
+        avatar:'mm',
+        guest_info:guest,
+        pageSize:'10' || 10,
+    });
+  </script>
+
+
+
+  
+
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    var isXml = true;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length === 0) {
+      search_path = "search.xml";
+    } else if (/json$/i.test(search_path)) {
+      isXml = false;
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    var onPopupClose = function (e) {
+      $('.popup').hide();
+      $('#local-search-input').val('');
+      $('.search-result-list').remove();
+      $('#no-result').remove();
+      $(".local-search-pop-overlay").remove();
+      $('body').css('overflow', '');
+    }
+
+    function proceedsearch() {
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay"></div>')
+        .css('overflow', 'hidden');
+      $('.search-popup-overlay').click(onPopupClose);
+      $('.popup').toggle();
+      var $localSearchInput = $('#local-search-input');
+      $localSearchInput.attr("autocapitalize", "none");
+      $localSearchInput.attr("autocorrect", "off");
+      $localSearchInput.focus();
+    }
+
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+      'use strict';
+
+      // start loading animation
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay">' +
+          '<div id="search-loading-icon">' +
+          '<i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>' +
+          '</div>' +
+          '</div>')
+        .css('overflow', 'hidden');
+      $("#search-loading-icon").css('margin', '20% auto 0 auto').css('text-align', 'center');
+
+      $.ajax({
+        url: path,
+        dataType: isXml ? "xml" : "json",
+        async: true,
+        success: function(res) {
+          // get the contents from search data
+          isfetched = true;
+          $('.popup').detach().appendTo('.header-inner');
+          var datas = isXml ? $("entry", res).map(function() {
+            return {
+              title: $("title", this).text(),
+              content: $("content",this).text(),
+              url: $("url" , this).text()
+            };
+          }).get() : res;
+          var input = document.getElementById(search_id);
+          var resultContent = document.getElementById(content_id);
+          var inputEventFunction = function() {
+            var searchText = input.value.trim().toLowerCase();
+            var keywords = searchText.split(/[\s\-]+/);
+            if (keywords.length > 1) {
+              keywords.push(searchText);
+            }
+            var resultItems = [];
+            if (searchText.length > 0) {
+              // perform local searching
+              datas.forEach(function(data) {
+                var isMatch = false;
+                var hitCount = 0;
+                var searchTextCount = 0;
+                var title = data.title.trim();
+                var titleInLowerCase = title.toLowerCase();
+                var content = data.content.trim().replace(/<[^>]+>/g,"");
+                var contentInLowerCase = content.toLowerCase();
+                var articleUrl = decodeURIComponent(data.url);
+                var indexOfTitle = [];
+                var indexOfContent = [];
+                // only match articles with not empty titles
+                if(title != '') {
+                  keywords.forEach(function(keyword) {
+                    function getIndexByWord(word, text, caseSensitive) {
+                      var wordLen = word.length;
+                      if (wordLen === 0) {
+                        return [];
+                      }
+                      var startPosition = 0, position = [], index = [];
+                      if (!caseSensitive) {
+                        text = text.toLowerCase();
+                        word = word.toLowerCase();
+                      }
+                      while ((position = text.indexOf(word, startPosition)) > -1) {
+                        index.push({position: position, word: word});
+                        startPosition = position + wordLen;
+                      }
+                      return index;
+                    }
+
+                    indexOfTitle = indexOfTitle.concat(getIndexByWord(keyword, titleInLowerCase, false));
+                    indexOfContent = indexOfContent.concat(getIndexByWord(keyword, contentInLowerCase, false));
+                  });
+                  if (indexOfTitle.length > 0 || indexOfContent.length > 0) {
+                    isMatch = true;
+                    hitCount = indexOfTitle.length + indexOfContent.length;
+                  }
+                }
+
+                // show search results
+
+                if (isMatch) {
+                  // sort index by position of keyword
+
+                  [indexOfTitle, indexOfContent].forEach(function (index) {
+                    index.sort(function (itemLeft, itemRight) {
+                      if (itemRight.position !== itemLeft.position) {
+                        return itemRight.position - itemLeft.position;
+                      } else {
+                        return itemLeft.word.length - itemRight.word.length;
+                      }
+                    });
+                  });
+
+                  // merge hits into slices
+
+                  function mergeIntoSlice(text, start, end, index) {
+                    var item = index[index.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    var hits = [];
+                    var searchTextCountInSlice = 0;
+                    while (position + word.length <= end && index.length != 0) {
+                      if (word === searchText) {
+                        searchTextCountInSlice++;
+                      }
+                      hits.push({position: position, length: word.length});
+                      var wordEnd = position + word.length;
+
+                      // move to next position of hit
+
+                      index.pop();
+                      while (index.length != 0) {
+                        item = index[index.length - 1];
+                        position = item.position;
+                        word = item.word;
+                        if (wordEnd > position) {
+                          index.pop();
+                        } else {
+                          break;
+                        }
+                      }
+                    }
+                    searchTextCount += searchTextCountInSlice;
+                    return {
+                      hits: hits,
+                      start: start,
+                      end: end,
+                      searchTextCount: searchTextCountInSlice
+                    };
+                  }
+
+                  var slicesOfTitle = [];
+                  if (indexOfTitle.length != 0) {
+                    slicesOfTitle.push(mergeIntoSlice(title, 0, title.length, indexOfTitle));
+                  }
+
+                  var slicesOfContent = [];
+                  while (indexOfContent.length != 0) {
+                    var item = indexOfContent[indexOfContent.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    // cut out 100 characters
+                    var start = position - 20;
+                    var end = position + 80;
+                    if(start < 0){
+                      start = 0;
+                    }
+                    if (end < position + word.length) {
+                      end = position + word.length;
+                    }
+                    if(end > content.length){
+                      end = content.length;
+                    }
+                    slicesOfContent.push(mergeIntoSlice(content, start, end, indexOfContent));
+                  }
+
+                  // sort slices in content by search text's count and hits' count
+
+                  slicesOfContent.sort(function (sliceLeft, sliceRight) {
+                    if (sliceLeft.searchTextCount !== sliceRight.searchTextCount) {
+                      return sliceRight.searchTextCount - sliceLeft.searchTextCount;
+                    } else if (sliceLeft.hits.length !== sliceRight.hits.length) {
+                      return sliceRight.hits.length - sliceLeft.hits.length;
+                    } else {
+                      return sliceLeft.start - sliceRight.start;
+                    }
+                  });
+
+                  // select top N slices in content
+
+                  var upperBound = parseInt('1');
+                  if (upperBound >= 0) {
+                    slicesOfContent = slicesOfContent.slice(0, upperBound);
+                  }
+
+                  // highlight title and content
+
+                  function highlightKeyword(text, slice) {
+                    var result = '';
+                    var prevEnd = slice.start;
+                    slice.hits.forEach(function (hit) {
+                      result += text.substring(prevEnd, hit.position);
+                      var end = hit.position + hit.length;
+                      result += '<b class="search-keyword">' + text.substring(hit.position, end) + '</b>';
+                      prevEnd = end;
+                    });
+                    result += text.substring(prevEnd, slice.end);
+                    return result;
+                  }
+
+                  var resultItem = '';
+
+                  if (slicesOfTitle.length != 0) {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + highlightKeyword(title, slicesOfTitle[0]) + "</a>";
+                  } else {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + title + "</a>";
+                  }
+
+                  slicesOfContent.forEach(function (slice) {
+                    resultItem += "<a href='" + articleUrl + "'>" +
+                      "<p class=\"search-result\">" + highlightKeyword(content, slice) +
+                      "...</p>" + "</a>";
+                  });
+
+                  resultItem += "</li>";
+                  resultItems.push({
+                    item: resultItem,
+                    searchTextCount: searchTextCount,
+                    hitCount: hitCount,
+                    id: resultItems.length
+                  });
+                }
+              })
+            };
+            if (keywords.length === 1 && keywords[0] === "") {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-search fa-5x" /></div>'
+            } else if (resultItems.length === 0) {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-frown-o fa-5x" /></div>'
+            } else {
+              resultItems.sort(function (resultLeft, resultRight) {
+                if (resultLeft.searchTextCount !== resultRight.searchTextCount) {
+                  return resultRight.searchTextCount - resultLeft.searchTextCount;
+                } else if (resultLeft.hitCount !== resultRight.hitCount) {
+                  return resultRight.hitCount - resultLeft.hitCount;
+                } else {
+                  return resultRight.id - resultLeft.id;
+                }
+              });
+              var searchResultList = '<ul class=\"search-result-list\">';
+              resultItems.forEach(function (result) {
+                searchResultList += result.item;
+              })
+              searchResultList += "</ul>";
+              resultContent.innerHTML = searchResultList;
+            }
+          }
+
+          if ('auto' === 'auto') {
+            input.addEventListener('input', inputEventFunction);
+          } else {
+            $('.search-icon').click(inputEventFunction);
+            input.addEventListener('keypress', function (event) {
+              if (event.keyCode === 13) {
+                inputEventFunction();
+              }
+            });
+          }
+
+          // remove loading animation
+          $(".local-search-pop-overlay").remove();
+          $('body').css('overflow', '');
+
+          proceedsearch();
+        }
+      });
+    }
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched === false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+    });
+
+    $('.popup-btn-close').click(onPopupClose);
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+    $(document).on('keyup', function (event) {
+      var shouldDismissSearchPopup = event.which === 27 &&
+        $('.search-popup').is(':visible');
+      if (shouldDismissSearchPopup) {
+        onPopupClose();
+      }
+    });
+  </script>
+
+
+
+
+
+  
+
+  
+  <script src="https://cdn1.lncld.net/static/js/av-core-mini-0.6.4.js"></script>
+  <script>AV.initialize("NNEhOL0iOcflg8f1U3HUqiCq-gzGzoHsz", "7kSmkbbb3DktmHALlShDsBUF");</script>
+  <script>
+    function showTime(Counter) {
+      var query = new AV.Query(Counter);
+      var entries = [];
+      var $visitors = $(".leancloud_visitors");
+
+      $visitors.each(function () {
+        entries.push( $(this).attr("id").trim() );
+      });
+
+      query.containedIn('url', entries);
+      query.find()
+        .done(function (results) {
+          var COUNT_CONTAINER_REF = '.leancloud-visitors-count';
+
+          if (results.length === 0) {
+            $visitors.find(COUNT_CONTAINER_REF).text(0);
+            return;
+          }
+
+          for (var i = 0; i < results.length; i++) {
+            var item = results[i];
+            var url = item.get('url');
+            var time = item.get('time');
+            var element = document.getElementById(url);
+
+            $(element).find(COUNT_CONTAINER_REF).text(time);
+          }
+          for(var i = 0; i < entries.length; i++) {
+            var url = entries[i];
+            var element = document.getElementById(url);
+            var countSpan = $(element).find(COUNT_CONTAINER_REF);
+            if( countSpan.text() == '') {
+              countSpan.text(0);
+            }
+          }
+        })
+        .fail(function (object, error) {
+          console.log("Error: " + error.code + " " + error.message);
+        });
+    }
+
+    function addCount(Counter) {
+      var $visitors = $(".leancloud_visitors");
+      var url = $visitors.attr('id').trim();
+      var title = $visitors.attr('data-flag-title').trim();
+      var query = new AV.Query(Counter);
+
+      query.equalTo("url", url);
+      query.find({
+        success: function(results) {
+          if (results.length > 0) {
+            var counter = results[0];
+            counter.fetchWhenSave(true);
+            counter.increment("time");
+            counter.save(null, {
+              success: function(counter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(counter.get('time'));
+              },
+              error: function(counter, error) {
+                console.log('Failed to save Visitor num, with error message: ' + error.message);
+              }
+            });
+          } else {
+            var newcounter = new Counter();
+            /* Set ACL */
+            var acl = new AV.ACL();
+            acl.setPublicReadAccess(true);
+            acl.setPublicWriteAccess(true);
+            newcounter.setACL(acl);
+            /* End Set ACL */
+            newcounter.set("title", title);
+            newcounter.set("url", url);
+            newcounter.set("time", 1);
+            newcounter.save(null, {
+              success: function(newcounter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(newcounter.get('time'));
+              },
+              error: function(newcounter, error) {
+                console.log('Failed to create');
+              }
+            });
+          }
+        },
+        error: function(error) {
+          console.log('Error:' + error.code + " " + error.message);
+        }
+      });
+    }
+
+    $(function() {
+      var Counter = AV.Object.extend("Counter");
+      if ($('.leancloud_visitors').length == 1) {
+        addCount(Counter);
+      } else if ($('.post-title-link').length > 1) {
+        showTime(Counter);
+      }
+    });
+  </script>
+
+
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

@@ -1,0 +1,1414 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.4" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.4">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.4" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="dubbo,集群容错,failover,failfast,failsafe,failback,forking,available," />
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="中间件兴趣圈" type="application/atom+xml" />
+
+
+
+
+
+
+<meta name="description" content="前面的文章，已经单独对服务发现(Directory、RegistryDirectory)、路由机制(Router)、负载均衡机制(LoadBalance),本节将重点分析集群容错机制(AbstractClusterInvoker) ,AbstractClusterInvoker 就是将上述机制融合在一起，整个集群容错中，上述组件扮演的角色见下图所示，本文将重点分析AbstractClusterIn">
+<meta property="og:type" content="article">
+<meta property="og:title" content="源码分析Dubbo集群容错策略">
+<meta property="og:url" content="http://example.com/posts/b5542131.html">
+<meta property="og:site_name" content="中间件兴趣圈">
+<meta property="og:description" content="前面的文章，已经单独对服务发现(Directory、RegistryDirectory)、路由机制(Router)、负载均衡机制(LoadBalance),本节将重点分析集群容错机制(AbstractClusterInvoker) ,AbstractClusterInvoker 就是将上述机制融合在一起，整个集群容错中，上述组件扮演的角色见下图所示，本文将重点分析AbstractClusterIn">
+<meta property="og:locale">
+<meta property="og:image" content="https://img-blog.csdn.net/20180708230808373?watermark/2/text/aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70">
+<meta property="article:published_time" content="2020-12-12T15:38:01.000Z">
+<meta property="article:modified_time" content="2020-12-12T15:42:09.706Z">
+<meta property="article:author" content="中间件兴趣圈">
+<meta property="article:tag" content="dubbo">
+<meta property="article:tag" content="集群容错">
+<meta property="article:tag" content="failover">
+<meta property="article:tag" content="failfast">
+<meta property="article:tag" content="failsafe">
+<meta property="article:tag" content="failback">
+<meta property="article:tag" content="forking">
+<meta property="article:tag" content="available">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://img-blog.csdn.net/20180708230808373?watermark/2/text/aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '',
+    scheme: 'Pisces',
+    version: '5.1.4',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://example.com/posts/b5542131.html"/>
+
+
+
+
+
+  <title>源码分析Dubbo集群容错策略 | 中间件兴趣圈</title>
+  
+
+
+
+
+
+
+
+
+<meta name="generator" content="Hexo 5.2.0"></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">中间件兴趣圈</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle">关注微信公众号「中间件兴趣圈」，第一时间获取最新干货！</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="popup-trigger">
+          
+            
+              <i class="menu-item-icon fa fa-search fa-fw"></i> <br />
+            
+            搜索
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <div class="popup search-popup local-search-popup">
+  <div class="local-search-header clearfix">
+    <span class="search-icon">
+      <i class="fa fa-search"></i>
+    </span>
+    <span class="popup-btn-close">
+      <i class="fa fa-times-circle"></i>
+    </span>
+    <div class="local-search-input-wrapper">
+      <input autocomplete="off"
+             placeholder="搜索..." spellcheck="false"
+             type="text" id="local-search-input">
+    </div>
+  </div>
+  <div id="local-search-result"></div>
+</div>
+
+
+
+    </div>
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://example.com/posts/b5542131.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="中间件兴趣圈">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">源码分析Dubbo集群容错策略</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-12-12T23:38:01+08:00">
+                2020-12-12
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/dubbo/" itemprop="url" rel="index">
+                    <span itemprop="name">dubbo</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/posts/b5542131.html#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count valine-comment-count" data-xid="/posts/b5542131.html" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+             <span id="/posts/b5542131.html" class="leancloud_visitors" data-flag-title="源码分析Dubbo集群容错策略">
+               <span class="post-meta-divider">|</span>
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               
+                 <span class="post-meta-item-text">阅读次数&#58;</span>
+               
+                 <span class="leancloud-visitors-count"></span>
+             </span>
+          
+
+          
+            <span class="post-meta-divider">|</span>
+            <span class="page-pv"><i class="fa fa-file-o"></i>
+            <span class="busuanzi-value" id="busuanzi_value_page_pv" ></span>
+            </span>
+          
+
+          
+            <div class="post-wordcount">
+              
+                
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-file-word-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">字数统计&#58;</span>
+                
+                <span title="字数统计">
+                  4.5k 字
+                </span>
+              
+
+              
+                <span class="post-meta-divider">|</span>
+              
+
+              
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-clock-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">阅读时长 &asymp;</span>
+                
+                <span title="阅读时长">
+                  21 分钟
+                </span>
+              
+            </div>
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <div id="vip-container"><p>前面的文章，已经单独对服务发现(Directory、RegistryDirectory)、路由机制(Router)、负载均衡机制(LoadBalance),本节将重点分析集群容错机制(AbstractClusterInvoker) ,AbstractClusterInvoker 就是将上述机制融合在一起，整个集群容错中，上述组件扮演的角色见下图所示，本文将重点分析AbstractClusterInvoker是如何融合这些组件的。<img src="https://img-blog.csdn.net/20180708230808373?watermark/2/text/aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70" alt="这里写图片描述"><br>AbstractClusterInvoker#invoke</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">@Override</span><br><span class="line">    public Result invoke(final Invocation invocation) throws RpcException &#123;</span><br><span class="line">        checkWhetherDestroyed();</span><br><span class="line">        LoadBalance loadbalance &#x3D; null;</span><br><span class="line">        List&lt;Invoker&lt;T&gt;&gt; invokers &#x3D; list(invocation);    &#x2F;&#x2F; @1</span><br><span class="line">        if (invokers !&#x3D; null &amp;&amp; !invokers.isEmpty()) &#123;</span><br><span class="line">            loadbalance &#x3D; ExtensionLoader.getExtensionLoader(LoadBalance.class).getExtension(invokers.get(0).getUrl()</span><br><span class="line">                    .getMethodParameter(invocation.getMethodName(), Constants.LOADBALANCE_KEY, Constants.DEFAULT_LOADBALANCE));      &#x2F;&#x2F; @2</span><br><span class="line">        &#125;</span><br><span class="line">        RpcUtils.attachInvocationIdIfAsync(getUrl(), invocation);   </span><br><span class="line">        return doInvoke(invocation, invokers, loadbalance);  &#x2F;&#x2F; @3</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+<p>代码@1：根据调用上下文，获取服务提供者列表，服务提供者从Directory中获取。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">protected List&lt;Invoker&lt;T&gt;&gt; list(Invocation invocation) throws RpcException &#123;</span><br><span class="line">        List&lt;Invoker&lt;T&gt;&gt; invokers &#x3D; directory.list(invocation);</span><br><span class="line">        return invokers;</span><br><span class="line"> &#125;</span><br></pre></td></tr></table></figure>
+<p>最终会调用RegistryDirecotry的list方法，该方法的服务提供者是当该消费者订阅的服务的服务提供者列表发送变化后，会在注册中心产生事件，然后通知消费者更新服务提供者列表（本地缓存）。需要注意的是RegistryDirecotry在返回Invoker之前，已经使用Router进行了一次筛选，具体实现在RegistryDirectory#notify方法时。</p>
+<p>代码@2：根据SPI机制，获取负载均衡算法的实现类,根据&lt; dubbo:consumer loadbalance=””/&gt;、&lt; dubbo:reference loadbalance=””/&gt;等标签的配置值，默认为random，加权随机算法。</p>
+<p>代码@3：根据调用上下文，服务提供者列表，负载均衡算法选择一服务提供者，具体代码由AbstractClusterInvoker的各个子类实现。</p>
+<a id="more"></a>
+
+<p>Dubbo目前支持的集群容错策略在中/dubbo-cluster/src/main/resources/META-INF/dubbo/internal/com.alibaba.dubbo.rpc.cluster.Cluster定义，具体内容如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">mock&#x3D;com.alibaba.dubbo.rpc.cluster.support.wrapper.MockClusterWrapper</span><br><span class="line">failover&#x3D;com.alibaba.dubbo.rpc.cluster.support.FailoverCluster</span><br><span class="line">failfast&#x3D;com.alibaba.dubbo.rpc.cluster.support.FailfastCluster</span><br><span class="line">failsafe&#x3D;com.alibaba.dubbo.rpc.cluster.support.FailsafeCluster</span><br><span class="line">failback&#x3D;com.alibaba.dubbo.rpc.cluster.support.FailbackCluster</span><br><span class="line">forking&#x3D;com.alibaba.dubbo.rpc.cluster.support.ForkingCluster</span><br><span class="line">available&#x3D;com.alibaba.dubbo.rpc.cluster.support.AvailableCluster</span><br><span class="line">mergeable&#x3D;com.alibaba.dubbo.rpc.cluster.support.MergeableCluster</span><br><span class="line">broadcast&#x3D;com.alibaba.dubbo.rpc.cluster.support.BroadcastCluster</span><br></pre></td></tr></table></figure>
+<p>上述各种集群策略，对应的执行器为Cluser+Invoker,例如FailoverCluster对应的Invoker为：FailoverClusterInvoker。</p>
+<p>在讲解各种集群容错策略之前，我们首先关注一下AbstractClusterInvoker具体从服务提供者中按照不同的负载均衡算法选取服务提供者的算法。</p>
+<h2 id="1、源码分析AbstractClusterInvoker-select"><a href="#1、源码分析AbstractClusterInvoker-select" class="headerlink" title="1、源码分析AbstractClusterInvoker#select"></a>1、源码分析AbstractClusterInvoker#select</h2><p>AbstractClusterInvoker#select</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line">protected Invoker&lt;T&gt; select(LoadBalance loadbalance, Invocation invocation, List&lt;Invoker&lt;T&gt;&gt; invokers, List&lt;Invoker&lt;T&gt;&gt; selected) throws </span><br><span class="line">        RpcException &#123;    &#x2F;&#x2F; @1</span><br><span class="line">    if (invokers &#x3D;&#x3D; null || invokers.isEmpty())</span><br><span class="line">         return null;</span><br><span class="line">    String methodName &#x3D; invocation &#x3D;&#x3D; null ? &quot;&quot; : invocation.getMethodName();</span><br><span class="line">    boolean sticky &#x3D; invokers.get(0).getUrl().getMethodParameter(methodName, Constants.CLUSTER_STICKY_KEY, </span><br><span class="line">                Constants.DEFAULT_CLUSTER_STICKY);     &#x2F;&#x2F; @2</span><br><span class="line">        &#123;</span><br><span class="line">            &#x2F;&#x2F;ignore overloaded method</span><br><span class="line">            if (stickyInvoker !&#x3D; null &amp;&amp; !invokers.contains(stickyInvoker)) &#123;</span><br><span class="line">                stickyInvoker &#x3D; null;</span><br><span class="line">            &#125;</span><br><span class="line">            &#x2F;&#x2F;ignore concurrency problem</span><br><span class="line">            if (sticky &amp;&amp; stickyInvoker !&#x3D; null &amp;&amp; (selected &#x3D;&#x3D; null || !selected.contains(stickyInvoker))) &#123;</span><br><span class="line">                if (availablecheck &amp;&amp; stickyInvoker.isAvailable()) &#123;</span><br><span class="line">                    return stickyInvoker;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        Invoker&lt;T&gt; invoker &#x3D; doSelect(loadbalance, invocation, invokers, selected);   &#x2F;&#x2F; @3</span><br><span class="line"></span><br><span class="line">        if (sticky) &#123;</span><br><span class="line">            stickyInvoker &#x3D; invoker;</span><br><span class="line">        &#125;</span><br><span class="line">        return invoker;</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+<p>代码@1：参数说明</p>
+<ul>
+<li>LoadBalance loadbalance：负载均衡算法。</li>
+<li>Invocation invocation：服务调用上下文环境。</li>
+<li>List&lt; Invoker&lt; T&gt;&gt; invokers：待选的服务提供者列表。</li>
+<li>List&lt; Invoker&lt; T&gt;&gt; selected：本次集群测试，已选择的服务提供者。<br>代码@2：sticky机制（粘性），如果开启了粘性机制的话。通过&lt; dubbo:method sticky=”true”/&gt;,默认不开启。如果开启，上一次该服务调用的是哪个服务提供者，只要调用过程中不发生错误，后续都会选择该服务提供者进行调用。<br>代码@3：执行doSelect选择。</li>
+</ul>
+<h3 id="1-1-源码分析AbstractClusterInvoker-doSelect"><a href="#1-1-源码分析AbstractClusterInvoker-doSelect" class="headerlink" title="1.1 源码分析AbstractClusterInvoker#doSelect"></a>1.1 源码分析AbstractClusterInvoker#doSelect</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br></pre></td><td class="code"><pre><span class="line">private Invoker&lt;T&gt; doSelect(LoadBalance loadbalance, Invocation invocation, List&lt;Invoker&lt;T&gt;&gt; invokers, List&lt;Invoker&lt;T&gt;&gt; selected) throws RpcException &#123;</span><br><span class="line">        if (invokers &#x3D;&#x3D; null || invokers.isEmpty())</span><br><span class="line">            return null;</span><br><span class="line">        if (invokers.size() &#x3D;&#x3D; 1)    &#x2F;&#x2F; @1</span><br><span class="line">            return invokers.get(0);</span><br><span class="line">        &#x2F;&#x2F; If we only have two invokers, use round-robin instead.</span><br><span class="line">        if (invokers.size() &#x3D;&#x3D; 2 &amp;&amp; selected !&#x3D; null &amp;&amp; !selected.isEmpty()) &#123;    &#x2F;&#x2F; @2</span><br><span class="line">            return selected.get(0) &#x3D;&#x3D; invokers.get(0) ? invokers.get(1) : invokers.get(0);</span><br><span class="line">        &#125;</span><br><span class="line">        if (loadbalance &#x3D;&#x3D; null) &#123;</span><br><span class="line">            loadbalance &#x3D; ExtensionLoader.getExtensionLoader(LoadBalance.class).getExtension(Constants.DEFAULT_LOADBALANCE);</span><br><span class="line">        &#125;</span><br><span class="line">        Invoker&lt;T&gt; invoker &#x3D; loadbalance.select(invokers, getUrl(), invocation);    &#x2F;&#x2F; @3</span><br><span class="line"></span><br><span class="line">        &#x2F;&#x2F;If the &#96;invoker&#96; is in the  &#96;selected&#96; or invoker is unavailable &amp;&amp; availablecheck is true, reselect.</span><br><span class="line">        if ((selected !&#x3D; null &amp;&amp; selected.contains(invoker))</span><br><span class="line">                || (!invoker.isAvailable() &amp;&amp; getUrl() !&#x3D; null &amp;&amp; availablecheck)) &#123;</span><br><span class="line">            try &#123;</span><br><span class="line">                Invoker&lt;T&gt; rinvoker &#x3D; reselect(loadbalance, invocation, invokers, selected, availablecheck);    &#x2F;&#x2F; @4</span><br><span class="line">                if (rinvoker !&#x3D; null) &#123;</span><br><span class="line">                    invoker &#x3D; rinvoker;</span><br><span class="line">                &#125; else &#123;</span><br><span class="line">                    &#x2F;&#x2F;Check the index of current selected invoker, if it&#39;s not the last one, choose the one at index+1.</span><br><span class="line">                    int index &#x3D; invokers.indexOf(invoker);</span><br><span class="line">                    try &#123;</span><br><span class="line">                        &#x2F;&#x2F;Avoid collision</span><br><span class="line">                        invoker &#x3D; index &lt; invokers.size() - 1 ? invokers.get(index + 1) : invoker;</span><br><span class="line">                    &#125; catch (Exception e) &#123;</span><br><span class="line">                        logger.warn(e.getMessage() + &quot; may because invokers list dynamic change, ignore.&quot;, e);</span><br><span class="line">                    &#125;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125; catch (Throwable t) &#123;</span><br><span class="line">                logger.error(&quot;cluster reselect fail reason is :&quot; + t.getMessage() + &quot; if can not solve, you can set cluster.availablecheck&#x3D;false in url&quot;, t);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        return invoker;</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+<p>代码@1：如果可选Invoker只有一个的话，直接返回该Invoker。<br>代码@2：如果只有两个Invoker，并且其中一个已被选择，返回另外一个未选择的Invoker。<br>代码@3：调用loadBalance负载均衡算法，选择一个服务提供者。<br>代码@4：如果选择的Invoker已被选择，则重新选择，这里有一个疑问，为什么不在选之前，先过滤掉已被选的Invoker。</p>
+<p>从服务提供者列表中选择一个服务提供者算法就介绍到这里，接下来将一一分析Dubbo提供的集群容错方式。</p>
+<h2 id="2、源码分析Dubbo集群策略"><a href="#2、源码分析Dubbo集群策略" class="headerlink" title="2、源码分析Dubbo集群策略"></a>2、源码分析Dubbo集群策略</h2><h3 id="2-1-源码分析FailoverClusterInvoker（FailoverCluster，dubbo默认策略）"><a href="#2-1-源码分析FailoverClusterInvoker（FailoverCluster，dubbo默认策略）" class="headerlink" title="2.1 源码分析FailoverClusterInvoker（FailoverCluster，dubbo默认策略）"></a>2.1 源码分析FailoverClusterInvoker（FailoverCluster，dubbo默认策略）</h3><p>策略：失败后自动选择其他服务提供者进行重试，重试次数由retries属性设置，&lt; dubbo:reference retries = “2”/&gt;设置，默认为2，代表重试2次，最多执行3次。</p>
+<p>FailoverClusterInvoker#doInvoke</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br></pre></td><td class="code"><pre><span class="line">public Result doInvoke(Invocation invocation, final List&lt;Invoker&lt;T&gt;&gt; invokers, LoadBalance loadbalance) throws RpcException &#123;</span><br><span class="line">      List&lt;Invoker&lt;T&gt;&gt; copyinvokers &#x3D; invokers;</span><br><span class="line">      checkInvokers(copyinvokers, invocation);</span><br><span class="line">      int len &#x3D; getUrl().getMethodParameter(invocation.getMethodName(), Constants.RETRIES_KEY, Constants.DEFAULT_RETRIES) + 1;      &#x2F;&#x2F; @1</span><br><span class="line">      if (len &lt;&#x3D; 0) &#123;</span><br><span class="line">          len &#x3D; 1;</span><br><span class="line">      &#125;</span><br><span class="line">      &#x2F;&#x2F; retry loop.</span><br><span class="line">      RpcException le &#x3D; null; &#x2F;&#x2F; last exception.</span><br><span class="line">      List&lt;Invoker&lt;T&gt;&gt; invoked &#x3D; new ArrayList&lt;Invoker&lt;T&gt;&gt;(copyinvokers.size()); &#x2F;&#x2F; invoked invokers.</span><br><span class="line">      Set&lt;String&gt; providers &#x3D; new HashSet&lt;String&gt;(len);      &#x2F;&#x2F; @2</span><br><span class="line">      for (int i &#x3D; 0; i &lt; len; i++) &#123;   &#x2F;&#x2F; @3</span><br><span class="line">          &#x2F;&#x2F;Reselect before retry to avoid a change of candidate &#96;invokers&#96;.</span><br><span class="line">          &#x2F;&#x2F;NOTE: if &#96;invokers&#96; changed, then &#96;invoked&#96; also lose accuracy.</span><br><span class="line">          if (i &gt; 0) &#123;     &#x2F;&#x2F; @4</span><br><span class="line">              checkWhetherDestroyed();</span><br><span class="line">              copyinvokers &#x3D; list(invocation);</span><br><span class="line">              &#x2F;&#x2F; check again</span><br><span class="line">              checkInvokers(copyinvokers, invocation);</span><br><span class="line">          &#125;</span><br><span class="line">          Invoker&lt;T&gt; invoker &#x3D; select(loadbalance, invocation, copyinvokers, invoked);    &#x2F;&#x2F; @5</span><br><span class="line">          invoked.add(invoker);</span><br><span class="line">          RpcContext.getContext().setInvokers((List) invoked);</span><br><span class="line">          try &#123;</span><br><span class="line">              Result result &#x3D; invoker.invoke(invocation);                                                        &#x2F;&#x2F; @6</span><br><span class="line">              if (le !&#x3D; null &amp;&amp; logger.isWarnEnabled()) &#123;</span><br><span class="line">                  logger.warn(&quot;Although retry the method &quot; + invocation.getMethodName()</span><br><span class="line">                          + &quot; in the service &quot; + getInterface().getName()</span><br><span class="line">                          + &quot; was successful by the provider &quot; + invoker.getUrl().getAddress()</span><br><span class="line">                          + &quot;, but there have been failed providers &quot; + providers</span><br><span class="line">                          + &quot; (&quot; + providers.size() + &quot;&#x2F;&quot; + copyinvokers.size()</span><br><span class="line">                          + &quot;) from the registry &quot; + directory.getUrl().getAddress()</span><br><span class="line">                          + &quot; on the consumer &quot; + NetUtils.getLocalHost()</span><br><span class="line">                          + &quot; using the dubbo version &quot; + Version.getVersion() + &quot;. Last error is: &quot;</span><br><span class="line">                          + le.getMessage(), le);</span><br><span class="line">              &#125;</span><br><span class="line">              return result;</span><br><span class="line">          &#125; catch (RpcException e) &#123;</span><br><span class="line">              if (e.isBiz()) &#123; &#x2F;&#x2F; biz exception.</span><br><span class="line">                  throw e;</span><br><span class="line">              &#125;</span><br><span class="line">              le &#x3D; e;</span><br><span class="line">          &#125; catch (Throwable e) &#123;</span><br><span class="line">              le &#x3D; new RpcException(e.getMessage(), e);</span><br><span class="line">          &#125; finally &#123;</span><br><span class="line">              providers.add(invoker.getUrl().getAddress());       &#x2F;&#x2F; @7</span><br><span class="line">          &#125;</span><br><span class="line">      &#125;</span><br><span class="line">      throw new RpcException(le !&#x3D; null ? le.getCode() : 0, &quot;Failed to invoke the method &quot;</span><br><span class="line">              + invocation.getMethodName() + &quot; in the service &quot; + getInterface().getName()</span><br><span class="line">              + &quot;. Tried &quot; + len + &quot; times of the providers &quot; + providers</span><br><span class="line">              + &quot; (&quot; + providers.size() + &quot;&#x2F;&quot; + copyinvokers.size()</span><br><span class="line">              + &quot;) from the registry &quot; + directory.getUrl().getAddress()</span><br><span class="line">              + &quot; on the consumer &quot; + NetUtils.getLocalHost() + &quot; using the dubbo version &quot;</span><br><span class="line">              + Version.getVersion() + &quot;. Last error is: &quot;</span><br><span class="line">              + (le !&#x3D; null ? le.getMessage() : &quot;&quot;), le !&#x3D; null &amp;&amp; le.getCause() !&#x3D; null ? le.getCause() : le);</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure>
+<p>代码@1：首先校验服务提供者列表，如果为空，则抛出RpcException，提示没有可用的服务提供者。</p>
+<p>代码@2：构建Set&lt; Stirng&gt; providers,主要用来已调用服务提供者的地址，如果本次调用失败，将在日志信息中打印已调用的服务提供者信息。</p>
+<p>代码@3，循环执行次数，等于retries + 1 次。</p>
+<p>代码@4：如果i&gt;0，表示服务调用，在重试，此时需要重新调用Directory#list方法，获取最小的服务提供者列表。</p>
+<p>代码@5：根据负载均衡算法，选择Invoker，后续详细分析。</p>
+<p>代码@6：根据负载算法，路由算法从服务提供者列表选一个服务提供者，发起RPC调用。</p>
+<p>代码@7：将本次服务提供者的地址添加到providers集合中，如果多次重试后，无法完成正常的调用，将在错误日志中包含这些信息。</p>
+<h3 id="2-2-源码分析AvailableClusterInvoker"><a href="#2-2-源码分析AvailableClusterInvoker" class="headerlink" title="2.2 源码分析AvailableClusterInvoker"></a>2.2 源码分析AvailableClusterInvoker</h3><p>策略：选择集群第一个可用的服务提供者。<br>缺点：相当于服务的主备，但同时只有一个服务提供者承载流量，并没有使用集群的负载均衡机制。<br>AvailableClusterInvoker#doInvoke</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">public Result doInvoke(Invocation invocation, List&lt;Invoker&lt;T&gt;&gt; invokers, LoadBalance loadbalance) throws RpcException &#123;</span><br><span class="line">        for (Invoker&lt;T&gt; invoker : invokers) &#123;</span><br><span class="line">            if (invoker.isAvailable()) &#123;</span><br><span class="line">                return invoker.invoke(invocation);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        throw new RpcException(&quot;No provider available in &quot; + invokers);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>遍历服务提供者列表，选择第一个可用服务提供者，然后执行RPC服务调用，如果调用失败，则失败。</p>
+<h3 id="2-3-源码分析BroadcastClusterInvoker"><a href="#2-3-源码分析BroadcastClusterInvoker" class="headerlink" title="2.3 源码分析BroadcastClusterInvoker"></a>2.3 源码分析BroadcastClusterInvoker</h3><p>策略：广播调用，将调用所有服务提供者，一个服务调用者失败，并不会熔断，并且一个服务提供者调用失败，整个调用认为失败。<br>场景：刷新缓存。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">public Result doInvoke(final Invocation invocation, List&lt;Invoker&lt;T&gt;&gt; invokers, LoadBalance loadbalance) throws RpcException &#123;</span><br><span class="line">        checkInvokers(invokers, invocation);                                     &#x2F;&#x2F; @1</span><br><span class="line">        RpcContext.getContext().setInvokers((List) invokers);</span><br><span class="line">        RpcException exception &#x3D; null;</span><br><span class="line">        Result result &#x3D; null;</span><br><span class="line">        for (Invoker&lt;T&gt; invoker : invokers) &#123;   &#x2F;&#x2F; @2</span><br><span class="line">            try &#123;    </span><br><span class="line">                result &#x3D; invoker.invoke(invocation);</span><br><span class="line">            &#125; catch (RpcException e) &#123;</span><br><span class="line">                exception &#x3D; e;</span><br><span class="line">                logger.warn(e.getMessage(), e);</span><br><span class="line">            &#125; catch (Throwable e) &#123;</span><br><span class="line">                exception &#x3D; new RpcException(e.getMessage(), e);</span><br><span class="line">                logger.warn(e.getMessage(), e);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        if (exception !&#x3D; null) &#123;   &#x2F;&#x2F; @3</span><br><span class="line">            throw exception;</span><br><span class="line">        &#125;</span><br><span class="line">        return result;</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+<p>代码@1：检测服务提供者列表，如果为空，则抛出没有服务提供的异常。<br>代码@2：遍历服务提供者列表，依次调用服务提供者的invoker,每个服务调用用try catch语句包裹，当服务调用发生异常时，记录异常信息，但并不立即返回，广播模式，每个服务提供者调用是异步还是同步，取决服务调用的配置，默认是同步调用。<br>代码@3：只要其中一个服务调用发送一次，将抛出异常 信息，异常信息被封装为RpcException。</p>
+<h3 id="2-4-源码分析FailbackClusterInvoker"><a href="#2-4-源码分析FailbackClusterInvoker" class="headerlink" title="2.4 源码分析FailbackClusterInvoker"></a>2.4 源码分析FailbackClusterInvoker</h3><p>策略：调用失败后，返回成功，但会在后台定时重试，重试次数（反复）<br>场景：通常用于消息通知，但消费者重启后，重试任务丢失。</p>
+<p>FailbackClusterInvoker#doInvoke</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">protected Result doInvoke(Invocation invocation, List&lt;Invoker&lt;T&gt;&gt; invokers, LoadBalance loadbalance) throws RpcException &#123;</span><br><span class="line">        try &#123;</span><br><span class="line">            checkInvokers(invokers, invocation);  &#x2F;&#x2F; @1</span><br><span class="line">            Invoker&lt;T&gt; invoker &#x3D; select(loadbalance, invocation, invokers, null);   &#x2F;&#x2F; @2</span><br><span class="line">            return invoker.invoke(invocation);   &#x2F;&#x2F; @3</span><br><span class="line">        &#125; catch (Throwable e) &#123;</span><br><span class="line">            logger.error(&quot;Failback to invoke method &quot; + invocation.getMethodName() + &quot;, wait for retry in background. Ignored exception: &quot;</span><br><span class="line">                    + e.getMessage() + &quot;, &quot;, e);</span><br><span class="line">            addFailed(invocation, this);   &#x2F;&#x2F; @4</span><br><span class="line">            return new RpcResult(); &#x2F;&#x2F; ignore</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+<p>代码@1：校验服务提供者列表，如果为空，则抛出没有服务提供者错误。<br>代码@2：根据负载均衡机制，选择一个服务提供者。<br>代码@3：发起远程服务调用，如果出现异常，调用addFailed方法，添加重试任务，然后返回给调用方成功。</p>
+<p>接下来看一下addFailed方法。</p>
+<p>FailbackClusterInvoker#addFailed</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">private void addFailed(Invocation invocation, AbstractClusterInvoker&lt;?&gt; router) &#123;  &#x2F;&#x2F; @1 </span><br><span class="line">        if (retryFuture &#x3D;&#x3D; null) &#123;    &#x2F;&#x2F; @2</span><br><span class="line">            synchronized (this) &#123;</span><br><span class="line">                if (retryFuture &#x3D;&#x3D; null) &#123;</span><br><span class="line">                    retryFuture &#x3D; scheduledExecutorService.scheduleWithFixedDelay(new Runnable() &#123;     &#x2F;&#x2F; @3</span><br><span class="line"></span><br><span class="line">                        @Override</span><br><span class="line">                        public void run() &#123;</span><br><span class="line">                            &#x2F;&#x2F; collect retry statistics</span><br><span class="line">                            try &#123;</span><br><span class="line">                                retryFailed();</span><br><span class="line">                            &#125; catch (Throwable t) &#123; &#x2F;&#x2F; Defensive fault tolerance</span><br><span class="line">                                logger.error(&quot;Unexpected error occur at collect statistic&quot;, t);</span><br><span class="line">                            &#125;</span><br><span class="line">                        &#125;</span><br><span class="line">                    &#125;, RETRY_FAILED_PERIOD, RETRY_FAILED_PERIOD, TimeUnit.MILLISECONDS);</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        failed.put(invocation, router);   &#x2F;&#x2F; @4</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+<p>代码@1：Invocation invocation：调用上下文；AbstractClusterInvoker&lt; ?&gt; router：调用集群策略。</p>
+<p>代码@2：如果retryFuture（ScheduledFuture&lt; ?&gt; retryFuture）为空，则加锁创建一个定时调度任务，任务以每隔5s的频率调用retryFailed方法。</p>
+<p>代码@3：添加重试任务（ConcurrentMap&lt; Invocation, AbstractClusterInvoker&lt; ?&gt;&gt; failed）。想必retryFailed方法就是遍历failed，一个一个重复调用，如果调用成功则移除，调用不成功，继续放入。</p>
+<p>FailbackClusterInvoker#retryFailed</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">void retryFailed() &#123;</span><br><span class="line">        if (failed.size() &#x3D;&#x3D; 0) &#123;</span><br><span class="line">            return;</span><br><span class="line">        &#125;</span><br><span class="line">        for (Map.Entry&lt;Invocation, AbstractClusterInvoker&lt;?&gt;&gt; entry : new HashMap&lt;Invocation, AbstractClusterInvoker&lt;?&gt;&gt;(    &#x2F;&#x2F; @1</span><br><span class="line">                failed).entrySet()) &#123;</span><br><span class="line">            Invocation invocation &#x3D; entry.getKey();</span><br><span class="line">            Invoker&lt;?&gt; invoker &#x3D; entry.getValue();</span><br><span class="line">            try &#123;</span><br><span class="line">                invoker.invoke(invocation);   &#x2F;&#x2F; @2</span><br><span class="line">                failed.remove(invocation);    &#x2F;&#x2F; @3</span><br><span class="line">            &#125; catch (Throwable e) &#123;</span><br><span class="line">                logger.error(&quot;Failed retry to invoke method &quot; + invocation.getMethodName() + &quot;, waiting again.&quot;, e);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+<p>代码@1：遍历待重试列表，然后发起远程调用，如果调用成功，则从集合中移除，如果只选失败，并不会从待重试列表中移除，也就是在消费端不重启的情况下，会一直重复调用，直到成功。</p>
+<h3 id="2-5-源码分析FailfastClusterInvoker"><a href="#2-5-源码分析FailfastClusterInvoker" class="headerlink" title="2.5 源码分析FailfastClusterInvoker"></a>2.5 源码分析FailfastClusterInvoker</h3><p>策略：快速失败，服务调用失败后立马抛出异常，不进行重试。<br>场景：是否修改类服务（未实行幂等的服务调用）</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">public Result doInvoke(Invocation invocation, List&lt;Invoker&lt;T&gt;&gt; invokers, LoadBalance loadbalance) throws RpcException &#123;</span><br><span class="line">        checkInvokers(invokers, invocation);     &#x2F;&#x2F; @1</span><br><span class="line">        Invoker&lt;T&gt; invoker &#x3D; select(loadbalance, invocation, invokers, null);   &#x2F;&#x2F; @2</span><br><span class="line">        try &#123;</span><br><span class="line">            return invoker.invoke(invocation);    &#x2F;&#x2F; @3</span><br><span class="line">        &#125; catch (Throwable e) &#123;</span><br><span class="line">            if (e instanceof RpcException &amp;&amp; ((RpcException) e).isBiz()) &#123; &#x2F;&#x2F; biz exception.</span><br><span class="line">                throw (RpcException) e;</span><br><span class="line">            &#125;</span><br><span class="line">            throw new RpcException(e instanceof RpcException ? ((RpcException) e).getCode() : 0, &quot;Failfast invoke providers &quot; + invoker.getUrl() + &quot; &quot; +   </span><br><span class="line">                 loadbalance.getClass().getSimpleName() + &quot; select from all providers &quot; + invokers + &quot; for service &quot; + getInterface().getName() + &quot; method &quot; + </span><br><span class="line">                 invocation.getMethodName() + &quot; on consumer &quot; + NetUtils.getLocalHost() + &quot; use dubbo version &quot; + Version.getVersion() + &quot;, but no luck to </span><br><span class="line">                 perform the invocation. Last error is: &quot; + e.getMessage(), e.getCause() !&#x3D; null ? e.getCause() : e);    &#x2F;&#x2F; @4</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+<p>代码@1：检查服务提供者，如果服务提供者列表为空，抛出没有服务提供者错误。<br>代码@2：根据负载算法选择一个服务提供者。<br>代码@3：发起RPC服务调用。<br>代码@4：如果服务调用异常，抛出异常，打印服务消费者，服务提供者信息。</p>
+<h3 id="2-6-源码分析FailsafeClusterInvoker"><a href="#2-6-源码分析FailsafeClusterInvoker" class="headerlink" title="2.6 源码分析FailsafeClusterInvoker"></a>2.6 源码分析FailsafeClusterInvoker</h3><p>策略：服务调用失败后，只打印错误日志，然后返回服务调用成功。<br>场景：调用审计，日志类服务接口。</p>
+<p>FailsafeClusterInvoker#doInvoke</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">public Result doInvoke(Invocation invocation, List&lt;Invoker&lt;T&gt;&gt; invokers, LoadBalance loadbalance) throws RpcException &#123;</span><br><span class="line">        try &#123;</span><br><span class="line">            checkInvokers(invokers, invocation);   &#x2F;&#x2F; @1</span><br><span class="line">            Invoker&lt;T&gt; invoker &#x3D; select(loadbalance, invocation, invokers, null);  &#x2F;&#x2F; @2</span><br><span class="line">            return invoker.invoke(invocation);   &#x2F;&#x2F; @3</span><br><span class="line">        &#125; catch (Throwable e) &#123;</span><br><span class="line">            logger.error(&quot;Failsafe ignore exception: &quot; + e.getMessage(), e);</span><br><span class="line">            return new RpcResult(); &#x2F;&#x2F; ignore</span><br><span class="line">        &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>代码@1：检查服务提供者，如果服务提供者列表为空，抛出没有服务提供者错误。<br>代码@2：根据负载算法选择一个服务提供者。<br>代码@3：发起RPC服务调用，如果出现异常，记录错误堆栈信息，并返回成功。</p>
+<h3 id="2-7-源码分析ForkingClusterInvoker"><a href="#2-7-源码分析ForkingClusterInvoker" class="headerlink" title="2.7 源码分析ForkingClusterInvoker"></a>2.7 源码分析ForkingClusterInvoker</h3><p>策略：并行调用多个服务提供者，当一个服务提供者返回成功，则返回成功。<br>场景：实时性要求比较高的场景，但浪费服务器资源，通常可以通过forks参数设置并发调用度。</p>
+<p>ForkingClusterInvoker#doInvoke</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br></pre></td><td class="code"><pre><span class="line">public Result doInvoke(final Invocation invocation, List&lt;Invoker&lt;T&gt;&gt; invokers, LoadBalance loadbalance) throws RpcException &#123;</span><br><span class="line">        checkInvokers(invokers, invocation);   &#x2F;&#x2F; @1</span><br><span class="line">        final List&lt;Invoker&lt;T&gt;&gt; selected;          </span><br><span class="line">        final int forks &#x3D; getUrl().getParameter(Constants.FORKS_KEY, Constants.DEFAULT_FORKS);              &#x2F;&#x2F; @2</span><br><span class="line">        final int timeout &#x3D; getUrl().getParameter(Constants.TIMEOUT_KEY, Constants.DEFAULT_TIMEOUT);</span><br><span class="line">        if (forks &lt;&#x3D; 0 || forks &gt;&#x3D; invokers.size()) &#123;</span><br><span class="line">            selected &#x3D; invokers;</span><br><span class="line">        &#125; else &#123;</span><br><span class="line">            selected &#x3D; new ArrayList&lt;Invoker&lt;T&gt;&gt;();</span><br><span class="line">            for (int i &#x3D; 0; i &lt; forks; i++) &#123;</span><br><span class="line">                &#x2F;&#x2F; TODO. Add some comment here, refer chinese version for more details.</span><br><span class="line">                Invoker&lt;T&gt; invoker &#x3D; select(loadbalance, invocation, invokers, selected);</span><br><span class="line">                if (!selected.contains(invoker)) &#123;&#x2F;&#x2F;Avoid add the same invoker several times.</span><br><span class="line">                    selected.add(invoker);</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        RpcContext.getContext().setInvokers((List) selected);</span><br><span class="line">        final AtomicInteger count &#x3D; new AtomicInteger();</span><br><span class="line">        final BlockingQueue&lt;Object&gt; ref &#x3D; new LinkedBlockingQueue&lt;Object&gt;();</span><br><span class="line">        for (final Invoker&lt;T&gt; invoker : selected) &#123;   &#x2F;&#x2F; @3</span><br><span class="line">            executor.execute(new Runnable() &#123;</span><br><span class="line">                @Override</span><br><span class="line">                public void run() &#123;</span><br><span class="line">                    try &#123;</span><br><span class="line">                        Result result &#x3D; invoker.invoke(invocation);</span><br><span class="line">                        ref.offer(result);</span><br><span class="line">                    &#125; catch (Throwable e) &#123;</span><br><span class="line">                        int value &#x3D; count.incrementAndGet();</span><br><span class="line">                        if (value &gt;&#x3D; selected.size()) &#123;</span><br><span class="line">                            ref.offer(e);</span><br><span class="line">                        &#125;</span><br><span class="line">                    &#125;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;);</span><br><span class="line">        &#125;</span><br><span class="line">        try &#123;</span><br><span class="line">            Object ret &#x3D; ref.poll(timeout, TimeUnit.MILLISECONDS);   &#x2F;&#x2F; @4</span><br><span class="line">            if (ret instanceof Throwable) &#123;</span><br><span class="line">                Throwable e &#x3D; (Throwable) ret;</span><br><span class="line">                throw new RpcException(e instanceof RpcException ? ((RpcException) e).getCode() : 0, &quot;Failed to forking invoke provider &quot; + selected + &quot;, but no luck to perform the invocation. Last error is: &quot; + e.getMessage(), e.getCause() !&#x3D; null ? e.getCause() : e);</span><br><span class="line">            &#125;</span><br><span class="line">            return (Result) ret;</span><br><span class="line">        &#125; catch (InterruptedException e) &#123;</span><br><span class="line">            throw new RpcException(&quot;Failed to forking invoke provider &quot; + selected + &quot;, but no luck to perform the invocation. Last error is: &quot; + e.getMessage(), e);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+<p>代码@1：检查服务提供者，如果服务提供者列表为空，抛出没有服务提供者错误。</p>
+<p>代码@2：获取forks属性，貌似只能通过在&lt; dubbo:reference /&gt;用&lt; dubbo:parameter key=”forks” value=””/&gt;来设置forks，其默认值为2，如果forks值大于服务提供者的数量，则将调用所有服务提供者，如果forks值小于服务提供者的数量，则使用负载均衡算法，选择forks个服务提供者。</p>
+<p>代码@3：依次异步向服务提供者发起RPC调用，并将结果添加到BlockingQueue&lt; Object&gt; ref，如果服务调用发送错误，并且发生错误的个数大于等于本次调用的个数，则将错误信息放入BlockingQueue&lt; Object&gt; ref，否则，将错误数增加1。</p>
+<p>代码@4：Object ret = ref.poll(timeout, TimeUnit.MILLISECONDS)，从该队列中获取结果，如果队列未空，则会阻塞等待，直到超时，当有一个调用成功后，将返回，忽略其他调用结果。</p>
+<p>本文重点分析了Dubbo集群容错机制，路由发现、路由算法、负载均衡等是如何共同协作完成Dubbo的服务调用，并详细分析了Dubbo各种集群策略，例如failover、failfast、failsafe、failback、forking、available等实现细节。</p>
+</div>
+
+			<script src="https://my.openwrite.cn/js/readmore.js" type="text/javascript"></script>
+			<script>
+			var isMobile = navigator.userAgent.match(/(phone|pad|pod|iPhone|iPod|ios|iPad|Android|Mobile|BlackBerry|IEMobile|MQQBrowser|JUC|Fennec|wOSBrowser|BrowserNG|WebOS|Symbian|Windows Phone)/i);
+			if (!isMobile) {
+			    var btw = new BTWPlugin();
+			    btw.init({
+			        "id": "vip-container",
+			        "blogId": "18019-1573088808868-542",
+			        "name": "中间件兴趣圈",
+			        "qrcode": "https://img-blog.csdnimg.cn/20190314214003962.jpg",
+			        "keyword": "more"
+			    });
+			}
+			</script>
+		
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/dubbo/" rel="tag"># dubbo</a>
+          
+            <a href="/tags/%E9%9B%86%E7%BE%A4%E5%AE%B9%E9%94%99/" rel="tag"># 集群容错</a>
+          
+            <a href="/tags/failover/" rel="tag"># failover</a>
+          
+            <a href="/tags/failfast/" rel="tag"># failfast</a>
+          
+            <a href="/tags/failsafe/" rel="tag"># failsafe</a>
+          
+            <a href="/tags/failback/" rel="tag"># failback</a>
+          
+            <a href="/tags/forking/" rel="tag"># forking</a>
+          
+            <a href="/tags/available/" rel="tag"># available</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/posts/398539d9.html" rel="next" title="源码分析Dubbo负载算法">
+                <i class="fa fa-chevron-left"></i> 源码分析Dubbo负载算法
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+    <div class="comments" id="comments">
+    </div>
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name"></p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/">
+              
+                  <span class="site-state-item-count">90</span>
+                  <span class="site-state-item-name">日志</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                <a href="/categories/index.html">
+                  <span class="site-state-item-count">12</span>
+                  <span class="site-state-item-name">分类</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                <a href="/tags/index.html">
+                  <span class="site-state-item-count">144</span>
+                  <span class="site-state-item-name">标签</span>
+                </a>
+              </div>
+            
+
+          </nav>
+
+          
+            <div class="feed-link motion-element">
+              <a href="/atom.xml" rel="alternate">
+                <i class="fa fa-rss"></i>
+                RSS
+              </a>
+            </div>
+          
+
+          
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#1%E3%80%81%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90AbstractClusterInvoker-select"><span class="nav-number">1.</span> <span class="nav-text">1、源码分析AbstractClusterInvoker#select</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-1-%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90AbstractClusterInvoker-doSelect"><span class="nav-number">1.1.</span> <span class="nav-text">1.1 源码分析AbstractClusterInvoker#doSelect</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2%E3%80%81%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90Dubbo%E9%9B%86%E7%BE%A4%E7%AD%96%E7%95%A5"><span class="nav-number">2.</span> <span class="nav-text">2、源码分析Dubbo集群策略</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90FailoverClusterInvoker%EF%BC%88FailoverCluster%EF%BC%8Cdubbo%E9%BB%98%E8%AE%A4%E7%AD%96%E7%95%A5%EF%BC%89"><span class="nav-number">2.1.</span> <span class="nav-text">2.1 源码分析FailoverClusterInvoker（FailoverCluster，dubbo默认策略）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90AvailableClusterInvoker"><span class="nav-number">2.2.</span> <span class="nav-text">2.2 源码分析AvailableClusterInvoker</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-3-%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90BroadcastClusterInvoker"><span class="nav-number">2.3.</span> <span class="nav-text">2.3 源码分析BroadcastClusterInvoker</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-4-%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90FailbackClusterInvoker"><span class="nav-number">2.4.</span> <span class="nav-text">2.4 源码分析FailbackClusterInvoker</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-5-%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90FailfastClusterInvoker"><span class="nav-number">2.5.</span> <span class="nav-text">2.5 源码分析FailfastClusterInvoker</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-6-%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90FailsafeClusterInvoker"><span class="nav-number">2.6.</span> <span class="nav-text">2.6 源码分析FailsafeClusterInvoker</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-7-%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90ForkingClusterInvoker"><span class="nav-number">2.7.</span> <span class="nav-text">2.7 源码分析ForkingClusterInvoker</span></a></li></ol></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">中间件兴趣圈</span>
+
+  
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-area-chart"></i>
+    </span>
+    
+      <span class="post-meta-item-text">Site words total count&#58;</span>
+    
+    <span title="Site words total count">238.6k</span>
+  
+</div>
+
+
+  <div class="powered-by">由 <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> 强力驱动</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Pisces</a> v5.1.4</div>
+
+
+
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+  
+    <span class="site-uv">
+      <i class="fa fa-user"></i>总访客
+      <span class="busuanzi-value" id="busuanzi_value_site_uv"></span>
+      人
+    </span>
+  
+
+  
+    <span class="site-pv">
+      <i class="fa fa-eye"></i>总访问量
+      <span class="busuanzi-value" id="busuanzi_value_site_pv"></span>
+      次
+    </span>
+  
+</div>
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.4"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.1.4"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.4"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+  <script src="//cdn1.lncld.net/static/js/3.0.4/av-min.js"></script>
+  <script src="//unpkg.com/valine/dist/Valine.min.js"></script>
+  
+  <script type="text/javascript">
+    var GUEST = ['nick','mail','link'];
+    var guest = 'nick,mail,link';
+    guest = guest.split(',').filter(item=>{
+      return GUEST.indexOf(item)>-1;
+    });
+    new Valine({
+        el: '#comments' ,
+        verify: false,
+        notify: false,
+        appId: 'NNEhOL0iOcflg8f1U3HUqiCq-gzGzoHsz',
+        appKey: '7kSmkbbb3DktmHALlShDsBUF',
+        placeholder: '来都来了，不撩一句嘛~，留言记得在上面留下【邮箱】，方便收到回复通知~',
+        avatar:'mm',
+        guest_info:guest,
+        pageSize:'10' || 10,
+    });
+  </script>
+
+
+
+  
+
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    var isXml = true;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length === 0) {
+      search_path = "search.xml";
+    } else if (/json$/i.test(search_path)) {
+      isXml = false;
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    var onPopupClose = function (e) {
+      $('.popup').hide();
+      $('#local-search-input').val('');
+      $('.search-result-list').remove();
+      $('#no-result').remove();
+      $(".local-search-pop-overlay").remove();
+      $('body').css('overflow', '');
+    }
+
+    function proceedsearch() {
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay"></div>')
+        .css('overflow', 'hidden');
+      $('.search-popup-overlay').click(onPopupClose);
+      $('.popup').toggle();
+      var $localSearchInput = $('#local-search-input');
+      $localSearchInput.attr("autocapitalize", "none");
+      $localSearchInput.attr("autocorrect", "off");
+      $localSearchInput.focus();
+    }
+
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+      'use strict';
+
+      // start loading animation
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay">' +
+          '<div id="search-loading-icon">' +
+          '<i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>' +
+          '</div>' +
+          '</div>')
+        .css('overflow', 'hidden');
+      $("#search-loading-icon").css('margin', '20% auto 0 auto').css('text-align', 'center');
+
+      $.ajax({
+        url: path,
+        dataType: isXml ? "xml" : "json",
+        async: true,
+        success: function(res) {
+          // get the contents from search data
+          isfetched = true;
+          $('.popup').detach().appendTo('.header-inner');
+          var datas = isXml ? $("entry", res).map(function() {
+            return {
+              title: $("title", this).text(),
+              content: $("content",this).text(),
+              url: $("url" , this).text()
+            };
+          }).get() : res;
+          var input = document.getElementById(search_id);
+          var resultContent = document.getElementById(content_id);
+          var inputEventFunction = function() {
+            var searchText = input.value.trim().toLowerCase();
+            var keywords = searchText.split(/[\s\-]+/);
+            if (keywords.length > 1) {
+              keywords.push(searchText);
+            }
+            var resultItems = [];
+            if (searchText.length > 0) {
+              // perform local searching
+              datas.forEach(function(data) {
+                var isMatch = false;
+                var hitCount = 0;
+                var searchTextCount = 0;
+                var title = data.title.trim();
+                var titleInLowerCase = title.toLowerCase();
+                var content = data.content.trim().replace(/<[^>]+>/g,"");
+                var contentInLowerCase = content.toLowerCase();
+                var articleUrl = decodeURIComponent(data.url);
+                var indexOfTitle = [];
+                var indexOfContent = [];
+                // only match articles with not empty titles
+                if(title != '') {
+                  keywords.forEach(function(keyword) {
+                    function getIndexByWord(word, text, caseSensitive) {
+                      var wordLen = word.length;
+                      if (wordLen === 0) {
+                        return [];
+                      }
+                      var startPosition = 0, position = [], index = [];
+                      if (!caseSensitive) {
+                        text = text.toLowerCase();
+                        word = word.toLowerCase();
+                      }
+                      while ((position = text.indexOf(word, startPosition)) > -1) {
+                        index.push({position: position, word: word});
+                        startPosition = position + wordLen;
+                      }
+                      return index;
+                    }
+
+                    indexOfTitle = indexOfTitle.concat(getIndexByWord(keyword, titleInLowerCase, false));
+                    indexOfContent = indexOfContent.concat(getIndexByWord(keyword, contentInLowerCase, false));
+                  });
+                  if (indexOfTitle.length > 0 || indexOfContent.length > 0) {
+                    isMatch = true;
+                    hitCount = indexOfTitle.length + indexOfContent.length;
+                  }
+                }
+
+                // show search results
+
+                if (isMatch) {
+                  // sort index by position of keyword
+
+                  [indexOfTitle, indexOfContent].forEach(function (index) {
+                    index.sort(function (itemLeft, itemRight) {
+                      if (itemRight.position !== itemLeft.position) {
+                        return itemRight.position - itemLeft.position;
+                      } else {
+                        return itemLeft.word.length - itemRight.word.length;
+                      }
+                    });
+                  });
+
+                  // merge hits into slices
+
+                  function mergeIntoSlice(text, start, end, index) {
+                    var item = index[index.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    var hits = [];
+                    var searchTextCountInSlice = 0;
+                    while (position + word.length <= end && index.length != 0) {
+                      if (word === searchText) {
+                        searchTextCountInSlice++;
+                      }
+                      hits.push({position: position, length: word.length});
+                      var wordEnd = position + word.length;
+
+                      // move to next position of hit
+
+                      index.pop();
+                      while (index.length != 0) {
+                        item = index[index.length - 1];
+                        position = item.position;
+                        word = item.word;
+                        if (wordEnd > position) {
+                          index.pop();
+                        } else {
+                          break;
+                        }
+                      }
+                    }
+                    searchTextCount += searchTextCountInSlice;
+                    return {
+                      hits: hits,
+                      start: start,
+                      end: end,
+                      searchTextCount: searchTextCountInSlice
+                    };
+                  }
+
+                  var slicesOfTitle = [];
+                  if (indexOfTitle.length != 0) {
+                    slicesOfTitle.push(mergeIntoSlice(title, 0, title.length, indexOfTitle));
+                  }
+
+                  var slicesOfContent = [];
+                  while (indexOfContent.length != 0) {
+                    var item = indexOfContent[indexOfContent.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    // cut out 100 characters
+                    var start = position - 20;
+                    var end = position + 80;
+                    if(start < 0){
+                      start = 0;
+                    }
+                    if (end < position + word.length) {
+                      end = position + word.length;
+                    }
+                    if(end > content.length){
+                      end = content.length;
+                    }
+                    slicesOfContent.push(mergeIntoSlice(content, start, end, indexOfContent));
+                  }
+
+                  // sort slices in content by search text's count and hits' count
+
+                  slicesOfContent.sort(function (sliceLeft, sliceRight) {
+                    if (sliceLeft.searchTextCount !== sliceRight.searchTextCount) {
+                      return sliceRight.searchTextCount - sliceLeft.searchTextCount;
+                    } else if (sliceLeft.hits.length !== sliceRight.hits.length) {
+                      return sliceRight.hits.length - sliceLeft.hits.length;
+                    } else {
+                      return sliceLeft.start - sliceRight.start;
+                    }
+                  });
+
+                  // select top N slices in content
+
+                  var upperBound = parseInt('1');
+                  if (upperBound >= 0) {
+                    slicesOfContent = slicesOfContent.slice(0, upperBound);
+                  }
+
+                  // highlight title and content
+
+                  function highlightKeyword(text, slice) {
+                    var result = '';
+                    var prevEnd = slice.start;
+                    slice.hits.forEach(function (hit) {
+                      result += text.substring(prevEnd, hit.position);
+                      var end = hit.position + hit.length;
+                      result += '<b class="search-keyword">' + text.substring(hit.position, end) + '</b>';
+                      prevEnd = end;
+                    });
+                    result += text.substring(prevEnd, slice.end);
+                    return result;
+                  }
+
+                  var resultItem = '';
+
+                  if (slicesOfTitle.length != 0) {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + highlightKeyword(title, slicesOfTitle[0]) + "</a>";
+                  } else {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + title + "</a>";
+                  }
+
+                  slicesOfContent.forEach(function (slice) {
+                    resultItem += "<a href='" + articleUrl + "'>" +
+                      "<p class=\"search-result\">" + highlightKeyword(content, slice) +
+                      "...</p>" + "</a>";
+                  });
+
+                  resultItem += "</li>";
+                  resultItems.push({
+                    item: resultItem,
+                    searchTextCount: searchTextCount,
+                    hitCount: hitCount,
+                    id: resultItems.length
+                  });
+                }
+              })
+            };
+            if (keywords.length === 1 && keywords[0] === "") {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-search fa-5x" /></div>'
+            } else if (resultItems.length === 0) {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-frown-o fa-5x" /></div>'
+            } else {
+              resultItems.sort(function (resultLeft, resultRight) {
+                if (resultLeft.searchTextCount !== resultRight.searchTextCount) {
+                  return resultRight.searchTextCount - resultLeft.searchTextCount;
+                } else if (resultLeft.hitCount !== resultRight.hitCount) {
+                  return resultRight.hitCount - resultLeft.hitCount;
+                } else {
+                  return resultRight.id - resultLeft.id;
+                }
+              });
+              var searchResultList = '<ul class=\"search-result-list\">';
+              resultItems.forEach(function (result) {
+                searchResultList += result.item;
+              })
+              searchResultList += "</ul>";
+              resultContent.innerHTML = searchResultList;
+            }
+          }
+
+          if ('auto' === 'auto') {
+            input.addEventListener('input', inputEventFunction);
+          } else {
+            $('.search-icon').click(inputEventFunction);
+            input.addEventListener('keypress', function (event) {
+              if (event.keyCode === 13) {
+                inputEventFunction();
+              }
+            });
+          }
+
+          // remove loading animation
+          $(".local-search-pop-overlay").remove();
+          $('body').css('overflow', '');
+
+          proceedsearch();
+        }
+      });
+    }
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched === false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+    });
+
+    $('.popup-btn-close').click(onPopupClose);
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+    $(document).on('keyup', function (event) {
+      var shouldDismissSearchPopup = event.which === 27 &&
+        $('.search-popup').is(':visible');
+      if (shouldDismissSearchPopup) {
+        onPopupClose();
+      }
+    });
+  </script>
+
+
+
+
+
+  
+
+  
+  <script src="https://cdn1.lncld.net/static/js/av-core-mini-0.6.4.js"></script>
+  <script>AV.initialize("NNEhOL0iOcflg8f1U3HUqiCq-gzGzoHsz", "7kSmkbbb3DktmHALlShDsBUF");</script>
+  <script>
+    function showTime(Counter) {
+      var query = new AV.Query(Counter);
+      var entries = [];
+      var $visitors = $(".leancloud_visitors");
+
+      $visitors.each(function () {
+        entries.push( $(this).attr("id").trim() );
+      });
+
+      query.containedIn('url', entries);
+      query.find()
+        .done(function (results) {
+          var COUNT_CONTAINER_REF = '.leancloud-visitors-count';
+
+          if (results.length === 0) {
+            $visitors.find(COUNT_CONTAINER_REF).text(0);
+            return;
+          }
+
+          for (var i = 0; i < results.length; i++) {
+            var item = results[i];
+            var url = item.get('url');
+            var time = item.get('time');
+            var element = document.getElementById(url);
+
+            $(element).find(COUNT_CONTAINER_REF).text(time);
+          }
+          for(var i = 0; i < entries.length; i++) {
+            var url = entries[i];
+            var element = document.getElementById(url);
+            var countSpan = $(element).find(COUNT_CONTAINER_REF);
+            if( countSpan.text() == '') {
+              countSpan.text(0);
+            }
+          }
+        })
+        .fail(function (object, error) {
+          console.log("Error: " + error.code + " " + error.message);
+        });
+    }
+
+    function addCount(Counter) {
+      var $visitors = $(".leancloud_visitors");
+      var url = $visitors.attr('id').trim();
+      var title = $visitors.attr('data-flag-title').trim();
+      var query = new AV.Query(Counter);
+
+      query.equalTo("url", url);
+      query.find({
+        success: function(results) {
+          if (results.length > 0) {
+            var counter = results[0];
+            counter.fetchWhenSave(true);
+            counter.increment("time");
+            counter.save(null, {
+              success: function(counter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(counter.get('time'));
+              },
+              error: function(counter, error) {
+                console.log('Failed to save Visitor num, with error message: ' + error.message);
+              }
+            });
+          } else {
+            var newcounter = new Counter();
+            /* Set ACL */
+            var acl = new AV.ACL();
+            acl.setPublicReadAccess(true);
+            acl.setPublicWriteAccess(true);
+            newcounter.setACL(acl);
+            /* End Set ACL */
+            newcounter.set("title", title);
+            newcounter.set("url", url);
+            newcounter.set("time", 1);
+            newcounter.save(null, {
+              success: function(newcounter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(newcounter.get('time'));
+              },
+              error: function(newcounter, error) {
+                console.log('Failed to create');
+              }
+            });
+          }
+        },
+        error: function(error) {
+          console.log('Error:' + error.code + " " + error.message);
+        }
+      });
+    }
+
+    $(function() {
+      var Counter = AV.Object.extend("Counter");
+      if ($('.leancloud_visitors').length == 1) {
+        addCount(Counter);
+      } else if ($('.post-title-link').length > 1) {
+        showTime(Counter);
+      }
+    });
+  </script>
+
+
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

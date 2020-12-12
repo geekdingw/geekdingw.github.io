@@ -287,7 +287,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://example.com/posts/fc4470e5.html">
+    <link itemprop="mainEntityOfPage" href="http://example.com/posts/e6afac5e.html">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="">
@@ -306,7 +306,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/posts/fc4470e5.html" itemprop="url">一次 RocketMQ 进程自动退出排查经验分享（实战篇）</a></h1>
+                <a class="post-title-link" href="/posts/e6afac5e.html" itemprop="url">RocketMQ实战：生产环境中，autoCreateTopicEnable为什么不能设置为true</a></h1>
         
 
         <div class="post-meta">
@@ -318,8 +318,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-12-07T23:04:01+08:00">
-                2020-12-07
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-12-08T22:25:35+08:00">
+                2020-12-08
               </time>
             
 
@@ -359,8 +359,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/posts/fc4470e5.html#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count valine-comment-count" data-xid="/posts/fc4470e5.html" itemprop="commentCount"></span>
+                <a href="/posts/e6afac5e.html#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count valine-comment-count" data-xid="/posts/e6afac5e.html" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -368,7 +368,7 @@
 
           
           
-             <span id="/posts/fc4470e5.html" class="leancloud_visitors" data-flag-title="一次 RocketMQ 进程自动退出排查经验分享（实战篇）">
+             <span id="/posts/e6afac5e.html" class="leancloud_visitors" data-flag-title="RocketMQ实战：生产环境中，autoCreateTopicEnable为什么不能设置为true">
                <span class="post-meta-divider">|</span>
                <span class="post-meta-item-icon">
                  <i class="fa fa-eye"></i>
@@ -393,7 +393,7 @@
                   <span class="post-meta-item-text">字数统计&#58;</span>
                 
                 <span title="字数统计">
-                  967 字
+                  2.2k 字
                 </span>
               
 
@@ -409,7 +409,7 @@
                   <span class="post-meta-item-text">阅读时长 &asymp;</span>
                 
                 <span title="阅读时长">
-                  3 分钟
+                  8 分钟
                 </span>
               
             </div>
@@ -431,15 +431,29 @@
 
       
         
-          <h2 id="1、背景"><a href="#1、背景" class="headerlink" title="1、背景"></a>1、背景</h2><p>公司一个 RocketMQ 集群由4主4从组成，突然其中3台服务器“竟然”在同一时间下线，其监控显示如下：<br><img src="https://img-blog.csdnimg.cn/20191026211319978.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>依次查看三台机器的监控图形，时间戳几乎完美“吻合”，不可思议吧。</p>
-<h2 id="2、故障分析"><a href="#2、故障分析" class="headerlink" title="2、故障分析"></a>2、故障分析</h2><p>出现问题，先二话不说，马上重启各服务器，尽快恢复集群，降低对业务的影响，接下来开始对日志进行分析。</p>
-<p>Java 进程自动退出(rocketmq 本身就是一个java进程)，一种最常见的问题是由于内存溢出或由于内存泄漏导致进程发送Crash等。由于我们的启动参数中未配置-XX:+HeapDumpOnOutOfMemoryError<br>-XX:HeapDumpPath=/opt/jvmdump 这两个参数，不能直接根据 是否生成 dump 文件，那退而求其次去查看其GC日志，将GC日志下载到本地，然后可以使用一个在线gc日志分析工具：<a target="_blank" rel="noopener" href="https://gceasy.io/">https://gceasy.io/</a> ，将 gc 日志上传后会给出图形化的展示，其图如下：<br><img src="https://img-blog.csdnimg.cn/20191026211454570.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br><img src="https://img-blog.csdnimg.cn/20191026211519396.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>发现垃圾回收很正常。</p>
-<p>既然 Java 进程不是由于内存溢出等问题导致的退出，那又会是什么原因呢？那我们来看一下那个点的broker的日志，其关键日志截图如下：<br><img src="https://img-blog.csdnimg.cn/20191026211607400.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>发现 broker 日志中有打印出 shutdownHook，表示在进程退出之前执行了启动时注册时的退出钩子函数，说明 broker 是正常停止的，并且也不可能是 kill -9 命令，肯定是显示的执行了 shutodown 或 kill 命令，于是立马使用 history 命令 查看历史命令，都未在指定时间执行过该命令，并且切换到 root 命令后，同样使用 history 命令，并未发现端倪。</p>
-<p>但我始终相信，肯定是执行了手动执行了 kill 命令导致进程退出的，经过网上查找查，得知可以通过查阅系统日志/var/log/messages 来查看系统命令的调用，于是乎把日志文件下载到本地，开始搜索 kill 关键字，发现如下日志：<br><img src="https://img-blog.csdnimg.cn/20191026211722459.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>发现最近一次 kill 命令是在25号的凌晨1点多，停止 rocketmq 集群，并使用 bin/mqbroker -c conf/broker-b.conf &amp; 进行了重新启动。</p>
-<p>这个命令是有问题的，没有使用 nohup ，如果会话失效，该进程就会被退出，为了验证，我们再查一下进程退出时的日志：</p>
+          <h2 id="1、现象"><a href="#1、现象" class="headerlink" title="1、现象"></a>1、现象</h2><p>很多网友会问，为什么明明集群中有多台Broker服务器，autoCreateTopicEnable设置为true，表示开启Topic自动创建，但新创建的Topic的路由信息只包含在其中一台Broker服务器上，这是为什么呢？</p>
+<p>期望值：为了消息发送的高可用，希望新创建的Topic在集群中的每台Broker上创建对应的队列，避免Broker的单节点故障。</p>
+<p>现象截图如下：<br><img src="https://img-blog.csdnimg.cn/20190611220611635.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="Broker集群信息"><br><img src="https://img-blog.csdnimg.cn/20190611220736135.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>正如上图所示，自动创建的topicTest5的路由信息：</p>
+<ul>
+<li>topicTest5只在broker-a服务器上创建了队列，并没有在broker-b服务器创建队列，不符合期望。</li>
+<li>默认读写队列的个数为4。</li>
+</ul>
+<p>我们再来看一下RocketMQ默认topic的路由信息截图如下：<br><img src="https://img-blog.csdnimg.cn/20190611220839184.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>从图中可以默认Topic的路由信息为broker-a、broker-b上各8个队列。</p>
+<h2 id="2、思考"><a href="#2、思考" class="headerlink" title="2、思考"></a>2、思考</h2><p>默认Topic的路由信息是如何创建的？</p>
+<ol>
+<li>Topic的路由信息是存储在哪里？Nameserver？broker?</li>
+<li>RocketMQ Topic默认队列个数是多少呢？</li>
+</ol>
+<h2 id="3、原理"><a href="#3、原理" class="headerlink" title="3、原理"></a>3、原理</h2><h3 id="3-1-RocketMQ基本路由规则"><a href="#3-1-RocketMQ基本路由规则" class="headerlink" title="3.1 RocketMQ基本路由规则"></a>3.1 RocketMQ基本路由规则</h3><p><img src="https://img-blog.csdnimg.cn/20190611221028332.jpg?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"></p>
+<ol>
+<li>Broker在启动时向Nameserver注册存储在该服务器上的路由信息，并每隔30s向Nameserver发送心跳包，并更新路由信息。</li>
+<li>Nameserver每隔10s扫描路由表，如果检测到Broker服务宕机，则移除对应的路由信息。</li>
+<li>消息生产者每隔30s会从Nameserver重新拉取Topic的路由信息并更新本地路由表；在消息发送之前，如果本地路由表中不存在对应主题的路由消息时，会主动向Nameserver拉取该主题的消息。</li>
+</ol>
+<p>回到本文的主题：autoCreateTopicEnable，开启自动创建主题，试想一下，如果生产者向一个不存在的主题发送消息时，上面的任何一个步骤都无法获取一个不存在的主题的路由信息，那该如何处理这种情况呢？</p>
           <!--noindex-->
           <div class="post-button text-center">
-            <a class="btn" href="/posts/fc4470e5.html#more" rel="contents">
+            <a class="btn" href="/posts/e6afac5e.html#more" rel="contents">
               阅读全文 &raquo;
             </a>
           </div>
@@ -490,7 +504,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://example.com/posts/cf8acd90.html">
+    <link itemprop="mainEntityOfPage" href="http://example.com/posts/be0ab616.html">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="">
@@ -509,7 +523,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/posts/cf8acd90.html" itemprop="url">再谈 RocketMQ broker busy(实战篇)</a></h1>
+                <a class="post-title-link" href="/posts/be0ab616.html" itemprop="url">RocketMQ 消息发送system busy、broker busy原因分析与解决方案</a></h1>
         
 
         <div class="post-meta">
@@ -521,8 +535,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-12-07T23:04:01+08:00">
-                2020-12-07
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-12-08T22:23:35+08:00">
+                2020-12-08
               </time>
             
 
@@ -562,8 +576,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/posts/cf8acd90.html#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count valine-comment-count" data-xid="/posts/cf8acd90.html" itemprop="commentCount"></span>
+                <a href="/posts/be0ab616.html#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count valine-comment-count" data-xid="/posts/be0ab616.html" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -571,7 +585,7 @@
 
           
           
-             <span id="/posts/cf8acd90.html" class="leancloud_visitors" data-flag-title="再谈 RocketMQ broker busy(实战篇)">
+             <span id="/posts/be0ab616.html" class="leancloud_visitors" data-flag-title="RocketMQ 消息发送system busy、broker busy原因分析与解决方案">
                <span class="post-meta-divider">|</span>
                <span class="post-meta-item-icon">
                  <i class="fa fa-eye"></i>
@@ -596,7 +610,1099 @@
                   <span class="post-meta-item-text">字数统计&#58;</span>
                 
                 <span title="字数统计">
-                  1k 字
+                  3.4k 字
+                </span>
+              
+
+              
+                <span class="post-meta-divider">|</span>
+              
+
+              
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-clock-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">阅读时长 &asymp;</span>
+                
+                <span title="阅读时长">
+                  12 分钟
+                </span>
+              
+            </div>
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          <h2 id="1、现象"><a href="#1、现象" class="headerlink" title="1、现象"></a>1、现象</h2><p>最近收到很多RocketMQ使用者，反馈生产环境中在消息发送过程中偶尔会出现如下4个错误信息之一：<br>1）[REJECTREQUEST]system busy, start flow control for a while<br>2）too many requests and system thread pool busy, RejectedExecutionException<br>3）[PC_SYNCHRONIZED]broker busy, start flow control for a while<br>4）[PCBUSY_CLEAN_QUEUE]broker busy, start flow control for a while, period in queue: %sms, size of queue: %d</p>
+<h2 id="2、原理解读"><a href="#2、原理解读" class="headerlink" title="2、原理解读"></a>2、原理解读</h2><p>在进行消息中间件的选型时，如果待选中间件在功能上、性能上都能满足业务的情况下，建议把中间件的实现语言这个因素也考虑进去，毕竟选择一门用自己擅长的语言实现的中间件会更具掌控性。在出现异常的情况下，我们可以根据自己的经验提取错误信息关键字system busy，在RocketMQ源码中直接搜索，得到抛出上述错误信息的代码如下：<br><img src="https://img-blog.csdnimg.cn/20190618213541816.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>其代码入口为：org.apache.rocketmq.remoting.netty.NettyRemotingAbstract#processRequestCommand。从图中可以看出，抛出上述错误的关键原因是：pair.getObject1().rejectRequest()和抛出RejectedExecutionException异常。</p>
+<blockquote>
+<p>备注：本文偏实战，源码只是作为分析的重点证据，故本文只会点出关键源码，并不会详细跟踪其整个实现流程，如果想详细了解其实现，可以查阅笔者编著的《RocketMQ技术内幕》。</p>
+</blockquote>
+<h3 id="2-1-RocketMQ-网络处理机制概述"><a href="#2-1-RocketMQ-网络处理机制概述" class="headerlink" title="2.1 RocketMQ 网络处理机制概述"></a>2.1 RocketMQ 网络处理机制概述</h3><p>RocketMQ的网络设计非常值得我们学习与借鉴，首先在客户端端将不同的请求定义不同的请求命令CODE，服务端会将客户端请求进行分类，每个命令或每类请求命令定义一个处理器(NettyRequestProcessor)，然后每一个NettyRequestProcessor绑定到一个单独的线程池，进行命令处理，不同类型的请求将使用不同的线程池进行处理，实现线程隔离。</p>
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/posts/be0ab616.html#more" rel="contents">
+              阅读全文 &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://example.com/posts/12eccc4e.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="中间件兴趣圈">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/posts/12eccc4e.html" itemprop="url">RocketMQ HA机制(主从同步)</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-12-08T22:22:35+08:00">
+                2020-12-08
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/rocketmq/" itemprop="url" rel="index">
+                    <span itemprop="name">rocketmq</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/posts/12eccc4e.html#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count valine-comment-count" data-xid="/posts/12eccc4e.html" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+             <span id="/posts/12eccc4e.html" class="leancloud_visitors" data-flag-title="RocketMQ HA机制(主从同步)">
+               <span class="post-meta-divider">|</span>
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               
+                 <span class="post-meta-item-text">阅读次数&#58;</span>
+               
+                 <span class="leancloud-visitors-count"></span>
+             </span>
+          
+
+          
+
+          
+            <div class="post-wordcount">
+              
+                
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-file-word-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">字数统计&#58;</span>
+                
+                <span title="字数统计">
+                  3.6k 字
+                </span>
+              
+
+              
+                <span class="post-meta-divider">|</span>
+              
+
+              
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-clock-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">阅读时长 &asymp;</span>
+                
+                <span title="阅读时长">
+                  13 分钟
+                </span>
+              
+            </div>
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          <blockquote>
+<p>温馨提示：建议参考代码RocketMQ4.4版本，4.5版本引入了多副本机制，实现了主从自动切换，本文并不关心主从切换功能。</p>
+</blockquote>
+<h2 id="1、初识主从同步"><a href="#1、初识主从同步" class="headerlink" title="1、初识主从同步"></a>1、初识主从同步</h2><p>主从同步基本实现过程如下图所示：<br><img src="https://img-blog.csdnimg.cn/20190625233757881.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>RocketMQ 的主从同步机制如下：<br>A. 首先启动Master并在指定端口监听；<br>B. 客户端启动，主动连接Master，建立TCP连接；<br>C. 客户端以每隔5s的间隔时间向服务端拉取消息，如果是第一次拉取的话，先获取本地commitlog文件中最大的偏移量，以该偏移量向服务端拉取消息；<br>D. 服务端解析请求，并返回一批数据给客户端；<br>E. 客户端收到一批消息后，将消息写入本地commitlog文件中，然后向Master汇报拉取进度，并更新下一次待拉取偏移量；<br>F. 然后重复第3步；</p>
+<p>RocketMQ主从同步一个重要的特征：主从同步不具备主从切换功能，即当主节点宕机后，从不会接管消息发送，但可以提供消息读取。</p>
+<blockquote>
+<p>温馨提示：本文并不会详细分析RocketMQ主从同步的实现细节，如大家对其感兴趣，可以查阅笔者所著的《RocketMQ技术内幕》或查看笔者博文：<a target="_blank" rel="noopener" href="https://blog.csdn.net/prestigeding/article/details/79600792">https://blog.csdn.net/prestigeding/article/details/79600792</a></p>
+</blockquote>
+<h2 id="2、提出问题"><a href="#2、提出问题" class="headerlink" title="2、提出问题"></a>2、提出问题</h2><ul>
+<li>主，从服务器都在运行过程中，消息消费者是从主拉取消息还是从从拉取？</li>
+<li>RocketMQ主从同步架构中，如果主服务器宕机，从服务器会接管消息消费，此时消息消费进度如何保持，当主服务器恢复后，消息消费者是从主拉取消息还是从从服务器拉取，主从服务器之间的消息消费进度如何同步？</li>
+</ul>
+<p>接下来带着上述问题，一起来探究其实现原理。</p>
+<h2 id="3、原理探究"><a href="#3、原理探究" class="headerlink" title="3、原理探究"></a>3、原理探究</h2><h3 id="3-1-RocketMQ主从读写分离机制"><a href="#3-1-RocketMQ主从读写分离机制" class="headerlink" title="3.1 RocketMQ主从读写分离机制"></a>3.1 RocketMQ主从读写分离机制</h3><p>RocketMQ的主从同步，在默认情况下RocketMQ会优先选择从主服务器进行拉取消息，并不是通常意义的上的读写分离，那什么时候会从拉取呢？</p>
+<blockquote>
+<p>温馨提示：本节同样不会详细整个流程，只会点出其关键点，如果想详细了解消息拉取、消息消费等核心流程，建议大家查阅笔者所著的《RocketMQ技术内幕》。</p>
+</blockquote>
+<p>在RocketMQ中判断是从主拉取，还是从从拉取的核心代码如下：<br>DefaultMessageStore#getMessage</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">long</span> diff = maxOffsetPy - maxPhyOffsetPulling;  <span class="comment">// @1</span></span><br><span class="line"><span class="keyword">long</span> memory = (<span class="keyword">long</span>) (StoreUtil.TOTAL_PHYSICAL_MEMORY_SIZE</span><br><span class="line">                            * (<span class="keyword">this</span>.messageStoreConfig.getAccessMessageInMemoryMaxRatio() / <span class="number">100.0</span>));  <span class="comment">// @2</span></span><br><span class="line">getResult.setSuggestPullingFromSlave(diff &gt; memory);   <span class="comment">// @3</span></span><br></pre></td></tr></table></figure>
+<p>代码@1：首先介绍一下几个局部变量的含义：</p>
+<ul>
+<li>maxOffsetPy<br>当前最大的物理偏移量。返回的偏移量为已存入到操作系统的PageCache中的内容。</li>
+<li>maxPhyOffsetPulling<br>本次消息拉取最大物理偏移量，按照消息顺序拉取的基本原则，可以基本预测下次开始拉取的物理偏移量将大于该值，并且就在其附近。</li>
+<li>diff<br>maxOffsetPy与maxPhyOffsetPulling之间的间隔，getMessage通常用于消息消费时，即这个间隔可以理解为目前未处理的消息总大小。</li>
+</ul>
+<p>代码@2：获取RocketMQ消息存储在PageCache中的总大小，如果当RocketMQ容量超过该阔值，将会将被置换出内存，如果要访问不在PageCache中的消息，则需要从磁盘读取。</p>
+<ul>
+<li>StoreUtil.TOTAL_PHYSICAL_MEMORY_SIZE<br>返回当前系统的总物理内存。参数</li>
+<li>accessMessageInMemoryMaxRatio<br>设置消息存储在内存中的阀值，默认为40。<br>结合代码@2这两个参数的含义，算出RocketMQ消息能映射到内存中最大值为40% * (机器物理内存)。</li>
+</ul>
+<p>代码@3：设置下次拉起是否从从拉取标记，触发下次从从服务器拉取的条件为：当前所有可用消息数据(所有commitlog)文件的大小已经超过了其阔值，默认为物理内存的40%。</p>
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/posts/12eccc4e.html#more" rel="contents">
+              阅读全文 &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://example.com/posts/a6ee7996.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="中间件兴趣圈">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/posts/a6ee7996.html" itemprop="url">源码分析RocketMQ ACL实现机制</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-12-08T22:20:35+08:00">
+                2020-12-08
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/rocketmq/" itemprop="url" rel="index">
+                    <span itemprop="name">rocketmq</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/posts/a6ee7996.html#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count valine-comment-count" data-xid="/posts/a6ee7996.html" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+             <span id="/posts/a6ee7996.html" class="leancloud_visitors" data-flag-title="源码分析RocketMQ ACL实现机制">
+               <span class="post-meta-divider">|</span>
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               
+                 <span class="post-meta-item-text">阅读次数&#58;</span>
+               
+                 <span class="leancloud-visitors-count"></span>
+             </span>
+          
+
+          
+
+          
+            <div class="post-wordcount">
+              
+                
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-file-word-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">字数统计&#58;</span>
+                
+                <span title="字数统计">
+                  3.5k 字
+                </span>
+              
+
+              
+                <span class="post-meta-divider">|</span>
+              
+
+              
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-clock-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">阅读时长 &asymp;</span>
+                
+                <span title="阅读时长">
+                  15 分钟
+                </span>
+              
+            </div>
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          <p>有关RocketMQ ACL的使用请查看上一篇<a target="_blank" rel="noopener" href="https://blog.csdn.net/prestigeding/article/details/94317946">《RocketMQ ACL使用指南》</a>，本文从源码的角度，分析一下RocketMQ ACL的实现原理。</p>
+<blockquote>
+<p>备注：RocketMQ在4.4.0时引入了ACL机制，本文代码基于RocketMQ4.5.0版本。</p>
+</blockquote>
+<p>@<a href="%E6%9C%AC%E8%8A%82%E7%9B%AE%E5%BD%95">TOC</a><br>根据RocketMQ ACL使用手册，我们应该首先看一下Broker服务器在开启ACL机制时如何加载配置文件，并如何工作的。</p>
+<h2 id="1、BrokerController-initialAcl"><a href="#1、BrokerController-initialAcl" class="headerlink" title="1、BrokerController#initialAcl"></a>1、BrokerController#initialAcl</h2><p>Broker端ACL的入口代码为：BrokerController#initialAcl</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">initialAcl</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (!<span class="keyword">this</span>.brokerConfig.isAclEnable()) &#123;                           <span class="comment">// @1</span></span><br><span class="line">        log.info(<span class="string">&quot;The broker dose not enable acl&quot;</span>);</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    List&lt;AccessValidator&gt; accessValidators = ServiceProvider.load(ServiceProvider.ACL_VALIDATOR_ID, AccessValidator.class);   <span class="comment">// @2</span></span><br><span class="line">    <span class="keyword">if</span> (accessValidators == <span class="keyword">null</span> || accessValidators.isEmpty()) &#123;</span><br><span class="line">        log.info(<span class="string">&quot;The broker dose not load the AccessValidator&quot;</span>);</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span> (AccessValidator accessValidator: accessValidators) &#123;                       <span class="comment">// @3</span></span><br><span class="line">        <span class="keyword">final</span> AccessValidator validator = accessValidator;</span><br><span class="line">        <span class="keyword">this</span>.registerServerRPCHook(<span class="keyword">new</span> RPCHook() &#123;</span><br><span class="line"></span><br><span class="line">            <span class="meta">@Override</span></span><br><span class="line">            <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">doBeforeRequest</span><span class="params">(String remoteAddr, RemotingCommand request)</span> </span>&#123;</span><br><span class="line">                <span class="comment">//Do not catch the exception</span></span><br><span class="line">                validator.validate(validator.parse(request, remoteAddr));                         <span class="comment">// @4</span></span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            <span class="meta">@Override</span></span><br><span class="line">            <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">doAfterResponse</span><span class="params">(String remoteAddr, RemotingCommand request, RemotingCommand response)</span> </span>&#123;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>本方法的实现共4个关键点。<br>代码@1：首先判断Broker是否开启了acl，通过配置参数aclEnable指定，默认为false。</p>
+<p>代码@2：使用类似SPI机制，加载配置的AccessValidator,该方法返回一个列表，其实现逻辑时读取META-INF/service/org.apache.rocketmq.acl.AccessValidator文件中配置的访问验证器，默认配置内容如下：<br><img src="https://img-blog.csdnimg.cn/20190707120439720.png" alt="在这里插入图片描述"><br>代码@3：遍历配置的访问验证器(AccessValidator),并向Broker处理服务器注册钩子函数，RPCHook的doBeforeRequest方法会在服务端接收到请求，将其请求解码后，执行处理请求之前被调用;RPCHook的doAfterResponse方法会在处理完请求后，将结果返回之前被调用，其调用如图所示：<br><img src="https://img-blog.csdnimg.cn/20190707120505807.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>代码@4：在RPCHook#doBeforeRequest方法中调用AccessValidator#validate, 在真实处理命令之前，先执行ACL的验证逻辑，如果拥有该操作的执行权限，则放行，否则抛出AclException。</p>
+<p>接下来，我们将重点放到Broker默认实现的访问验证器：PlainAccessValidator。</p>
+<h2 id="2、PlainAccessValidator"><a href="#2、PlainAccessValidator" class="headerlink" title="2、PlainAccessValidator"></a>2、PlainAccessValidator</h2><h3 id="2-1-类图"><a href="#2-1-类图" class="headerlink" title="2.1 类图"></a>2.1 类图</h3><p><img src="https://img-blog.csdnimg.cn/20190707120530560.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"></p>
+<ul>
+<li>AccessValidator<br>访问验证器接口，主要定义两个接口。<br>1）AccessResource parse(RemotingCommand request, String remoteAddr)<br>从请求头中解析本次请求对应的访问资源，即本次请求需要的访问权限。<br>2）void validate(AccessResource accessResource)<br>根据本次需要访问的权限，与请求用户拥有的权限进行对比验证，判断是拥有权限，如果没有访问该操作的权限，则抛出异常，否则放行。</li>
+<li>PlainAccessValidator<br>RocketMQ默认提供的基于yml配置格式的访问验证器。</li>
+</ul>
+<p>接下来我们重点看一下PlainAccessValidator的parse方法与validate方法的实现细节。在讲解该方法之前，我们首先认识一下RocketMQ封装访问资源的PlainAccessResource。</p>
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/posts/a6ee7996.html#more" rel="contents">
+              阅读全文 &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://example.com/posts/7b95946e.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="中间件兴趣圈">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/posts/7b95946e.html" itemprop="url">RocketMQ ACL 使用指南</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-12-08T22:08:35+08:00">
+                2020-12-08
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/rocketmq/" itemprop="url" rel="index">
+                    <span itemprop="name">rocketmq</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/posts/7b95946e.html#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count valine-comment-count" data-xid="/posts/7b95946e.html" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+             <span id="/posts/7b95946e.html" class="leancloud_visitors" data-flag-title="RocketMQ ACL 使用指南">
+               <span class="post-meta-divider">|</span>
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               
+                 <span class="post-meta-item-text">阅读次数&#58;</span>
+               
+                 <span class="leancloud-visitors-count"></span>
+             </span>
+          
+
+          
+
+          
+            <div class="post-wordcount">
+              
+                
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-file-word-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">字数统计&#58;</span>
+                
+                <span title="字数统计">
+                  1.4k 字
+                </span>
+              
+
+              
+                <span class="post-meta-divider">|</span>
+              
+
+              
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-clock-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">阅读时长 &asymp;</span>
+                
+                <span title="阅读时长">
+                  6 分钟
+                </span>
+              
+            </div>
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          <h2 id="1、什么是ACL"><a href="#1、什么是ACL" class="headerlink" title="1、什么是ACL?"></a>1、什么是ACL?</h2><p>ACL是access control list的简称，俗称访问控制列表。访问控制，基本上会涉及到用户、资源、权限、角色等概念，那在RocketMQ中上述会对应哪些对象呢？</p>
+<ul>
+<li>用户<br>用户是访问控制的基础要素，也不难理解，RocketMQ ACL必然也会引入用户的概念，即支持用户名、密码。</li>
+<li>资源<br>资源，需要保护的对象，在RocketMQ中，消息发送涉及的Topic、消息消费涉及的消费组，应该进行保护，故可以抽象成资源。</li>
+<li>权限<br>针对资源，能进行的操作，</li>
+<li>角色<br>RocketMQ中，只定义两种角色：是否是管理员。</li>
+</ul>
+<p>另外，RocketMQ还支持按照客户端IP进行白名单设置。</p>
+<h2 id="2、ACL基本流程图"><a href="#2、ACL基本流程图" class="headerlink" title="2、ACL基本流程图"></a>2、ACL基本流程图</h2><p>在讲解如何使用ACL之前，我们先简单看一下RocketMQ ACL的请求流程：<br><img src="https://img-blog.csdnimg.cn/2019063014185470.jpg?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>对于上述具体的实现，将在后续文章中重点讲解，本文的目的只是希望给读者一个大概的了解。</p>
+<h2 id="3、如何配置ACL"><a href="#3、如何配置ACL" class="headerlink" title="3、如何配置ACL"></a>3、如何配置ACL</h2><h3 id="3-1-acl配置文件"><a href="#3-1-acl配置文件" class="headerlink" title="3.1 acl配置文件"></a>3.1 acl配置文件</h3><p>acl默认的配置文件名：plain_acl.yml,需要放在${ROCKETMQ_HOME}/store/config目录下。下面对其配置项一一介绍。</p>
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/posts/7b95946e.html#more" rel="contents">
+              阅读全文 &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://example.com/posts/e8f03b64.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="中间件兴趣圈">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/posts/e8f03b64.html" itemprop="url">源码分析RocketMQ消息轨迹</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-12-08T22:01:35+08:00">
+                2020-12-08
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/rocketmq/" itemprop="url" rel="index">
+                    <span itemprop="name">rocketmq</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/posts/e8f03b64.html#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count valine-comment-count" data-xid="/posts/e8f03b64.html" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+             <span id="/posts/e8f03b64.html" class="leancloud_visitors" data-flag-title="源码分析RocketMQ消息轨迹">
+               <span class="post-meta-divider">|</span>
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               
+                 <span class="post-meta-item-text">阅读次数&#58;</span>
+               
+                 <span class="leancloud-visitors-count"></span>
+             </span>
+          
+
+          
+
+          
+            <div class="post-wordcount">
+              
+                
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-file-word-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">字数统计&#58;</span>
+                
+                <span title="字数统计">
+                  3.6k 字
+                </span>
+              
+
+              
+                <span class="post-meta-divider">|</span>
+              
+
+              
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-clock-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">阅读时长 &asymp;</span>
+                
+                <span title="阅读时长">
+                  16 分钟
+                </span>
+              
+            </div>
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          <p>本文沿着<a target="_blank" rel="noopener" href="https://blog.csdn.net/prestigeding/article/details/95922489">《RocketMQ消息轨迹-设计篇》</a>的思路，从如下3个方面对其源码进行解读：</p>
+<ol>
+<li>发送消息轨迹</li>
+<li>消息轨迹格式</li>
+<li>存储消息轨迹数据</li>
+</ol>
+<h2 id="1、发送消息轨迹流程"><a href="#1、发送消息轨迹流程" class="headerlink" title="1、发送消息轨迹流程"></a>1、发送消息轨迹流程</h2><p>首先我们来看一下在消息发送端如何启用消息轨迹，示例代码如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">TraceProducer</span> </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> MQClientException, InterruptedException </span>&#123;</span><br><span class="line">        DefaultMQProducer producer = <span class="keyword">new</span> DefaultMQProducer(<span class="string">&quot;ProducerGroupName&quot;</span>,<span class="keyword">true</span>);      <span class="comment">// @1</span></span><br><span class="line">        producer.setNamesrvAddr(<span class="string">&quot;127.0.0.1:9876&quot;</span>);</span><br><span class="line">        producer.start();</span><br><span class="line">        <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; <span class="number">10</span>; i++)</span><br><span class="line">            <span class="keyword">try</span> &#123;</span><br><span class="line">                &#123;</span><br><span class="line">                    Message msg = <span class="keyword">new</span> Message(<span class="string">&quot;TopicTest&quot;</span>,</span><br><span class="line">                        <span class="string">&quot;TagA&quot;</span>,</span><br><span class="line">                        <span class="string">&quot;OrderID188&quot;</span>,</span><br><span class="line">                        <span class="string">&quot;Hello world&quot;</span>.getBytes(RemotingHelper.DEFAULT_CHARSET));</span><br><span class="line">                    SendResult sendResult = producer.send(msg);</span><br><span class="line">                    System.out.printf(<span class="string">&quot;%s%n&quot;</span>, sendResult);</span><br><span class="line">                &#125;</span><br><span class="line"></span><br><span class="line">            &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">                e.printStackTrace();</span><br><span class="line">            &#125;</span><br><span class="line">        producer.shutdown();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>从上述代码可以看出其关键点是在创建DefaultMQProducer时指定开启消息轨迹跟踪。我们不妨浏览一下DefaultMQProducer与启用消息轨迹相关的构造函数：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="title">DefaultMQProducer</span><span class="params">(<span class="keyword">final</span> String producerGroup, <span class="keyword">boolean</span> enableMsgTrace)</span></span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="title">DefaultMQProducer</span><span class="params">(<span class="keyword">final</span> String producerGroup, <span class="keyword">boolean</span> enableMsgTrace, <span class="keyword">final</span> String customizedTraceTopic)</span></span></span><br></pre></td></tr></table></figure>
+<p>参数如下：</p>
+<ul>
+<li>String producerGroup<br>生产者所属组名。</li>
+<li>boolean enableMsgTrace<br>是否开启跟踪消息轨迹，默认为false。</li>
+<li>String customizedTraceTopic<br>如果开启消息轨迹跟踪，用来存储消息轨迹数据所属的主题名称，默认为：RMQ_SYS_TRACE_TOPIC。</li>
+</ul>
+<h3 id="1-1-DefaultMQProducer构造函数"><a href="#1-1-DefaultMQProducer构造函数" class="headerlink" title="1.1 DefaultMQProducer构造函数"></a>1.1 DefaultMQProducer构造函数</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="title">DefaultMQProducer</span><span class="params">(<span class="keyword">final</span> String producerGroup, RPCHook rpcHook, <span class="keyword">boolean</span> enableMsgTrace,<span class="keyword">final</span> String customizedTraceTopic)</span> </span>&#123;      <span class="comment">// @1</span></span><br><span class="line">    <span class="keyword">this</span>.producerGroup = producerGroup;</span><br><span class="line">    defaultMQProducerImpl = <span class="keyword">new</span> DefaultMQProducerImpl(<span class="keyword">this</span>, rpcHook);</span><br><span class="line">    <span class="comment">//if client open the message trace feature</span></span><br><span class="line">    <span class="keyword">if</span> (enableMsgTrace) &#123;                                                                                                                                                                                            <span class="comment">// @2</span></span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            AsyncTraceDispatcher dispatcher = <span class="keyword">new</span> AsyncTraceDispatcher(customizedTraceTopic, rpcHook);                                                         </span><br><span class="line">            dispatcher.setHostProducer(<span class="keyword">this</span>.getDefaultMQProducerImpl());</span><br><span class="line">            traceDispatcher = dispatcher;</span><br><span class="line">            <span class="keyword">this</span>.getDefaultMQProducerImpl().registerSendMessageHook(</span><br><span class="line">                <span class="keyword">new</span> SendMessageTraceHookImpl(traceDispatcher));                                                                                                                             <span class="comment">// @3</span></span><br><span class="line">        &#125; <span class="keyword">catch</span> (Throwable e) &#123;</span><br><span class="line">            log.error(<span class="string">&quot;system mqtrace hook init failed ,maybe can&#x27;t send msg trace data&quot;</span>);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>代码@1：首先介绍一下其局部变量。</p>
+<ul>
+<li>String producerGroup<br>生产者所属组。</li>
+<li>RPCHook rpcHook<br>生产者发送钩子函数。</li>
+<li>boolean enableMsgTrace<br>是否开启消息轨迹跟踪。</li>
+<li>String customizedTraceTopic<br>定制用于存储消息轨迹的数据。</li>
+</ul>
+<p>代码@2：用来构建AsyncTraceDispatcher，看其名：异步转发消息轨迹数据，稍后重点关注。</p>
+<p>代码@3：构建SendMessageTraceHookImpl对象，并使用AsyncTraceDispatcher用来异步转发。</p>
+<h3 id="1-2-SendMessageTraceHookImpl钩子函数"><a href="#1-2-SendMessageTraceHookImpl钩子函数" class="headerlink" title="1.2 SendMessageTraceHookImpl钩子函数"></a>1.2 SendMessageTraceHookImpl钩子函数</h3><h4 id="1-2-1-SendMessageTraceHookImpl类图"><a href="#1-2-1-SendMessageTraceHookImpl类图" class="headerlink" title="1.2.1 SendMessageTraceHookImpl类图"></a>1.2.1 SendMessageTraceHookImpl类图</h4><p><img src="https://img-blog.csdnimg.cn/20190803203518449.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"></p>
+<ol>
+<li>SendMessageHook<br>消息发送钩子函数，用于在消息发送之前、发送之后执行一定的业务逻辑，是记录消息轨迹的最佳扩展点。</li>
+<li>TraceDispatcher<br>消息轨迹转发处理器，其默认实现类AsyncTraceDispatcher，异步实现消息轨迹数据的发送。下面对其属性做一个简单的介绍：<ul>
+<li>int queueSize<br>异步转发，队列长度，默认为2048，当前版本不能修改。</li>
+<li>int batchSize<br>批量消息条数，消息轨迹一次消息发送请求包含的数据条数，默认为100，当前版本不能修改。</li>
+<li>int maxMsgSize<br>消息轨迹一次发送的最大消息大小，默认为128K，当前版本不能修改。</li>
+<li>DefaultMQProducer traceProducer<br>  用来发送消息轨迹的消息发送者。</li>
+<li>ThreadPoolExecutor traceExecuter<br>线程池，用来异步执行消息发送。</li>
+<li>AtomicLong discardCount<br>记录丢弃的消息个数。</li>
+<li>Thread worker<br>woker线程，主要负责从追加队列中获取一批待发送的消息轨迹数据，提交到线程池中执行。</li>
+<li>ArrayBlockingQueue&lt; TraceContext&gt; traceContextQueue<br>消息轨迹TraceContext队列，用来存放待发送到服务端的消息。</li>
+<li>ArrayBlockingQueue&lt; Runnable&gt; appenderQueue<br>线程池内部队列，默认长度1024。</li>
+<li>DefaultMQPushConsumerImpl hostConsumer<br>消费者信息，记录消息消费时的轨迹信息。</li>
+<li>String traceTopicName<br>用于跟踪消息轨迹的topic名称。</li>
+</ul>
+</li>
+</ol>
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/posts/e8f03b64.html#more" rel="contents">
+              阅读全文 &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://example.com/posts/98d74d79.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="中间件兴趣圈">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/posts/98d74d79.html" itemprop="url">RocketMQ消息轨迹-设计篇</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-12-08T21:55:35+08:00">
+                2020-12-08
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/rocketmq/" itemprop="url" rel="index">
+                    <span itemprop="name">rocketmq</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/posts/98d74d79.html#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count valine-comment-count" data-xid="/posts/98d74d79.html" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+             <span id="/posts/98d74d79.html" class="leancloud_visitors" data-flag-title="RocketMQ消息轨迹-设计篇">
+               <span class="post-meta-divider">|</span>
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               
+                 <span class="post-meta-item-text">阅读次数&#58;</span>
+               
+                 <span class="leancloud-visitors-count"></span>
+             </span>
+          
+
+          
+
+          
+            <div class="post-wordcount">
+              
+                
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-file-word-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">字数统计&#58;</span>
+                
+                <span title="字数统计">
+                  1.1k 字
                 </span>
               
 
@@ -634,20 +1740,35 @@
 
       
         
-          <p>本文将在 <a target="_blank" rel="noopener" href="https://blog.csdn.net/prestigeding/article/details/92800672">RocketMQ 消息发送system busy、broker busy原因分析与解决方案</a> 的基础上，结合生产上的日志尝试再次理解 broker busy 以及探讨解决方案。</p>
-<p>首先，broker busy 相关的日志关键字如下：</p>
+          <p>RocketMQ消息轨迹主要包含两篇文章：设计篇与源码分析篇，本节将详细介绍RocketMQ消息轨迹-设计相关。</p>
+<p>RocketMQ消息轨迹，主要跟踪消息发送、消息消费的轨迹，即详细记录消息各个处理环节的日志，从设计上至少需要解决如下三个核心问题：</p>
 <ul>
-<li>[REJECTREQUEST]system busy</li>
-<li>too many requests and system thread pool busy</li>
-<li>[PC_SYNCHRONIZED]broker busy</li>
-<li>[PCBUSY_CLEAN_QUEUE]broker busy</li>
-<li>[TIMEOUT_CLEAN_QUEUE]broker busy</li>
+<li>消费轨迹数据格式</li>
+<li>记录消息轨迹(消息日志)</li>
+<li>消息轨迹数据存储在哪？</li>
 </ul>
-<p>上述前面4个关键字在上篇文章中已详细介绍，本文先对出现上述错误进行一个总结，具体的分析过程请查阅上篇文章。</p>
-<p>本文先给出一张流程图，展示上述5种 broker busy 分别会在消息发送的哪个阶段抛出，以便大家能够清晰的了解其发生的原因。<br><img src="https://img-blog.csdnimg.cn/20191024084015845.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br><strong>针对前4种 broker busy 出现的问题已经在上篇文章中详细介绍，主要是由于 Broker 在追加消息时持有的锁时间超过了设置的1s，Broker 为了自我保护，会抛出错误，客户端会选择其他 broker 服务器进行重试。如果对不是金融级服务，建议将 transientStorePoolEnable = true，可以有效避免前面 4 种 broker ，因为开启这个参数，消息首先会存储在堆外内存中，并且 RocketMQ 提供了内存锁定的功能，其追加性能能得到一定的保障，这样可以做到在内存使用层面的读写分离，即写消息是直接写入堆外内存，消费消息直接从 pagecache中读，然后定时将堆外内存的消息写入 pagecache。但这种方案随之带来的就是可能存在消息丢失，如果对消息非常严谨的话，建议扩容集群，或迁移topic到新的集群。</strong></p>
+<h2 id="1、消息轨迹数据格式"><a href="#1、消息轨迹数据格式" class="headerlink" title="1、消息轨迹数据格式"></a>1、消息轨迹数据格式</h2><p>RocketMQ4.5版本消息轨迹主要记录如下信息：</p>
+<ul>
+<li>traceType<br>跟踪类型，可选值：Pub(消息发送)、SubBefore(消息拉取到客户端，执行业务定义的消费逻辑之前)、SubAfter(消费后)。</li>
+<li>timeStamp<br>当前时间戳。</li>
+<li>regionId<br>broker所在的区域ID，取自BrokerConfig#regionId。</li>
+<li>groupName<br>组名称，traceType为Pub时为生产者组的名称；如果traceType为subBefore或subAfter时为消费组名称。</li>
+<li>requestId<br>traceType为subBefore、subAfter时使用，消费端的请求Id。</li>
+<li>topic<br>消息主题。</li>
+<li>msgId<br>消息唯一ID。</li>
+<li>tags<br>消息tag。</li>
+<li>keys<br>消息索引key，根据该key可快速检索消息。</li>
+<li>storeHost<br>跟踪类型为PUB时为存储该消息的Broker服务器IP；跟踪类型为subBefore、subAfter时为消费者IP。</li>
+<li>bodyLength<br>消息体的长度。</li>
+<li>costTime<br>耗时。</li>
+<li>msgType<br>消息的类型，可选值：Normal_Msg(普通消息),Trans_Msg_Half(预提交消息),Trans_msg_Commit(提交消息),Delay_Msg(延迟消息)。</li>
+<li>offsetMsgId<br>消息偏移量ID,该ID中包含了broker的ip以及偏移量。</li>
+<li>success<br>是发送成功。</li>
+<li>contextCode<br>消费状态码，可选值：SUCCESS,TIME_OUT,EXCEPTION,RETURNNULL,FAILED。</li>
+</ul>
           <!--noindex-->
           <div class="post-button text-center">
-            <a class="btn" href="/posts/cf8acd90.html#more" rel="contents">
+            <a class="btn" href="/posts/98d74d79.html#more" rel="contents">
               阅读全文 &raquo;
             </a>
           </div>
@@ -698,7 +1819,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://example.com/posts/9b5ea02.html">
+    <link itemprop="mainEntityOfPage" href="http://example.com/posts/12736650.html">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="">
@@ -717,7 +1838,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/posts/9b5ea02.html" itemprop="url">踩坑记：rocketmq-console 消费TPS为0，但消息积压数却在降低是个什么“鬼”</a></h1>
+                <a class="post-title-link" href="/posts/12736650.html" itemprop="url">源码阅读技巧篇：RocketMQ DLedger 多副本即主从切换专栏回顾</a></h1>
         
 
         <div class="post-meta">
@@ -729,8 +1850,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-12-07T23:02:57+08:00">
-                2020-12-07
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-12-08T21:55:35+08:00">
+                2020-12-08
               </time>
             
 
@@ -770,8 +1891,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/posts/9b5ea02.html#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count valine-comment-count" data-xid="/posts/9b5ea02.html" itemprop="commentCount"></span>
+                <a href="/posts/12736650.html#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count valine-comment-count" data-xid="/posts/12736650.html" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -779,7 +1900,7 @@
 
           
           
-             <span id="/posts/9b5ea02.html" class="leancloud_visitors" data-flag-title="踩坑记：rocketmq-console 消费TPS为0，但消息积压数却在降低是个什么“鬼”">
+             <span id="/posts/12736650.html" class="leancloud_visitors" data-flag-title="源码阅读技巧篇：RocketMQ DLedger 多副本即主从切换专栏回顾">
                <span class="post-meta-divider">|</span>
                <span class="post-meta-item-icon">
                  <i class="fa fa-eye"></i>
@@ -804,474 +1925,7 @@
                   <span class="post-meta-item-text">字数统计&#58;</span>
                 
                 <span title="字数统计">
-                  4k 字
-                </span>
-              
-
-              
-                <span class="post-meta-divider">|</span>
-              
-
-              
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-clock-o"></i>
-                </span>
-                
-                  <span class="post-meta-item-text">阅读时长 &asymp;</span>
-                
-                <span title="阅读时长">
-                  17 分钟
-                </span>
-              
-            </div>
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          <h2 id="1、背景"><a href="#1、背景" class="headerlink" title="1、背景"></a>1、背景</h2><p>当消息出现大量挤压后，消费端将其代码优化后，重启消费端服务器，从 rocketmq-console 上发现 TPS 为 0，如图所示：<br><img src="https://img-blog.csdnimg.cn/20191130162947883.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>乍一看，第一时间得出应用还未恢复，就开始去查看相关的启动日志,通常查看的是应用服务器的 /home/baseuser/logs/rockemqlogs/rocketmq_client.logs，碰巧又看到如下的错误日志：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">RebalanceService - [BUG] ConsumerGroup: consumergourp-1 The consumerId: consumer-client-id-clusterA-192.168.x.x@21932 not in cidAll: [consumer-client-id-clusterA-192.168.x.x@22164]</span><br></pre></td></tr></table></figure>
-<p>上面的日志显示在队列负载时候，当前节点竟然不属于 consumergourp-1 消费组的活跃连接，导致一大片的报错：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">2019-11-02 19:29:17 WARN NettyClientPublicExecutor_1 - execute the pull request exception</span><br><span class="line">org.apache.rocketmq.client.exception.MQBrokerException: CODE: 25  DESC: the consumer&#39;s subscription not latest</span><br><span class="line">For more information, please visit the url, http:&#x2F;&#x2F;rocketmq.apache.org&#x2F;docs&#x2F;faq&#x2F;</span><br><span class="line">	at org.apache.rocketmq.client.impl.MQClientAPIImpl.processPullResponse(MQClientAPIImpl.java:639)</span><br><span class="line">	at org.apache.rocketmq.client.impl.MQClientAPIImpl.access$200(MQClientAPIImpl.java:156)</span><br><span class="line">	at org.apache.rocketmq.client.impl.MQClientAPIImpl$2.operationComplete(MQClientAPIImpl.java:592)</span><br><span class="line">	at org.apache.rocketmq.remoting.netty.ResponseFuture.executeInvokeCallback(ResponseFuture.java:51)</span><br><span class="line">	at org.apache.rocketmq.remoting.netty.NettyRemotingAbstract$2.run(NettyRemotingAbstract.java:275)</span><br><span class="line">	at java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:511)</span><br><span class="line">	at java.util.concurrent.FutureTask.run(FutureTask.java:266)</span><br><span class="line">	at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1142)</span><br><span class="line">	at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:617)</span><br><span class="line">	at java.lang.Thread.run(Thread.java:745)</span><br></pre></td></tr></table></figure>
-<p>乍一看确实是 rocketmq 相关的问题，导致上述 消费TPS 为0，经过半个小时的日志分析，发现这是RocketMQ 这是一种正常现象，最终会自动恢复，这里我留一个<strong>伏笔</strong>，将在我的<strong>知识星球</strong>中与广大星友讨论，<strong>经过日志分析得出 rocketmq 没问题，故后面去查看消息积压，发现消息积压明显在减少，那这就奇了怪了，咋消息积压在快速减少，但为啥消费TPS还是为0呢？</strong></p>
-<p>接下来将该问题进行探讨。</p>
-<blockquote>
-<p>温馨提示：在问题分析部分，作者没有直接给出答案，而是一步一步探寻答案，因此会通过追踪源码来寻求答案，如果大家想急于答案，可以跳过问题分析，直接查看本文末尾的问题解答部分。<br>通过本文的阅读，您将获得如下信息：<br>1、RocketMQ 消费TPS的收集与计算逻辑。<br>2、RocketMQ 监控指标的设计思路。<br>3、RocketMQ 主从同步，消费者从主服务器拉取还是从从服务器拉取的判断逻辑。</p>
-</blockquote>
-<h2 id="2、问题分析"><a href="#2、问题分析" class="headerlink" title="2、问题分析"></a>2、问题分析</h2><h4 id="2-1-rocketmq-console-数据获获取逻辑探讨"><a href="#2-1-rocketmq-console-数据获获取逻辑探讨" class="headerlink" title="2.1 rocketmq-console 数据获获取逻辑探讨"></a>2.1 rocketmq-console 数据获获取逻辑探讨</h4><p>要解开消费TPS 显示为０的问题，我们首先要来看一下 rocketmq-console 这个页面的展示逻辑，即通过阅读 rocketmq-console的源码来解开其采集逻辑。<br><img src="https://img-blog.csdnimg.cn/20191130163430404.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>得知，【消费者】界面查询各个消费组的基本信息的接口为 /consumer/groupList.query，那接下来，我们首先从源码的角度来分析该接口的实现逻辑。其入口如下：</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line">org.apache.rocketmq.console.controller.ConsumerController#list</span><br><span class="line"><span class="meta">@RequestMapping(value = &quot;/groupList.query&quot;)</span></span><br><span class="line"><span class="meta">@ResponseBody</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> Object <span class="title">list</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> consumerService.queryGroupList();</span><br><span class="line">&#125;</span><br><span class="line">就是调用消费服务处理类的 queryGroupList 方法，其实现代码如下：</span><br><span class="line">ConsumerServiceImpl＃queryGroupList</span><br><span class="line"><span class="function"><span class="keyword">public</span> List&lt;GroupConsumeInfo&gt; <span class="title">queryGroupList</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    Set&lt;String&gt; consumerGroupSet = Sets.newHashSet();</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        ClusterInfo clusterInfo = mqAdminExt.examineBrokerClusterInfo();　　<span class="comment">// @1</span></span><br><span class="line">        <span class="keyword">for</span> (BrokerData brokerData : clusterInfo.getBrokerAddrTable().values()) &#123;   <span class="comment">// @2</span></span><br><span class="line">            SubscriptionGroupWrapper subscriptionGroupWrapper = mqAdminExt.getAllSubscriptionGroup(brokerData.selectBrokerAddr(), <span class="number">3000L</span>);  <span class="comment">// @3</span></span><br><span class="line">            consumerGroupSet.addAll(subscriptionGroupWrapper.getSubscriptionGroupTable().keySet());                                                                 </span><br><span class="line">        &#125;</span><br><span class="line">    &#125; <span class="keyword">catch</span> (Exception err) &#123;</span><br><span class="line">        <span class="keyword">throw</span> Throwables.propagate(err);</span><br><span class="line">    &#125;</span><br><span class="line">    List&lt;GroupConsumeInfo&gt; groupConsumeInfoList = Lists.newArrayList();</span><br><span class="line">    <span class="keyword">for</span> (String consumerGroup : consumerGroupSet) &#123;                                                <span class="comment">// @4</span></span><br><span class="line">        groupConsumeInfoList.add(queryGroup(consumerGroup));                              </span><br><span class="line">    &#125;</span><br><span class="line">    Collections.sort(groupConsumeInfoList);</span><br><span class="line">    <span class="keyword">return</span> groupConsumeInfoList;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>代码@1：获取集群的 broker 信息，主要是通过向 NameServer 发送 GET_BROKER_CLUSTER_INFO 请求，NameServer 返回集群包含的所有 broker 信息，包含从节点的信息，返回的格式如下：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line">&quot;clusterInfo&quot;: &#123;</span><br><span class="line">    &quot;brokerAddrTable&quot;: &#123;</span><br><span class="line">	   &quot;broker-a&quot;: &#123;</span><br><span class="line">	       &quot;cluster&quot;: &quot;DefaultCluster&quot;,</span><br><span class="line">			&quot;brokerName&quot;: &quot;broker-a&quot;,</span><br><span class="line">			&quot;brokerAddrs&quot;: &#123;</span><br><span class="line">				&quot;0&quot;: &quot;192.168.0.168:10911&quot;,</span><br><span class="line">				&quot;1&quot;: &quot;192.168.0.169:10911&quot;</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;,</span><br><span class="line">        &quot;broker-b&quot;: &#123;</span><br><span class="line">	       &quot;cluster&quot;: &quot;DefaultCluster&quot;,</span><br><span class="line">			&quot;brokerName&quot;: &quot;broker-b&quot;,</span><br><span class="line">			&quot;brokerAddrs&quot;: &#123;</span><br><span class="line">				&quot;0&quot;: &quot;192.168.0.170:10911&quot;,</span><br><span class="line">				&quot;1&quot;: &quot;192.168.1.171:10911&quot;</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;,</span><br><span class="line">	&quot;clusterAddrTable&quot;: &#123;</span><br><span class="line">		&quot;DefaultCluster&quot;: [&quot;broker-a&quot;,&quot;broker-b&quot;]</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>代码@2：遍历集群中的 brokerAddrTable 数据结构，即存储了 broker 的地址信息的 Map 。</p>
-<p>代码@3：分别向集群中的主节点(brokerData.selectBrokerAddr()) 获取所有的订阅关系（即消费组的订阅信息）。然后将所有的消费者组名称存入 consumerGroupSet。</p>
-<p>代码@4：遍历代码@3收集到的消费组，调用 queryGroup 依次请求消费组的运行时信息，后面接下来详细分析。</p>
-<p>接下来将重点分析 queryGroup方法的实现细节。</p>
-          <!--noindex-->
-          <div class="post-button text-center">
-            <a class="btn" href="/posts/9b5ea02.html#more" rel="contents">
-              阅读全文 &raquo;
-            </a>
-          </div>
-          <!--/noindex-->
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://example.com/posts/e0111576.html">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="中间件兴趣圈">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/posts/e0111576.html" itemprop="url">RocketMQ msgId与offsetMsgId释疑(实战篇)</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-12-07T22:53:57+08:00">
-                2020-12-07
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/rocketmq/" itemprop="url" rel="index">
-                    <span itemprop="name">rocketmq</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/posts/e0111576.html#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count valine-comment-count" data-xid="/posts/e0111576.html" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-             <span id="/posts/e0111576.html" class="leancloud_visitors" data-flag-title="RocketMQ msgId与offsetMsgId释疑(实战篇)">
-               <span class="post-meta-divider">|</span>
-               <span class="post-meta-item-icon">
-                 <i class="fa fa-eye"></i>
-               </span>
-               
-                 <span class="post-meta-item-text">阅读次数&#58;</span>
-               
-                 <span class="leancloud-visitors-count"></span>
-             </span>
-          
-
-          
-
-          
-            <div class="post-wordcount">
-              
-                
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-file-word-o"></i>
-                </span>
-                
-                  <span class="post-meta-item-text">字数统计&#58;</span>
-                
-                <span title="字数统计">
-                  1.9k 字
-                </span>
-              
-
-              
-                <span class="post-meta-divider">|</span>
-              
-
-              
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-clock-o"></i>
-                </span>
-                
-                  <span class="post-meta-item-text">阅读时长 &asymp;</span>
-                
-                <span title="阅读时长">
-                  8 分钟
-                </span>
-              
-            </div>
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <div id="vip-container"><p>本篇详细介绍消息发送、消息消费、RocketMQ queryMsgById 命令以及 rocketmq-console 等使用场景中究竟是用的哪一个ID。</p>
-<p>@<a href="%E6%9C%AC%E8%8A%82%E7%9B%AE%E5%BD%95">TOC</a></p>
-<h2 id="1、抛出问题"><a href="#1、抛出问题" class="headerlink" title="1、抛出问题"></a>1、抛出问题</h2><h4 id="1-1-从消息发送看消息ID"><a href="#1-1-从消息发送看消息ID" class="headerlink" title="1.1 从消息发送看消息ID"></a>1.1 从消息发送看消息ID</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> org.apache.rocketmq.example.quickstart;</span><br><span class="line"><span class="keyword">import</span> org.apache.rocketmq.client.producer.DefaultMQProducer;</span><br><span class="line"><span class="keyword">import</span> org.apache.rocketmq.client.producer.SendResult;</span><br><span class="line"><span class="keyword">import</span> org.apache.rocketmq.common.message.Message;</span><br><span class="line"><span class="keyword">import</span> org.apache.rocketmq.remoting.common.RemotingHelper;</span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Producer</span> </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span>  </span>&#123;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            DefaultMQProducer producer = <span class="keyword">new</span> DefaultMQProducer(<span class="string">&quot;please_rename_unique_group_name&quot;</span>);</span><br><span class="line">            producer.setNamesrvAddr(<span class="string">&quot;127.0.0.1:9876&quot;</span>);</span><br><span class="line">            producer.start();</span><br><span class="line">            Message msg = <span class="keyword">new</span> Message(<span class="string">&quot;TestTopic&quot;</span> <span class="comment">/* Topic */</span>,<span class="keyword">null</span> <span class="comment">/* Tag */</span>, (<span class="string">&quot;Hello RocketMQ test1&quot;</span> ).getBytes(RemotingHelper.DEFAULT_CHARSET) <span class="comment">/* Message body */</span>);</span><br><span class="line">            SendResult sendResult = producer.send(msg);</span><br><span class="line">            System.out.printf(<span class="string">&quot;%s%n&quot;</span>, sendResult);</span><br><span class="line">            producer.shutdown();</span><br><span class="line">        &#125; <span class="keyword">catch</span> (Throwable e) &#123;</span><br><span class="line">            e.printStackTrace();</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>执行效果如图所示：<br><img src="https://img-blog.csdnimg.cn/20200308201940382.png" alt="在这里插入图片描述">即消息发送会返回 msgId 与 offsetMsgId。</p>
-<h4 id="1-2-从消息消费看消息ID"><a href="#1-2-从消息消费看消息ID" class="headerlink" title="1.2 从消息消费看消息ID"></a>1.2 从消息消费看消息ID</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> org.apache.rocketmq.example.quickstart;</span><br><span class="line"><span class="keyword">import</span> java.util.List;</span><br><span class="line"><span class="keyword">import</span> org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;</span><br><span class="line"><span class="keyword">import</span> org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext;</span><br><span class="line"><span class="keyword">import</span> org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;</span><br><span class="line"><span class="keyword">import</span> org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently;</span><br><span class="line"><span class="keyword">import</span> org.apache.rocketmq.client.exception.MQClientException;</span><br><span class="line"><span class="keyword">import</span> org.apache.rocketmq.common.consumer.ConsumeFromWhere;</span><br><span class="line"><span class="keyword">import</span> org.apache.rocketmq.common.message.MessageExt;</span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Consumer</span> </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> InterruptedException, MQClientException </span>&#123;</span><br><span class="line">        DefaultMQPushConsumer consumer = <span class="keyword">new</span> DefaultMQPushConsumer(<span class="string">&quot;please_rename_unique_group_name_1&quot;</span>);</span><br><span class="line">        consumer.setNamesrvAddr(<span class="string">&quot;127.0.0.1:9876&quot;</span>);</span><br><span class="line">        consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET);</span><br><span class="line">        consumer.subscribe(<span class="string">&quot;TestTopic&quot;</span>, <span class="string">&quot;*&quot;</span>);</span><br><span class="line">        consumer.registerMessageListener(<span class="keyword">new</span> MessageListenerConcurrently() &#123;</span><br><span class="line">            <span class="function"><span class="keyword">public</span> ConsumeConcurrentlyStatus <span class="title">consumeMessage</span><span class="params">(List&lt;MessageExt&gt; msgs,</span></span></span><br><span class="line"><span class="function"><span class="params">                ConsumeConcurrentlyContext context)</span> </span>&#123;</span><br><span class="line">                System.out.println(<span class="string">&quot;MessageExt msg.getMsgId():&quot;</span> +  msgs.get(<span class="number">0</span>).getMsgId());</span><br><span class="line">                System.out.println(<span class="string">&quot;-------------------分割线-----------------&quot;</span>);</span><br><span class="line">                System.out.printf(<span class="string">&quot;%s Receive New Messages: %s %n&quot;</span>, Thread.currentThread().getName(), msgs);</span><br><span class="line">                <span class="keyword">return</span> ConsumeConcurrentlyStatus.CONSUME_SUCCESS;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;);</span><br><span class="line">        consumer.start();</span><br><span class="line">        System.out.printf(<span class="string">&quot;Consumer Started.%n&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>执行效果如图所示：<br><img src="https://img-blog.csdnimg.cn/20200308202103968.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br><strong>不知道大家是否有注意到，调用 msgs.get(0).getMsgId()返回的msgId 与直接输出msgs中的 msgId 不一样，那这又是为什么呢？答案在本文的第二部分有详细分析。</strong></p>
-<h2 id="2、消息ID释疑"><a href="#2、消息ID释疑" class="headerlink" title="2、消息ID释疑"></a>2、消息ID释疑</h2><p>从消息发送的结果可以得知，RocketMQ 发送的返回结果会返回msgId 与 offsetMsgId，那这两个 msgId 分别是代表什么呢？</p>
-<ul>
-<li>msgId：该ID 是消息发送者在消息发送时会首先在客户端生成，全局唯一，在 RocketMQ 中该 ID 还有另外的一个叫法：uniqId，无不体现其全局唯一性。</li>
-<li>offsetMsgId：消息偏移ID，该 ID 记录了消息所在集群的物理地址，主要包含所存储 Broker 服务器的地址( IP 与端口号)以及所在commitlog 文件的物理偏移量。</li>
-</ul>
-<h4 id="2-1-msgId-即全局唯一-ID-构建规则"><a href="#2-1-msgId-即全局唯一-ID-构建规则" class="headerlink" title="2.1 msgId 即全局唯一 ID 构建规则"></a>2.1 msgId 即全局唯一 ID 构建规则</h4><p><img src="https://img-blog.csdnimg.cn/20200308202402908.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>从这张图可以看出，msgId确实是客户端生成的，接下来我们详细分析一下其生成算法。</p>
-<p>MessageClientIDSetter#createUniqID</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> String <span class="title">createUniqID</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    StringBuilder sb = <span class="keyword">new</span> StringBuilder(LEN * <span class="number">2</span>);</span><br><span class="line">    sb.append(FIX_STRING);    <span class="comment">// @1</span></span><br><span class="line">    sb.append(UtilAll.bytes2string(createUniqIDBuffer()));  <span class="comment">// @2</span></span><br><span class="line">    <span class="keyword">return</span> sb.toString();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>一个 uniqID 的构建主要分成两个部分：FIX_STRING 与唯一 ID 生成算法，顾名思义，FIX_STRING 就是一个客户端固定一个前缀，那接下来先看一下固定字符串的生成规则。</p>
-<h5 id="2-1-1-FIX-STRING"><a href="#2-1-1-FIX-STRING" class="headerlink" title="2.1.1 FIX_STRING"></a>2.1.1 FIX_STRING</h5><p>MessageClientIDSetter静态代码块</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">static</span> &#123;</span><br><span class="line">    <span class="keyword">byte</span>[] ip;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        ip = UtilAll.getIP();</span><br><span class="line">    &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">        ip = createFakeIP();</span><br><span class="line">    &#125;</span><br><span class="line">    LEN = ip.length + <span class="number">2</span> + <span class="number">4</span> + <span class="number">4</span> + <span class="number">2</span>;</span><br><span class="line">    ByteBuffer tempBuffer = ByteBuffer.allocate(ip.length + <span class="number">2</span> + <span class="number">4</span>);</span><br><span class="line">    tempBuffer.position(<span class="number">0</span>);</span><br><span class="line">    tempBuffer.put(ip);</span><br><span class="line">    tempBuffer.position(ip.length);</span><br><span class="line">    tempBuffer.putInt(UtilAll.getPid());</span><br><span class="line">    tempBuffer.position(ip.length + <span class="number">2</span>);</span><br><span class="line">    tempBuffer.putInt(MessageClientIDSetter.class.getClassLoader().hashCode());</span><br><span class="line">    FIX_STRING = UtilAll.bytes2string(tempBuffer.array());</span><br><span class="line">    setStartTime(System.currentTimeMillis());</span><br><span class="line">    COUNTER = <span class="keyword">new</span> AtomicInteger(<span class="number">0</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>从这里可以看出 FIX_STRING 的主要由：客户端的IP、进程ID、加载 MessageClientIDSetter 的类加载器的 hashcode。</p>
-<h5 id="2-1-2-唯一性算法"><a href="#2-1-2-唯一性算法" class="headerlink" title="2.1.2 唯一性算法"></a>2.1.2 唯一性算法</h5><p>msgId 的唯一性算法由 MessageClientIDSetter 的createUniqIDBuffer 方法实现。</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">byte</span>[] createUniqIDBuffer() &#123;</span><br><span class="line">    ByteBuffer buffer = ByteBuffer.allocate(<span class="number">4</span> + <span class="number">2</span>);</span><br><span class="line">    <span class="keyword">long</span> current = System.currentTimeMillis();</span><br><span class="line">    <span class="keyword">if</span> (current &gt;= nextStartTime) &#123;</span><br><span class="line">        setStartTime(current);</span><br><span class="line">    &#125;</span><br><span class="line">    buffer.position(<span class="number">0</span>);</span><br><span class="line">    buffer.putInt((<span class="keyword">int</span>) (System.currentTimeMillis() - startTime));</span><br><span class="line">    buffer.putShort((<span class="keyword">short</span>) COUNTER.getAndIncrement());</span><br><span class="line">    <span class="keyword">return</span> buffer.array();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>可以得出 msgId 的后半段主要由：当前时间与系统启动时间的差值，以及自增序号。</p>
-<h4 id="2-2-offsetMsgId构建规则"><a href="#2-2-offsetMsgId构建规则" class="headerlink" title="2.2 offsetMsgId构建规则"></a>2.2 offsetMsgId构建规则</h4><p><img src="https://img-blog.csdnimg.cn/20200308202705728.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>在消息 Broker 服务端将消息追加到内存后会返回其物理偏移量，即在 commitlog 文件中的文件，然后会再次生成一个id，代码中虽然也叫 msgId，其实这里就是我们常说的 offsetMsgId，即记录了消息的物理偏移量，故我们重点来看一下其具体生成规则：<br>MessageDecoder#createMessageId</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> String <span class="title">createMessageId</span><span class="params">(<span class="keyword">final</span> ByteBuffer input ,</span></span></span><br><span class="line"><span class="function"><span class="params">            <span class="keyword">final</span> ByteBuffer addr, <span class="keyword">final</span> <span class="keyword">long</span> offset)</span> </span>&#123;</span><br><span class="line">	input.flip();</span><br><span class="line">    <span class="keyword">int</span> msgIDLength = addr.limit() == <span class="number">8</span> ? <span class="number">16</span> : <span class="number">28</span>;</span><br><span class="line">    input.limit(msgIDLength);</span><br><span class="line">    input.put(addr);</span><br><span class="line">    input.putLong(offset);</span><br><span class="line">    <span class="keyword">return</span> UtilAll.bytes2string(input.array());</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>首先结合该方法的调用上下文，先解释一下该方法三个入参的含义：</p>
-<ul>
-<li>ByteBuffer input<br>用来存放 offsetMsgId 的字节缓存区( NIO 相关的基础知识)</li>
-<li>ByteBuffer addr<br>当前 Broker 服务器的 IP 地址与端口号，即通过解析 offsetMsgId 从而得到消息服务器的地址信息。</li>
-<li>long offset<br>消息的物理偏移量。<br>即构成 offsetMsgId 的组成部分：Broker 服务器的 IP 与端口号、消息的物理偏移量。</li>
-</ul>
-<blockquote>
-<p>温馨提示：即在 RocketMQ中，只需要提供 offsetMsgId，可用不必知道该消息所属的topic信息即可查询该条消息的内容。</p>
-</blockquote>
-<h4 id="2-3-消息发送与消息消费返回的消息ID信息"><a href="#2-3-消息发送与消息消费返回的消息ID信息" class="headerlink" title="2.3 消息发送与消息消费返回的消息ID信息"></a>2.3 消息发送与消息消费返回的消息ID信息</h4><p>消息发送时会在 SendSesult中返回 msgId、offsetMsgId，在了解了这个两个 ID 的含义时则问题不大，接下来重点介绍一下消息消费时返回的 msgId 到底是哪一个。</p>
-<p>在消息消费时，我们更加希望因为 msgId (即客户端生成的全局唯一性ID)，因为该全局性 ID 非常方便实现消费端的幂等。</p>
-<p>在本文的1.2节我们也提到一个现象，为什么如下图代码中输出的 msgId 会不一样呢？<br><img src="https://img-blog.csdnimg.cn/20200308203117923.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>在客户端返回的 msg 信息，其最终返回的对象是  MessageClientExt ，继承自 MessageExt。<br>那我们接下来分别看一下其 getMsgId() 方法与 toString 方法即可。</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Override</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> String <span class="title">getMsgId</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    String uniqID = MessageClientIDSetter.getUniqID(<span class="keyword">this</span>);</span><br><span class="line">    <span class="keyword">if</span> (uniqID == <span class="keyword">null</span>) &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">this</span>.getOffsetMsgId();</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> uniqID;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>原来在调用 MessageClientExt 中的 getMsgId 方法时，如果消息的属性中存在其唯一ID，则返回消息的全局唯一ID，否则返回消息的 offsetMsgId。</p>
-<p>而 MessageClientExt 方法并没有重写 MessageExt 的 toString 方法，其实现如图所示：<br><img src="https://img-blog.csdnimg.cn/20200308203311967.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>故返回的是 MessageExt中 的 msgId，该 msgId 存放的是offsetMsgId，所以才造成了困扰。</p>
-<blockquote>
-<p>温馨提示：如果消息消费失败需要重试，RocketMQ 的做法是将消息重新发送到 Broker 服务器，此时全局 msgId 是不会发送变化的，但该消息的 offsetMsgId 会发送变化，因为其存储在服务器中的位置发生了变化。</p>
-</blockquote>
-<h2 id="3、实践经验"><a href="#3、实践经验" class="headerlink" title="3、实践经验"></a>3、实践经验</h2><p>在回答了消息发送与消息消费关于msgId与offsetMsgId的困扰后，再来介绍一下如果根据msgId去查询消息。</p>
-<p>想必大家对 rocketmq-console ，那在消息查找界面，展示的消息列表中返回的 msgId 又是哪一个呢？<br><img src="https://img-blog.csdnimg.cn/20200308203400221.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>这里的 Message ID 返回的是消息的全局唯一ID。</p>
-<p>其实 RokcetMQ 也提供了 queryMsgById 命令来查看消息的内容，不过这里的 msgId 是 offsetMsgId，我们首先将全局唯一ID传入命令，其执行效果如下：<br><img src="https://img-blog.csdnimg.cn/20200308203431178.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>发现报错，那我们将 offsetMsgId 传入其执行效果如图所示：<br><img src="https://img-blog.csdnimg.cn/20200308203452188.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>但在 rocketmq-console 的根据消息ID去查找消息，无论传入哪个msgId，下图该功能都能返回正确的结果：<br><img src="https://img-blog.csdnimg.cn/20200308203540222.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>这是因为 rocketmq-console 做了兼容，首先将传入的 msgId 用 queryMsgById 该命令去查，如果报错，则当成 uniqID(全局ID)去查，首先全局ID会存储在消息的属性中，并会创建 Hash 索引，即可用通过 indexfile 快速定位到该条消息。</p>
-</div>
-
-			<script src="https://my.openwrite.cn/js/readmore.js" type="text/javascript"></script>
-			<script>
-			var isMobile = navigator.userAgent.match(/(phone|pad|pod|iPhone|iPod|ios|iPad|Android|Mobile|BlackBerry|IEMobile|MQQBrowser|JUC|Fennec|wOSBrowser|BrowserNG|WebOS|Symbian|Windows Phone)/i);
-			if (!isMobile) {
-			    var btw = new BTWPlugin();
-			    btw.init({
-			        "id": "vip-container",
-			        "blogId": "18019-1573088808868-542",
-			        "name": "中间件兴趣圈",
-			        "qrcode": "https://img-blog.csdnimg.cn/20190314214003962.jpg",
-			        "keyword": "more"
-			    });
-			}
-			</script>
-		
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://example.com/posts/54929501.html">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="中间件兴趣圈">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/posts/54929501.html" itemprop="url">RocketMQ一行代码造成大量消息发送失败</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-12-07T22:51:57+08:00">
-                2020-12-07
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/rocketmq/" itemprop="url" rel="index">
-                    <span itemprop="name">rocketmq</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/posts/54929501.html#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count valine-comment-count" data-xid="/posts/54929501.html" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-             <span id="/posts/54929501.html" class="leancloud_visitors" data-flag-title="RocketMQ一行代码造成大量消息发送失败">
-               <span class="post-meta-divider">|</span>
-               <span class="post-meta-item-icon">
-                 <i class="fa fa-eye"></i>
-               </span>
-               
-                 <span class="post-meta-item-text">阅读次数&#58;</span>
-               
-                 <span class="leancloud-visitors-count"></span>
-             </span>
-          
-
-          
-
-          
-            <div class="post-wordcount">
-              
-                
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-file-word-o"></i>
-                </span>
-                
-                  <span class="post-meta-item-text">字数统计&#58;</span>
-                
-                <span title="字数统计">
-                  1.7k 字
+                  1.6k 字
                 </span>
               
 
@@ -1309,19 +1963,17 @@
 
       
         
-          <h2 id="1、问题现象"><a href="#1、问题现象" class="headerlink" title="1、问题现象"></a>1、问题现象</h2><p>首先接到项目反馈使用 RocketMQ 会出现如下错误：<br><img src="https://img-blog.csdnimg.cn/2020051623272777.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br>错误信息关键点：MQBrokerException：CODE:2 DESC:[TIMEOUT_CLEAN_QUEUE]broker busy,start flow control for a while,period in queue：205ms，size of queue:880。</p>
-<p>由于项目组并没有对消息发送失败做任何补偿，导致丢失消息发送失败，故需要对这个问题进行深层次的探讨，并加以解决。</p>
-<h2 id="2、问题分析"><a href="#2、问题分析" class="headerlink" title="2、问题分析"></a>2、问题分析</h2><p>首先我们根据关键字：TIMEOUT_CLEAN_QUEUE 去 RocketMQ 中查询，去探究在什么时候会抛出如上错误。根据全文搜索如下图所示：<br><img src="https://img-blog.csdnimg.cn/20200517091330168.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br>该方法是在 BrokerFastFailure 中定义的，通过名称即可以看成其设计目的：Broker端快速失败机制。</p>
-<p><strong>Broker 端快速失败其原理图如下：</strong><br><img src="https://img-blog.csdnimg.cn/20200517091356312.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"></p>
-<ul>
-<li>消息发送者向 Broker 发送消息写入请求，Broker 端在接收到请求后会首先放入一个队列中(SendThreadPoolQueue)，默认容量为 10000。</li>
-<li>Broker 会专门使用一个线程池(SendMessageExecutor)去从队列中获取任务并执行消息写入请求，为了保证消息的顺序处理，该线程池默认线程个数为1。</li>
-</ul>
-<p>如果 Broker 端受到垃圾回收等等因素造成单条写入数据发生抖动，单个 Broker 端积压的请求太多从而得不到及时处理，会极大的造成客户端消息发送的时间延长。</p>
-<p>设想一下，如果由于 Broker 压力增大，写入一条消息需要500ms甚至超过1s，并且队列中积压了5000条消息，消息发送端的默认超时时间为3s，如果按照这样的速度，这些请求在轮到 Broker 执行写入请求时，客户端已经将这个请求超时了，这样不仅会造成大量的无效处理，还会导致客户端发送超时。</p>
+          <p>RocketMQ DLedger 多副本即主从切换专栏总共包含9篇文章，时间跨度大概为2个月的时间，笔者觉得授人以鱼不如授人以渔，借以这个系列来展示该系列的创作始末，展示笔者阅读源码的技巧。</p>
+<p>首先在下决心研读  RocketMQ DLedger 多副本(主从切换)的源码之前，首先还是要通过官方的分享、百度等途径对该功能进行一些基本的了解。</p>
+<p>我们了解到 RocketMQ 在 4.5.0 之前提供了主从同步功能，即当主节点宕机后，消费端可以继续从从节点上消费消息，但无法继续向该复制组发送消息。RocketMQ 4.5.0版本引入了多副本机制，即 DLedger，支持主从切换，即当一个复制组内的主节点宕机后，会在该复制组内触发重新选主，选主完成后即可继续提供消息写功能。同时还了解到 rocketmq 主从切换是基于 raft 协议的。</p>
+<p>raft 协议是何许人也，我猜想大部分读者对这个名词并不陌生，但像笔者一样只是听过其大体作用但并未详细学习的应该也不在少数，故我觉得看 RocketMQ DLedger 多副本即主从切换之前应该重点了解 raft 协议。</p>
+<p>1、<a target="_blank" rel="noopener" href="https://blog.csdn.net/prestigeding/article/details/99101912">RocketMQ 多副本前置篇：初探raft协议</a></p>
+<p>本文主要根据 raft 官方提供的动画来学习了解 raft 协议，从本文基本得知了 raft 协议主要包含两个重要部分：选主 以及 日志复制。在了解了 raft 协议的选主、日志复制的基本实现后，然后就可以步入到 RocketMQ DLedger 多副本即主从切换的源码研究了，以探究大神是如何实现 raft 协议的。同时在了解到了 raft 协议的选主部分内容后，自己也可以简单的思考，如果自己去实现 raft 协议，应该要实现哪些关键点，当时我的思考如下：<br><img src="https://img-blog.csdnimg.cn/20191020212502611.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>这样在看源码时更加有针对性，不至于在阅读源码过程中“迷失”。</p>
+<p>2、<a target="_blank" rel="noopener" href="https://blog.csdn.net/prestigeding/article/details/99697323">源码分析 RocketMQ DLedger 多副本之 Leader 选主</a></p>
+<p>本文按照上一篇的思路，重点对 DLedgerLeaderElector 的实现进行了详细分析，特别是其内部的状态机流转，最后也给出一张流程图对选主过程进行一个简单的梳理与总结。</p>
           <!--noindex-->
           <div class="post-button text-center">
-            <a class="btn" href="/posts/54929501.html#more" rel="contents">
+            <a class="btn" href="/posts/12736650.html#more" rel="contents">
               阅读全文 &raquo;
             </a>
           </div>
@@ -1372,7 +2024,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://example.com/posts/97996927.html">
+    <link itemprop="mainEntityOfPage" href="http://example.com/posts/9502f6ef.html">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="">
@@ -1391,7 +2043,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/posts/97996927.html" itemprop="url">我的另一种参与 RocketMQ 开源社区的方式</a></h1>
+                <a class="post-title-link" href="/posts/9502f6ef.html" itemprop="url">RocketMQ一个新的消费组初次启动时从何处开始消费呢？</a></h1>
         
 
         <div class="post-meta">
@@ -1403,8 +2055,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-12-07T22:49:57+08:00">
-                2020-12-07
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-12-08T21:55:35+08:00">
+                2020-12-08
               </time>
             
 
@@ -1444,8 +2096,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/posts/97996927.html#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count valine-comment-count" data-xid="/posts/97996927.html" itemprop="commentCount"></span>
+                <a href="/posts/9502f6ef.html#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count valine-comment-count" data-xid="/posts/9502f6ef.html" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -1453,7 +2105,7 @@
 
           
           
-             <span id="/posts/97996927.html" class="leancloud_visitors" data-flag-title="我的另一种参与 RocketMQ 开源社区的方式">
+             <span id="/posts/9502f6ef.html" class="leancloud_visitors" data-flag-title="RocketMQ一个新的消费组初次启动时从何处开始消费呢？">
                <span class="post-meta-divider">|</span>
                <span class="post-meta-item-icon">
                  <i class="fa fa-eye"></i>
@@ -1478,7 +2130,225 @@
                   <span class="post-meta-item-text">字数统计&#58;</span>
                 
                 <span title="字数统计">
-                  2.3k 字
+                  3.1k 字
+                </span>
+              
+
+              
+                <span class="post-meta-divider">|</span>
+              
+
+              
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-clock-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">阅读时长 &asymp;</span>
+                
+                <span title="阅读时长">
+                  13 分钟
+                </span>
+              
+            </div>
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          <h2 id="1、抛出问题"><a href="#1、抛出问题" class="headerlink" title="1、抛出问题"></a>1、抛出问题</h2><p>一个新的消费组订阅一个已存在的Topic主题时，消费组是从该Topic的哪条消息开始消费呢？</p>
+<p>首先翻阅DefaultMQPushConsumer的API时，setConsumeFromWhere(ConsumeFromWhere consumeFromWhere)API映入眼帘，从字面意思来看是设置消费者从哪里开始消费，正是解开该问题的”钥匙“。ConsumeFromWhere枚举类图如下：<br><img src="https://img-blog.csdnimg.cn/20190720120834686.png" alt="在这里插入图片描述"></p>
+<ul>
+<li>CONSUME_FROM_MAX_OFFSET<br>从消费队列最大的偏移量开始消费。</li>
+<li>CONSUME_FROM_FIRST_OFFSET<br>从消费队列最小偏移量开始消费。</li>
+<li>CONSUME_FROM_TIMESTAMP<br>从指定的时间戳开始消费，默认为消费者启动之前的30分钟处开始消费。可以通过DefaultMQPushConsumer#setConsumeTimestamp。</li>
+</ul>
+<p>是不是点小激动，还不快试试。</p>
+<p>需求：新的消费组启动时，从队列最后开始消费，即只消费启动后发送到消息服务器后的最新消息。</p>
+<h3 id="1-1-环境准备"><a href="#1-1-环境准备" class="headerlink" title="1.1 环境准备"></a>1.1 环境准备</h3><p>本示例所用到的Topic路由信息如下：<br><img src="https://img-blog.csdnimg.cn/20190720120920850.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"></p>
+<p><strong>Broker的配置如下(broker.conf)</strong></p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">brokerClusterName &#x3D; DefaultCluster</span><br><span class="line">brokerName &#x3D; broker-a</span><br><span class="line">brokerId &#x3D; 0</span><br><span class="line">deleteWhen &#x3D; 04</span><br><span class="line">fileReservedTime &#x3D; 48</span><br><span class="line">brokerRole &#x3D; ASYNC_MASTER</span><br><span class="line">flushDiskType &#x3D; ASYNC_FLUSH</span><br><span class="line"></span><br><span class="line">storePathRootDir&#x3D;E:&#x2F;SH2019&#x2F;tmp&#x2F;rocketmq_home&#x2F;rocketmq4.5_simple&#x2F;store</span><br><span class="line">storePathCommitLog&#x3D;E:&#x2F;SH2019&#x2F;tmp&#x2F;rocketmq_home&#x2F;rocketmq4.5_simple&#x2F;store&#x2F;commitlog</span><br><span class="line">namesrvAddr&#x3D;127.0.0.1:9876</span><br><span class="line">autoCreateTopicEnable&#x3D;false</span><br><span class="line">mapedFileSizeCommitLog&#x3D;10240</span><br><span class="line">mapedFileSizeConsumeQueue&#x3D;2000</span><br></pre></td></tr></table></figure>
+<p>其中重点修改了如下两个参数：</p>
+<ul>
+<li>mapedFileSizeCommitLog<br>单个commitlog文件的大小，这里使用10M，方便测试用。</li>
+<li>mapedFileSizeConsumeQueue<br>单个consumequeue队列长度，这里使用1000，表示一个consumequeue文件中包含1000个条目。</li>
+</ul>
+<h3 id="1-2-消息发送者代码"><a href="#1-2-消息发送者代码" class="headerlink" title="1.2 消息发送者代码"></a>1.2 消息发送者代码</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> MQClientException, InterruptedException </span>&#123;</span><br><span class="line">    DefaultMQProducer producer = <span class="keyword">new</span> DefaultMQProducer(<span class="string">&quot;please_rename_unique_group_name&quot;</span>);</span><br><span class="line">    producer.setNamesrvAddr(<span class="string">&quot;127.0.0.1:9876&quot;</span>);</span><br><span class="line">    producer.start();</span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; <span class="number">300</span>; i++) &#123;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            Message msg = <span class="keyword">new</span> Message(<span class="string">&quot;TopicTest&quot;</span> ,<span class="string">&quot;TagA&quot;</span> , (<span class="string">&quot;Hello RocketMQ &quot;</span> + i).getBytes(RemotingHelper.DEFAULT_CHARSET));</span><br><span class="line">            SendResult sendResult = producer.send(msg);</span><br><span class="line">            System.out.printf(<span class="string">&quot;%s%n&quot;</span>, sendResult);</span><br><span class="line">        &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">            e.printStackTrace();</span><br><span class="line">            Thread.sleep(<span class="number">1000</span>);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    producer.shutdown();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>通过上述，往TopicTest发送300条消息，发送完毕后，RocketMQ Broker存储结构如下：<br><img src="https://img-blog.csdnimg.cn/20190720121132299.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"></p>
+<h3 id="1-3-消费端验证代码"><a href="#1-3-消费端验证代码" class="headerlink" title="1.3 消费端验证代码"></a>1.3 消费端验证代码</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> InterruptedException, MQClientException </span>&#123;</span><br><span class="line">    DefaultMQPushConsumer consumer = <span class="keyword">new</span> DefaultMQPushConsumer(<span class="string">&quot;my_consumer_01&quot;</span>);</span><br><span class="line">    consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET);</span><br><span class="line">    consumer.subscribe(<span class="string">&quot;TopicTest&quot;</span>, <span class="string">&quot;*&quot;</span>);</span><br><span class="line">    consumer.setNamesrvAddr(<span class="string">&quot;127.0.0.1:9876&quot;</span>);</span><br><span class="line">    consumer.registerMessageListener(<span class="keyword">new</span> MessageListenerConcurrently() &#123;</span><br><span class="line">        <span class="meta">@Override</span></span><br><span class="line">        <span class="function"><span class="keyword">public</span> ConsumeConcurrentlyStatus <span class="title">consumeMessage</span><span class="params">(List&lt;MessageExt&gt; msgs,</span></span></span><br><span class="line"><span class="function"><span class="params">            ConsumeConcurrentlyContext context)</span> </span>&#123;</span><br><span class="line">            System.out.printf(<span class="string">&quot;%s Receive New Messages: %s %n&quot;</span>, Thread.currentThread().getName(), msgs);</span><br><span class="line">            <span class="keyword">return</span> ConsumeConcurrentlyStatus.CONSUME_SUCCESS;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;);</span><br><span class="line">    consumer.start();</span><br><span class="line">    System.out.printf(<span class="string">&quot;Consumer Started.%n&quot;</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>执行上述代码后，按照期望，应该是不会消费任何消息，只有等生产者再发送消息后，才会对消息进行消费，事实是这样吗？执行效果如图所示：<br><img src="https://img-blog.csdnimg.cn/20190720121225978.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br><strong>令人意外的是，竟然从队列的最小偏移量开始消费了</strong>，这就“尴尬”了。难不成是RocketMQ的Bug。带着这个疑问，从源码的角度尝试来解读该问题，并指导我们实践。</p>
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/posts/9502f6ef.html#more" rel="contents">
+              阅读全文 &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://example.com/posts/e0ec5d91.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="中间件兴趣圈">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/posts/e0ec5d91.html" itemprop="url">RocketMQ 升级到主从切换(DLedger、多副本)实战</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-12-08T21:53:35+08:00">
+                2020-12-08
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/rocketmq/" itemprop="url" rel="index">
+                    <span itemprop="name">rocketmq</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/posts/e0ec5d91.html#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count valine-comment-count" data-xid="/posts/e0ec5d91.html" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+             <span id="/posts/e0ec5d91.html" class="leancloud_visitors" data-flag-title="RocketMQ 升级到主从切换(DLedger、多副本)实战">
+               <span class="post-meta-divider">|</span>
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               
+                 <span class="post-meta-item-text">阅读次数&#58;</span>
+               
+                 <span class="leancloud-visitors-count"></span>
+             </span>
+          
+
+          
+
+          
+            <div class="post-wordcount">
+              
+                
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-file-word-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">字数统计&#58;</span>
+                
+                <span title="字数统计">
+                  2k 字
                 </span>
               
 
@@ -1516,886 +2386,29 @@
 
       
         
-          <p>首先先“SHOW”一波我在 RocketMQ 开源社区所获得的成就：2019年RocketMQ社区授予我优秀布道师荣誉称号，证书很高大上，奖品丰厚哦。<br><img src="https://img-blog.csdnimg.cn/20200608190532198.jpg?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br>布道师是什么？开源项目不是都在追求如何成为一名 Committer？其实这个就是参与开源项目的两种不同方式。如何参与一个开源项目，容我慢慢道来。</p>
-<p>@<a href="%E6%9C%AC%E8%8A%82%E7%9B%AE%E5%BD%95">TOC</a></p>
-<h2 id="1、与-RocketMQ-相识、相知到“在一起”"><a href="#1、与-RocketMQ-相识、相知到“在一起”" class="headerlink" title="1、与 RocketMQ 相识、相知到“在一起”"></a>1、与 RocketMQ 相识、相知到“在一起”</h2><p>在2017年听到阿里巴巴将 RocketMQ 捐赠给 Apache基金会成为 Apache 的顶级项目，我内心是无比激动，因为终于可以一睹一款高性能的消息中间件的实现原理。</p>
-<p>通过阅读 RocketMQ 官方文档，以下几个特别的点吸引了我的注意，让我下定决心深入研究一番。</p>
+          <p>本文主要介绍如何将 RocketMQ 集群从原先的主从同步升级到主从切换。</p>
+<p>首先先介绍与 DLedger 多副本即 RocketMQ 主从切换相关的核心配置属性，然后尝试搭建一个主从同步集群，再从原先的 RocketMQ 集群平滑升级到 DLedger 集群的示例，并简单测试一下主从切换功能。</p>
+<h2 id="1、RocketMQ-DLedger-多副本即主从切换核心配置参数详解"><a href="#1、RocketMQ-DLedger-多副本即主从切换核心配置参数详解" class="headerlink" title="1、RocketMQ DLedger 多副本即主从切换核心配置参数详解"></a>1、RocketMQ DLedger 多副本即主从切换核心配置参数详解</h2><p>其主要的配置参数如下所示：</p>
 <ul>
-<li>RocketMQ 为什么性能高效，到底运用了什么“厉害”的技术</li>
-<li>RocketMQ 如何实现刷盘（可以类比一下数据库方面的刷盘、redo、undo日志）</li>
-<li>RocketMQ 文件存储设计理念、基于文件的 Hash 索引是怎么实现的</li>
-<li>定时消息、消息过滤等实现原理</li>
-<li>如何进行网络编程（Netty实战）</li>
+<li>enableDLegerCommitLog<br>是否启用 DLedger，即是否启用 RocketMQ 主从切换，默认值为 false。如果需要开启主从切换，则该值需要设置为 true 。</li>
+<li>dLegerGroup<br>节点所属的 raft 组，建议与 brokerName 保持一致，例如 broker-a。</li>
+<li>dLegerPeers<br>集群节点信息，示例配置如下：n0-127.0.0.1:40911;n1-127.0.0.1:40912;n2-127.0.0.1:40913，多个节点用英文冒号隔开，单个条目遵循   legerSlefId-ip:端口，这里的端口用作 dledger 内部通信。</li>
+<li>dLegerSelfId<br>当前节点id。取自 legerPeers 中条目的开头，即上述示例中的 n0，并且特别需要强调，只能第一个字符为英文，其他字符需要配置成数字。</li>
+<li>storePathRootDir<br>DLedger 日志文件的存储根目录，为了能够支持平滑升级，该值与 storePathCommitLog 设置为不同的目录。</li>
 </ul>
-<p>心动不如行动，下定决心后便开始了我的源码分析 RocketMQ 之旅，大概在4个多月的时间中连续发表了30余篇文章，从 Nameserver、消息发送高可用设计、消息存储、消息消费、消息过滤、事务消息等各个方面对其进行了体系化的剖析，边写边分享，边分享边传播，终于得到了机械工业出版社华章分社的杨福川老师的认可，邀请我出书。</p>
-<p>在杨老师和张工的帮助与指点下，经过将近半年的努力，书稿基本完稿。</p>
-<p>由于我当时是一位名不经传的新人，按照出版行业的惯例，需要找一些该领域内专家大牛帮忙做序或写写推荐语。</p>
-<p>当时我是初生牛犊不怕虎，蹦出了一个非常大胆的想法，是不是可以联系 RocketMQ 官方的一些大佬，最终我直接锁定了 RocketMQ 创始人冯嘉大神，希望他能帮我作序推荐。</p>
-<p>令人惊喜的是冯嘉大神非常平易见人，得知我的来意后，他说了这样一句话：“我是非常愿意为写书的朋友作序，但需要评估一下书稿的质量，如果质量OK，非常愿意效劳”。</p>
-<p>我备受鼓舞，在和出版社初步沟通后，将试读稿件再加上消息存储整章的内容发给冯嘉大神后，经冯嘉大神认真审稿后，决定帮忙推荐作序，真的让我备受鼓舞。</p>
-<p>随着《RocketMQ技术内幕》一书的正式出版上市，并得到广大读者朋友的认可，与官方的联系也越来越多，后面在 RocketMQ 中国社区负责人青峰大佬的筹备下，我还参与了 RocketMQ 官方社区的源码解析直播活动、官方文档审稿等工作，并在社区得到了不错的反响。</p>
-<p><strong>说到这里大家是不是觉得非常奇怪，是不是都认为你只是在写文章，写书，没有真正参与开源社区呀，没有贡献代码，这个算哪门子参与开源社区？</strong></p>
-<p>其实我一开始连我自己也没有意识到我正在参与一个开源项目，直到我在冯嘉大神为我写的序言中看到他给了我一个新的称号：<strong>RocketMQ布道师</strong>，从而才真正了解到参与开源的另外一种方式：做一个开源项目的传播者，让更多人更容易的使用它，即降低大众对它的使用门槛。</p>
-<p>我后面也特意去查了一下开源项目的布道师是一个什么的角色，或者说什么样的人能被称之为布道师。个人的理解就是首先认可并热爱这项技术，并持续输出高质量的技术类文章、文档等有助于技术传播的素材，让更多人更容易理解并使用它。</p>
-<p>有了新的称号，那就得更加努力，朝着优秀努力，在2019年我又陆续发表了20几篇关于RocketMQ相关的文章，这些文章含金量极高，不仅及时跟进了RocketMQ4.3之后的新特性：消息轨迹、ACL、主从切换等机制，更是发表了数篇实战类文章，详细指出在生产环境下一些使用误区，更是输出了几篇生产环境真实故障与解决方案。最终于2019年 RocketMQ 官方社区授予我优秀布道师荣誉称号。</p>
-<p>RocketMQ 成就了现在的我，我也会继续努力，为传播RocketMQ尽一份力所能及的力量。2020年，继续努力。</p>
-<h2 id="2、如何成为开源项目的-Committer"><a href="#2、如何成为开源项目的-Committer" class="headerlink" title="2、如何成为开源项目的 Committer"></a>2、如何成为开源项目的 Committer</h2><p>有一些粉丝在问我，您对 RocketMQ 研究的这么深入，为什么不考虑贡献代码，成为一名 Committer 呢？这是因为参与开源项目需要具备一些基本条件，当下我的实际情况不符合，那成为一个开源项目的 Committer 有些什么条件呢？</p>
+<h2 id="2、搭建主从同步环境"><a href="#2、搭建主从同步环境" class="headerlink" title="2、搭建主从同步环境"></a>2、搭建主从同步环境</h2><p>首先先搭建一个传统意义上的主从同步架构，往集群中灌一定量的数据，然后升级到 DLedger 集群。</p>
+<p>在 Linux 服务器上搭建一个 rocketmq 主从同步集群我想不是一件很难的事情，故本文就不会详细介绍按照过程，只贴出相关配置。</p>
+<p>实验环境的部署结构采取 一主一次，其部署图如下：<br><img src="https://img-blog.csdnimg.cn/20191013142340811.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>下面我就重点贴一下 broker 的配置文件。<br>220 上的 broker 配置文件如下：</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">brokerClusterName = DefaultCluster</span><br><span class="line">brokerName = broker-a</span><br><span class="line">brokerId = <span class="number">0</span></span><br><span class="line">deleteWhen = <span class="number">04</span></span><br><span class="line">fileReservedTime = <span class="number">48</span></span><br><span class="line">brokerRole = ASYNC_MASTER</span><br><span class="line">flushDiskType = ASYNC_FLUSH</span><br><span class="line">brokerIP1=<span class="number">192.168</span><span class="number">.0</span><span class="number">.220</span></span><br><span class="line">brokerIP2=<span class="number">192.168</span><span class="number">.0</span><span class="number">.220</span></span><br><span class="line">namesrvAddr=<span class="number">192.168</span><span class="number">.0</span><span class="number">.221</span>:<span class="number">9876</span>;<span class="number">192.168</span><span class="number">.0</span><span class="number">.220</span>:<span class="number">9876</span></span><br><span class="line">storePathRootDir=<span class="regexp">/opt/</span>application/rocketmq-all-<span class="number">4.5</span><span class="number">.2</span>-bin-release/store</span><br><span class="line">storePathCommitLog=<span class="regexp">/opt/</span>application/rocketmq-all-<span class="number">4.5</span><span class="number">.2</span>-bin-release/store/commitlog</span><br><span class="line">autoCreateTopicEnable=<span class="literal">false</span></span><br><span class="line">autoCreateSubscriptionGroup=<span class="literal">false</span></span><br></pre></td></tr></table></figure>
+<p>221 上 broker 的配置文件如下：</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">brokerClusterName = DefaultCluster</span><br><span class="line">brokerName = broker-a</span><br><span class="line">brokerId = <span class="number">1</span></span><br><span class="line">deleteWhen = <span class="number">04</span></span><br><span class="line">fileReservedTime = <span class="number">48</span></span><br><span class="line">brokerRole = SLAVE</span><br><span class="line">flushDiskType = ASYNC_FLUSH</span><br><span class="line">brokerIP1=<span class="number">192.168</span><span class="number">.0</span><span class="number">.221</span></span><br><span class="line">brokerIP2=<span class="number">192.168</span><span class="number">.0</span><span class="number">.221</span></span><br><span class="line">namesrvAddr=<span class="number">192.168</span><span class="number">.0</span><span class="number">.221</span>:<span class="number">9876</span>;<span class="number">192.168</span><span class="number">.0</span><span class="number">.220</span>:<span class="number">9876</span></span><br><span class="line">storePathRootDir=<span class="regexp">/opt/</span>application/rocketmq-all-<span class="number">4.5</span><span class="number">.2</span>-bin-release/store</span><br><span class="line">storePathCommitLog=<span class="regexp">/opt/</span>application/rocketmq-all-<span class="number">4.5</span><span class="number">.2</span>-bin-release/store/commitlog</span><br><span class="line">autoCreateTopicEnable=<span class="literal">false</span></span><br><span class="line">autoCreateSubscriptionGroup=<span class="literal">false</span></span><br></pre></td></tr></table></figure>
+<p>相关的启动命令如下：</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">nohup bin/mqnamesrv  /dev/<span class="literal">null</span>  <span class="number">2</span>&gt;&amp;<span class="number">1</span> &amp;</span><br><span class="line">nohup bin/mqbroker -c conf/broker.conf  /dev/<span class="literal">null</span>  <span class="number">2</span>&gt;&amp;<span class="number">1</span> &amp;</span><br></pre></td></tr></table></figure>
+<p>安装后的集群信息如图所示：<br><img src="https://img-blog.csdnimg.cn/20191013142514649.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"></p>
+<h2 id="3、主从同步集群升级到DLedger"><a href="#3、主从同步集群升级到DLedger" class="headerlink" title="3、主从同步集群升级到DLedger"></a>3、主从同步集群升级到DLedger</h2><h3 id="3-1-部署架构"><a href="#3-1-部署架构" class="headerlink" title="3.1 部署架构"></a>3.1 部署架构</h3><p>DLedger 集群至少需要3台机器，故搭建 DLedger 还需要再引入一台机器，其部署结构图如下：</p>
           <!--noindex-->
           <div class="post-button text-center">
-            <a class="btn" href="/posts/97996927.html#more" rel="contents">
-              阅读全文 &raquo;
-            </a>
-          </div>
-          <!--/noindex-->
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://example.com/posts/6a2393aa.html">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="中间件兴趣圈">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/posts/6a2393aa.html" itemprop="url">RocketMQ消息发送常见错误与解决方案</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-12-07T22:46:57+08:00">
-                2020-12-07
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/rocketmq/" itemprop="url" rel="index">
-                    <span itemprop="name">rocketmq</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/posts/6a2393aa.html#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count valine-comment-count" data-xid="/posts/6a2393aa.html" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-             <span id="/posts/6a2393aa.html" class="leancloud_visitors" data-flag-title="RocketMQ消息发送常见错误与解决方案">
-               <span class="post-meta-divider">|</span>
-               <span class="post-meta-item-icon">
-                 <i class="fa fa-eye"></i>
-               </span>
-               
-                 <span class="post-meta-item-text">阅读次数&#58;</span>
-               
-                 <span class="leancloud-visitors-count"></span>
-             </span>
-          
-
-          
-
-          
-            <div class="post-wordcount">
-              
-                
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-file-word-o"></i>
-                </span>
-                
-                  <span class="post-meta-item-text">字数统计&#58;</span>
-                
-                <span title="字数统计">
-                  2.8k 字
-                </span>
-              
-
-              
-                <span class="post-meta-divider">|</span>
-              
-
-              
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-clock-o"></i>
-                </span>
-                
-                  <span class="post-meta-item-text">阅读时长 &asymp;</span>
-                
-                <span title="阅读时长">
-                  10 分钟
-                </span>
-              
-            </div>
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          <p>本文将结合自己使用RocketMQ的经验，对消息发送常见的问题进行分享，基本会遵循出现问题，分析问题、解决问题。</p>
-<h2 id="1、No-route-info-of-this-topic"><a href="#1、No-route-info-of-this-topic" class="headerlink" title="1、No route info of this topic"></a>1、No route info of this topic</h2><p>无法找到路由信息，其完整的错误堆栈信息如下：<br><img src="https://img-blog.csdnimg.cn/20200927212104148.png#pic_center" alt="在这里插入图片描述">而且很多读者朋友会说Broker端开启了自动创建主题也会出现上述问题。</p>
-<p>RocketMQ的路由寻找流程如下图所示：<br><img src="https://img-blog.csdnimg.cn/2020092721214148.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述">上面的核心关键点如下：</p>
-<ul>
-<li>如果Broker开启了自动创建Topic，在启动的时候会默认创建主题：TBW102，并会随着Broker发送到Nameserver的心跳包汇报给Nameserver，继而从Nameserver查询路由信息时能返回路由信息。</li>
-<li>消息发送者在消息发送时首先会查本地缓存，如果本地缓存中存在，直接返回路由信息。</li>
-<li>如果缓存不存在，则向Nameserver查询路由信息，如果Nameserver存在该路由信息，就直接返回。</li>
-<li>如果Nameserver不存在该topic的路由信息，如果没有开启自动创建主题，则抛出 No route info of this topic。</li>
-<li>如果开启了自动创建主题，则使用默认主题向Nameserver查询路由信息，并使用默认Topic的路由信息为自己的路由信息，将不会抛出 No route info of this topic。</li>
-</ul>
-<p>通常情况下 No route info of this topic 这个错误一般是在刚搭建RocketMQ，刚入门 RocketMQ遇到的比较多，通常的排查思路如下：</p>
-<ul>
-<li><p>可以通过rocketmq-console查询路由信息是否存在，或使用如下命令查询路由信息：</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">cd $&#123;ROCKETMQ_HOME&#125;/bin</span><br><span class="line">sh ./mqadmin topicRoute -n 127.0.0.1:9876 -t dw_test_0003</span><br></pre></td></tr></table></figure>
-<p>其输出结果如下所示：<br><img src="https://img-blog.csdnimg.cn/20200927212234119.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"></p>
-</li>
-<li><p>如果通过命令无法查询到路由信息，则查看Broker是否开启了自动创建topic，参数为：autoCreateTopicEnable,该参数默认为true。但在生产环境不建议开启。</p>
-</li>
-<li><p>如果开启了自动创建路由信息，但还是抛出这个错误，这个时候请检查客户端(Producer)连接的Nameserver地址是否与Broker中配置的nameserver地址是否一致。</p>
-</li>
-</ul>
-<p>经过上面的步骤，基本就能解决该错误。</p>
-          <!--noindex-->
-          <div class="post-button text-center">
-            <a class="btn" href="/posts/6a2393aa.html#more" rel="contents">
-              阅读全文 &raquo;
-            </a>
-          </div>
-          <!--/noindex-->
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://example.com/posts/3f6db0.html">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="中间件兴趣圈">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/posts/3f6db0.html" itemprop="url">RocketMQ学习环境搭建(RocketMQ安装与IDEA Debug环境搭建)</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-12-07T22:42:28+08:00">
-                2020-12-07
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/rocketmq/" itemprop="url" rel="index">
-                    <span itemprop="name">rocketmq</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/posts/3f6db0.html#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count valine-comment-count" data-xid="/posts/3f6db0.html" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-             <span id="/posts/3f6db0.html" class="leancloud_visitors" data-flag-title="RocketMQ学习环境搭建(RocketMQ安装与IDEA Debug环境搭建)">
-               <span class="post-meta-divider">|</span>
-               <span class="post-meta-item-icon">
-                 <i class="fa fa-eye"></i>
-               </span>
-               
-                 <span class="post-meta-item-text">阅读次数&#58;</span>
-               
-                 <span class="leancloud-visitors-count"></span>
-             </span>
-          
-
-          
-
-          
-            <div class="post-wordcount">
-              
-                
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-file-word-o"></i>
-                </span>
-                
-                  <span class="post-meta-item-text">字数统计&#58;</span>
-                
-                <span title="字数统计">
-                  1.7k 字
-                </span>
-              
-
-              
-                <span class="post-meta-divider">|</span>
-              
-
-              
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-clock-o"></i>
-                </span>
-                
-                  <span class="post-meta-item-text">阅读时长 &asymp;</span>
-                
-                <span title="阅读时长">
-                  7 分钟
-                </span>
-              
-            </div>
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          <p>本文主要分如下几个部分展开：</p>
-<ul>
-<li>Linux服务器安装RocketMQ、RocketMQ-Console</li>
-<li>IDEA中搭建可调试环境</li>
-</ul>
-<h2 id="1、Linux安装RocketMQ、RocketMQ-Console"><a href="#1、Linux安装RocketMQ、RocketMQ-Console" class="headerlink" title="1、Linux安装RocketMQ、RocketMQ-Console"></a>1、Linux安装RocketMQ、RocketMQ-Console</h2><h3 id="1-1安装RocketMQ"><a href="#1-1安装RocketMQ" class="headerlink" title="1.1安装RocketMQ"></a>1.1安装RocketMQ</h3><p>Step1：从如下地址下载RocketMQ安装包</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">cd /opt/application</span><br><span class="line">wget https://mirrors.tuna.tsinghua.edu.cn/apache/rocketmq/4.7.1/rocketmq-all-4.7.1-bin-release.zip</span><br></pre></td></tr></table></figure>
-
-<p>Step2：解压安装包</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">unzip rocketmq-all-4.7.1-bin-release.zip</span><br><span class="line">ls -l</span><br></pre></td></tr></table></figure>
-
-<p>解压后的文件如下图所示：<br><img src="https://img-blog.csdnimg.cn/20201011210742646.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br>其中 conf 文件夹存放的是RocketMQ的配置文件，提供了各种部署结构的示例配置。例如2m-2s-async是2主2从异步复制的配置示例；2m-noslave是2主的示例配置。由于本文主要是搭建一个学习环境，故采取的部署架构为1主的部署架构，关于生产环境下如何搭建RocketMQ集群、如何调优参数将在该专栏的后续文章中专门介绍。</p>
-<p>Step3：修改Nameserver jvm参数</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">cd bin</span><br><span class="line">vi runserver.sh</span><br><span class="line"></span><br><span class="line"><span class="meta">#</span><span class="bash"> 定位到如下代码</span></span><br><span class="line">JAVA_OPT=&quot;$&#123;JAVA_OPT&#125; -server -Xms4g -Xmx4g -Xmn2g -XX:MetaspaceSize=128m -XX:MaxMetaspaceSize=320m&quot;</span><br><span class="line"></span><br><span class="line"><span class="meta">#</span><span class="bash"> 修改　<span class="string">&quot;-Xms -Xmx -Xmn&quot;</span>　参数</span></span><br><span class="line">JAVA_OPT=&quot;$&#123;JAVA_OPT&#125; -server -Xms512M -Xmx512M -Xmn256M -XX:MetaspaceSize=128m -XX:MaxMetaspaceSize=320m&quot;</span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>温馨提示：这里修改JVM参数主要目的是个人学习电脑内存不够，默认NameServer 会占用4G。</p>
-</blockquote>
-<p>Step4：启动nameserver</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nohup ./mqnamesrv &amp;</span><br></pre></td></tr></table></figure>
-
-<p>查看${user_home}/logs/rocketmqlogs/namesrv.log日志文件，如果输出结果如下图所示即表示启动成功。<br><img src="https://img-blog.csdnimg.cn/20201011210817888.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"></p>
-          <!--noindex-->
-          <div class="post-button text-center">
-            <a class="btn" href="/posts/3f6db0.html#more" rel="contents">
-              阅读全文 &raquo;
-            </a>
-          </div>
-          <!--/noindex-->
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://example.com/posts/32f79e19.html">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="中间件兴趣圈">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/posts/32f79e19.html" itemprop="url">RocketMQ核心概念扫盲篇</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-12-07T22:40:25+08:00">
-                2020-12-07
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/rocketmq/" itemprop="url" rel="index">
-                    <span itemprop="name">rocketmq</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/posts/32f79e19.html#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count valine-comment-count" data-xid="/posts/32f79e19.html" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-             <span id="/posts/32f79e19.html" class="leancloud_visitors" data-flag-title="RocketMQ核心概念扫盲篇">
-               <span class="post-meta-divider">|</span>
-               <span class="post-meta-item-icon">
-                 <i class="fa fa-eye"></i>
-               </span>
-               
-                 <span class="post-meta-item-text">阅读次数&#58;</span>
-               
-                 <span class="leancloud-visitors-count"></span>
-             </span>
-          
-
-          
-
-          
-            <div class="post-wordcount">
-              
-                
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-file-word-o"></i>
-                </span>
-                
-                  <span class="post-meta-item-text">字数统计&#58;</span>
-                
-                <span title="字数统计">
-                  2.7k 字
-                </span>
-              
-
-              
-                <span class="post-meta-divider">|</span>
-              
-
-              
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-clock-o"></i>
-                </span>
-                
-                  <span class="post-meta-item-text">阅读时长 &asymp;</span>
-                
-                <span title="阅读时长">
-                  9 分钟
-                </span>
-              
-            </div>
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          <p>在正式进入RocketMQ的学习之前，我觉得有必要梳理一下RocketMQ核心概念，为大家学习RocketMQ打下牢固的基础。</p>
-<h2 id="1、RocketMQ部署架构"><a href="#1、RocketMQ部署架构" class="headerlink" title="1、RocketMQ部署架构"></a>1、RocketMQ部署架构</h2><p><img src="https://img-blog.csdnimg.cn/20201018221302331.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br>在RocketMQ主要的组件如下：</p>
-<ul>
-<li><p>Nameserver</p>
-<p>Nameserver集群，topic的路由注册中心，为客户端根据Topic提供路由服务，从而引导客户端向Broker发送消息。Nameserver之间的节点不通信。路由信息在Nameserver集群中数据一致性采取的最终一致性。</p>
-</li>
-<li><p>Broker</p>
-<p>消息存储服务器，分为两种角色：Master与Slave，上图中呈现的就是2主2从的部署架构，在RocketMQ中，主服务承担读写操作，从服务器作为一个备份，当主服务器存在压力时，从服务器可以承担读服务（消息消费）。所有Broker，包含Slave服务器每隔30s会向Nameserver发送心跳包，心跳包中会包含存在在Broker上所有的topic的路由信息。</p>
-</li>
-<li><p>Client</p>
-<p>消息客户端，包括Producer(消息发送者)和Consumer(消费消费者)．客户端在同一时间只会连接一台nameserver，只有在连接出现异常时才会向尝试连接另外一台。客户端每隔30s向Nameserver发起topic的路由信息查询。</p>
-</li>
-</ul>
-<blockquote>
-<p>温馨提示：Nameserver是在内存中存储Topic的路由信息，持久化Topic路由信息的地方是在Broker中，即${    ROCKETMQ_HOME}/store/config/topics.json。</p>
-</blockquote>
-<p>在RocketMQ4.5.0版本后引入了多副本机制，即一个复制组（m-s）可以演变为基于raft协议的复制组，复制组内部使用raft协议保证broker节点数据的强一致性，该部署架构在金融行业用的比较多。</p>
-          <!--noindex-->
-          <div class="post-button text-center">
-            <a class="btn" href="/posts/32f79e19.html#more" rel="contents">
-              阅读全文 &raquo;
-            </a>
-          </div>
-          <!--/noindex-->
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://example.com/posts/b9e3e3ee.html">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="中间件兴趣圈">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/posts/b9e3e3ee.html" itemprop="url">Kafka与RocketMQ性能对比大揭秘</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-12-07T22:37:01+08:00">
-                2020-12-07
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/kafka/" itemprop="url" rel="index">
-                    <span itemprop="name">kafka</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/posts/b9e3e3ee.html#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count valine-comment-count" data-xid="/posts/b9e3e3ee.html" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-             <span id="/posts/b9e3e3ee.html" class="leancloud_visitors" data-flag-title="Kafka与RocketMQ性能对比大揭秘">
-               <span class="post-meta-divider">|</span>
-               <span class="post-meta-item-icon">
-                 <i class="fa fa-eye"></i>
-               </span>
-               
-                 <span class="post-meta-item-text">阅读次数&#58;</span>
-               
-                 <span class="leancloud-visitors-count"></span>
-             </span>
-          
-
-          
-
-          
-            <div class="post-wordcount">
-              
-                
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-file-word-o"></i>
-                </span>
-                
-                  <span class="post-meta-item-text">字数统计&#58;</span>
-                
-                <span title="字数统计">
-                  2.4k 字
-                </span>
-              
-
-              
-                <span class="post-meta-divider">|</span>
-              
-
-              
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-clock-o"></i>
-                </span>
-                
-                  <span class="post-meta-item-text">阅读时长 &asymp;</span>
-                
-                <span title="阅读时长">
-                  8 分钟
-                </span>
-              
-            </div>
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          <p>在双十一过程中投入同样的硬件资源，Kafka 搭建的日志集群单个Topic可以达到几百万的TPS，而使用RocketMQ组件的核心业务集群，集群TPS只能达到几十万TPS，这样的现象激发了我对两者性能方面的思考。</p>
-<blockquote>
-<p>温馨提示：TPS只是众多性能指标中的一个，我们在做技术选型方面要从多方面考虑，本文并不打算就消息中间件选型方面投入太多笔墨，重点想尝试剖析两者在性能方面的设计思想。</p>
-</blockquote>
-          <!--noindex-->
-          <div class="post-button text-center">
-            <a class="btn" href="/posts/b9e3e3ee.html#more" rel="contents">
+            <a class="btn" href="/posts/e0ec5d91.html#more" rel="contents">
               阅读全文 &raquo;
             </a>
           </div>
@@ -2437,7 +2450,7 @@
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/page/6/">上一页</a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/6/">6</a><span class="page-number current">7</span><a class="page-number" href="/page/8/">8</a><a class="extend next" rel="next" href="/page/8/">下一页</a>
+    <a class="extend prev" rel="prev" href="/page/6/">上一页</a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/6/">6</a><span class="page-number current">7</span><a class="page-number" href="/page/8/">8</a><a class="page-number" href="/page/9/">9</a><a class="extend next" rel="next" href="/page/8/">下一页</a>
   </nav>
 
 
@@ -2483,7 +2496,7 @@
               
                 <a href="/archives/">
               
-                  <span class="site-state-item-count">71</span>
+                  <span class="site-state-item-count">90</span>
                   <span class="site-state-item-name">日志</span>
                 </a>
               </div>
@@ -2494,7 +2507,7 @@
               
               <div class="site-state-item site-state-categories">
                 <a href="/categories/index.html">
-                  <span class="site-state-item-count">9</span>
+                  <span class="site-state-item-count">12</span>
                   <span class="site-state-item-name">分类</span>
                 </a>
               </div>
@@ -2505,7 +2518,7 @@
               
               <div class="site-state-item site-state-tags">
                 <a href="/tags/index.html">
-                  <span class="site-state-item-count">103</span>
+                  <span class="site-state-item-count">144</span>
                   <span class="site-state-item-name">标签</span>
                 </a>
               </div>
@@ -2563,7 +2576,7 @@
     
       <span class="post-meta-item-text">Site words total count&#58;</span>
     
-    <span title="Site words total count">186.4k</span>
+    <span title="Site words total count">238.6k</span>
   
 </div>
 
