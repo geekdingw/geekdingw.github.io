@@ -287,6 +287,215 @@
   
   
   <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://example.com/posts/3c69fbc4.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="中间件兴趣圈">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/posts/3c69fbc4.html" itemprop="url">java Reference 引用学习总结</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-12-09T23:12:35+08:00">
+                2020-12-09
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/java/" itemprop="url" rel="index">
+                    <span itemprop="name">java</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/posts/3c69fbc4.html#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count valine-comment-count" data-xid="/posts/3c69fbc4.html" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+             <span id="/posts/3c69fbc4.html" class="leancloud_visitors" data-flag-title="java Reference 引用学习总结">
+               <span class="post-meta-divider">|</span>
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               
+                 <span class="post-meta-item-text">阅读次数&#58;</span>
+               
+                 <span class="leancloud-visitors-count"></span>
+             </span>
+          
+
+          
+
+          
+            <div class="post-wordcount">
+              
+                
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-file-word-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">字数统计&#58;</span>
+                
+                <span title="字数统计">
+                  2.1k 字
+                </span>
+              
+
+              
+                <span class="post-meta-divider">|</span>
+              
+
+              
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-clock-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">阅读时长 &asymp;</span>
+                
+                <span title="阅读时长">
+                  8 分钟
+                </span>
+              
+            </div>
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          <h2 id="1、Java引用的类型"><a href="#1、Java引用的类型" class="headerlink" title="1、Java引用的类型"></a>1、Java引用的类型</h2><p>强引用、软引用(java.lang.ref.SoftReference)、弱引用(java.lang.ref.WeakReference)、虚引用(　java.lang.ref.PhantomReference　)。</p>
+<p>java默认的引用类型为强引用，比如 Object a = new Object();其中 a 为强引用，new Object()为一个具体的对象。</p>
+<p>至于软应用，弱引用，虚引用，就是 JAVA 虚拟机管理对象的范畴了，可以这样理解，SoftReference、WeakReference、PlantomReference 只是一种标记，JAVA 虚拟机在垃圾回收时，对上述不同的标记【引用的对象】采取不同的措施。采取措施如下：</p>
+<ul>
+<li><p>软引用(SoftReference)：当内存足够时，该引用【引用的对象】不会被回收，那什么是内存足够呢？进行年轻代的垃圾回收不会触发SoftReference所指向对象的回收,如果触发Full GC，那SoftReference所指向的对象将被回收。</p>
+</li>
+<li><p>弱引用(WeakReference) :当进行年轻代垃圾回收时，该引用指向的对象，就会被回收。</p>
+</li>
+<li><p>虚引用(PhantomeReference) 该引用指向的对象，无法对垃圾收集器收集对象时产生任何影响，唯一有用的是，如果被垃圾收集器收集的对象，被PhantomeReference标记，垃圾收集器会通过注册在PhantomeReference上的队列来通知应用程序，该引用指向的对象，已经被垃圾收集器回收。</p>
+</li>
+</ul>
+<p>从上文的描述，也清楚的知道，上述应用是直接JVM打交道，更直接的说是与垃圾回收器直接的交互。</p>
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/posts/3c69fbc4.html#more" rel="contents">
+              阅读全文 &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
     <link itemprop="mainEntityOfPage" href="http://example.com/posts/36b32da.html">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -2273,241 +2482,6 @@
 
 
     
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://example.com/posts/3f62c87c.html">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="中间件兴趣圈">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/posts/3f62c87c.html" itemprop="url">初识Stream、流的基本操作（流计算）</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-12-09T22:32:35+08:00">
-                2020-12-09
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/java8/" itemprop="url" rel="index">
-                    <span itemprop="name">java8</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/posts/3f62c87c.html#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count valine-comment-count" data-xid="/posts/3f62c87c.html" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-             <span id="/posts/3f62c87c.html" class="leancloud_visitors" data-flag-title="初识Stream、流的基本操作（流计算）">
-               <span class="post-meta-divider">|</span>
-               <span class="post-meta-item-icon">
-                 <i class="fa fa-eye"></i>
-               </span>
-               
-                 <span class="post-meta-item-text">阅读次数&#58;</span>
-               
-                 <span class="leancloud-visitors-count"></span>
-             </span>
-          
-
-          
-
-          
-            <div class="post-wordcount">
-              
-                
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-file-word-o"></i>
-                </span>
-                
-                  <span class="post-meta-item-text">字数统计&#58;</span>
-                
-                <span title="字数统计">
-                  4.3k 字
-                </span>
-              
-
-              
-                <span class="post-meta-divider">|</span>
-              
-
-              
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-clock-o"></i>
-                </span>
-                
-                  <span class="post-meta-item-text">阅读时长 &asymp;</span>
-                
-                <span title="阅读时长">
-                  18 分钟
-                </span>
-              
-            </div>
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          <p>本文中的部分示例基于如下场景：餐厅点菜，Dish为餐厅中可提供的菜品，Dish的定义如下：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">public class Dish &#123;</span><br><span class="line">    &#x2F;** 菜品名称 *&#x2F;</span><br><span class="line">	private final String name;</span><br><span class="line">	&#x2F;** 是否是素食 *&#x2F;</span><br><span class="line">	private final boolean vegetarian;</span><br><span class="line">	&#x2F;** 含卡路里 *&#x2F;</span><br><span class="line">	private final int calories;</span><br><span class="line">	&#x2F;** 类型 *&#x2F;</span><br><span class="line">	private final Type type;</span><br><span class="line">	</span><br><span class="line">	public Dish(String name, boolean vegetarian, int calories, Type type) &#123;</span><br><span class="line">		this.name &#x3D; name;</span><br><span class="line">		this.vegetarian &#x3D; vegetarian;</span><br><span class="line">		this.calories &#x3D; calories;</span><br><span class="line">		this.type &#x3D; type;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	public enum Type &#123; MEAT, FISH, OTHER &#125;</span><br><span class="line">	</span><br><span class="line">	&#x2F;&#x2F; 省略set get方法</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>菜单的数据如下：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">List&lt;Dish&gt; menu &#x3D; Arrays.asList(</span><br><span class="line">new Dish(&quot;pork&quot;, false, 800, Dish.Type.MEAT),</span><br><span class="line">new Dish(&quot;beef&quot;, false, 700, Dish.Type.MEAT),</span><br><span class="line">new Dish(&quot;chicken&quot;, false, 400, Dish.Type.MEAT),</span><br><span class="line">new Dish(&quot;french fries&quot;, true, 530, Dish.Type.OTHER),</span><br><span class="line">new Dish(&quot;rice&quot;, true, 350, Dish.Type.OTHER),</span><br><span class="line">new Dish(&quot;season fruit&quot;, true, 120, Dish.Type.OTHER),</span><br><span class="line">new Dish(&quot;pizza&quot;, true, 550, Dish.Type.OTHER),</span><br><span class="line">new Dish(&quot;prawns&quot;, false, 300, Dish.Type.FISH),</span><br><span class="line">new Dish(&quot;salmon&quot;, false, 450, Dish.Type.FISH) );</span><br></pre></td></tr></table></figure>
-<p>我们以一个简单的示例来引入流：从菜单列表中，查找出是素食的菜品，并打印其菜品的名称。</p>
-<p>在Java8之前，我们通常是这样实现该需求的：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">List&lt;String&gt; dishNames &#x3D; new ArrayList&lt;&gt;();</span><br><span class="line">for(Dish d menu) &#123;</span><br><span class="line">    if(d.isVegetarian()) &#123;</span><br><span class="line">        dishNames.add(d.getName()); </span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line">&#x2F;&#x2F;输出帅选出来的菜品的名称：</span><br><span class="line">for(String n : dishNames) &#123;</span><br><span class="line">    System.out.println(n);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>那在java8中，我们可以这样写：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">menu.streams() .filter( Dish::isVegetarian).map( Dish::getName) .forEach( a -&gt; System.out.println(a) );</span><br></pre></td></tr></table></figure>
-<p>其运行输出的结果：<br><img src="https://img-blog.csdnimg.cn/20190518134242508.png" alt="在这里插入图片描述"><br>怎么样，神奇吧！！！</p>
-<p>在解释上面的代码之前，我们先对流做一个理论上的介绍。</p>
-<h2 id="1、流是什么？"><a href="#1、流是什么？" class="headerlink" title="1、流是什么？"></a>1、流是什么？</h2><p>流，就是数据流，是元素序列，在Java8中，流的接口定义在 java.util.stream.Stream包中，并且在Collection(集合)接口中新增一个方法：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">default Stream&lt;E&gt; stream() &#123;</span><br><span class="line">        return StreamSupport.stream(spliterator(), false);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>流的简短定义：从支持数据处理操作的源生成的元素序列。例如集合、数组都是支持数据操作的数据结构（容器），都可以做为流的创建源，该定义的核心要素如下：</p>
-<ul>
-<li>源<br>流是从一个源创建来而来，而且这个源是支持数据处理的，例如集合、数组等。</li>
-<li>元素序列<br>流代表一个元素序列（流水线），因为是从根据一个数据处理源而创建得来的。</li>
-<li>数据处理操作<br>流的侧重点并不在数据存储，而在于数据处理，例如示例中的filter、map、forEach等。</li>
-<li>迭代方式<br>流的迭代方式为内部迭代，而集合的迭代方式为外部迭代。例如我们遍历Collection接口需要用户去做迭代，例如for-each，然后在循环体中写对应的处理代码，这叫外部迭代。相反，Stream库使用内部迭代，我们只需要对流传入对应的函数即可，表示要做什么就行。</li>
-</ul>
-<blockquote>
-<p>注意：流和迭代器Iterator一样，只能遍历一次，如果要多次遍历，请创建多个流。</p>
-</blockquote>
-<p>接下来我们将重点先介绍流的常用操作方法。</p>
-<h2 id="2、常用的流操作方法"><a href="#2、常用的流操作方法" class="headerlink" title="2、常用的流操作方法"></a>2、常用的流操作方法</h2><h4 id="2-1-filter"><a href="#2-1-filter" class="headerlink" title="2.1 filter"></a>2.1 filter</h4><p>filter函数的方法声明如下：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">java.util.stream.Stream#filter</span><br><span class="line">Stream&lt;T&gt; filter(Predicate&lt;? super T&gt; predicate);</span><br></pre></td></tr></table></figure>
-<p>该方法接收一个谓词，返回一个流，即filter方法接收的lambda表达式需要满足 （  T  -&gt; Boolean ）。</p>
-<p>示例：从菜单中选出所有是素食的菜品：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">List&lt;Dish&gt; vegetarianDishs &#x3D; menu.stream().filter(  Dish::isVegetarian )    &#x2F;&#x2F; 使用filter过滤流中的菜品。</span><br><span class="line">                                          .collect(toList())；              &#x2F;&#x2F; 将流转换成List，该方法将在后面介绍。</span><br></pre></td></tr></table></figure>
-<blockquote>
-<p>温馨提示：流的操作可以分成中间件操作和终端操作。中间操作通常的返回结果还是流，并且在调用终端操作之前，并不会立即调用，等终端方法调用后，中间操作才会真正触发执行，该示例中的collect方法为终端方法。</p>
-</blockquote>
-<p>我们类比一下数据库查询操作，除了基本的筛选动作外，还有去重，分页等功能，那java8的流API能支持这些操作吗？<br>答案当然是肯定。</p>
-<h4 id="2-1-1-distinct"><a href="#2-1-1-distinct" class="headerlink" title="2.1.1 distinct"></a>2.1.1 distinct</h4><p>distinct，类似于数据库中的排重函数，就是对结果集去重。<br>例如有一个数值numArr = [1,5,8,6,5,2,6]，现在要输出该数值中的所有奇数并且不能重复输出，那该如何实现呢？</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Arrays.stream(numArr).filter(  a -&gt; a % 2 &#x3D;&#x3D; 0 ).distinict().forEach(System.out::println);</span><br></pre></td></tr></table></figure>
-<h4 id="2-1-2-limit"><a href="#2-1-2-limit" class="headerlink" title="2.1.2 limit"></a>2.1.2 limit</h4><p>截断流，返回一个i不超过指定元素个数的流。<br>还是以上例举例，如果要输出的元素是偶数，不能重复输出，并且只输出1个元素，那又该如何实现呢？</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Arrays.stream(numArr).filter(  a -&gt; a % 2 &#x3D;&#x3D; 0 ).distinict().limit(1).forEach(System.out::println);</span><br></pre></td></tr></table></figure>
-<h4 id="2-1-3-skip"><a href="#2-1-3-skip" class="headerlink" title="2.1.3 skip"></a>2.1.3 skip</h4><p>跳过指定元素，返回剩余元素的流，与limit互补。</p>
-          <!--noindex-->
-          <div class="post-button text-center">
-            <a class="btn" href="/posts/3f62c87c.html#more" rel="contents">
-              阅读全文 &raquo;
-            </a>
-          </div>
-          <!--/noindex-->
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
   </section>
 
   
@@ -2580,7 +2554,7 @@
               
               <div class="site-state-item site-state-tags">
                 <a href="/tags/index.html">
-                  <span class="site-state-item-count">99</span>
+                  <span class="site-state-item-count">103</span>
                   <span class="site-state-item-name">标签</span>
                 </a>
               </div>
@@ -2638,7 +2612,7 @@
     
       <span class="post-meta-item-text">Site words total count&#58;</span>
     
-    <span title="Site words total count">182.2k</span>
+    <span title="Site words total count">186.4k</span>
   
 </div>
 

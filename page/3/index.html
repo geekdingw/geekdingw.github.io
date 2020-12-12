@@ -287,6 +287,241 @@
   
   
   <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://example.com/posts/3f62c87c.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="中间件兴趣圈">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/posts/3f62c87c.html" itemprop="url">初识Stream、流的基本操作（流计算）</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-12-09T22:32:35+08:00">
+                2020-12-09
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/java8/" itemprop="url" rel="index">
+                    <span itemprop="name">java8</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/posts/3f62c87c.html#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count valine-comment-count" data-xid="/posts/3f62c87c.html" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+             <span id="/posts/3f62c87c.html" class="leancloud_visitors" data-flag-title="初识Stream、流的基本操作（流计算）">
+               <span class="post-meta-divider">|</span>
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               
+                 <span class="post-meta-item-text">阅读次数&#58;</span>
+               
+                 <span class="leancloud-visitors-count"></span>
+             </span>
+          
+
+          
+
+          
+            <div class="post-wordcount">
+              
+                
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-file-word-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">字数统计&#58;</span>
+                
+                <span title="字数统计">
+                  4.3k 字
+                </span>
+              
+
+              
+                <span class="post-meta-divider">|</span>
+              
+
+              
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-clock-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">阅读时长 &asymp;</span>
+                
+                <span title="阅读时长">
+                  18 分钟
+                </span>
+              
+            </div>
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          <p>本文中的部分示例基于如下场景：餐厅点菜，Dish为餐厅中可提供的菜品，Dish的定义如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">public class Dish &#123;</span><br><span class="line">    &#x2F;** 菜品名称 *&#x2F;</span><br><span class="line">	private final String name;</span><br><span class="line">	&#x2F;** 是否是素食 *&#x2F;</span><br><span class="line">	private final boolean vegetarian;</span><br><span class="line">	&#x2F;** 含卡路里 *&#x2F;</span><br><span class="line">	private final int calories;</span><br><span class="line">	&#x2F;** 类型 *&#x2F;</span><br><span class="line">	private final Type type;</span><br><span class="line">	</span><br><span class="line">	public Dish(String name, boolean vegetarian, int calories, Type type) &#123;</span><br><span class="line">		this.name &#x3D; name;</span><br><span class="line">		this.vegetarian &#x3D; vegetarian;</span><br><span class="line">		this.calories &#x3D; calories;</span><br><span class="line">		this.type &#x3D; type;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	public enum Type &#123; MEAT, FISH, OTHER &#125;</span><br><span class="line">	</span><br><span class="line">	&#x2F;&#x2F; 省略set get方法</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>菜单的数据如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">List&lt;Dish&gt; menu &#x3D; Arrays.asList(</span><br><span class="line">new Dish(&quot;pork&quot;, false, 800, Dish.Type.MEAT),</span><br><span class="line">new Dish(&quot;beef&quot;, false, 700, Dish.Type.MEAT),</span><br><span class="line">new Dish(&quot;chicken&quot;, false, 400, Dish.Type.MEAT),</span><br><span class="line">new Dish(&quot;french fries&quot;, true, 530, Dish.Type.OTHER),</span><br><span class="line">new Dish(&quot;rice&quot;, true, 350, Dish.Type.OTHER),</span><br><span class="line">new Dish(&quot;season fruit&quot;, true, 120, Dish.Type.OTHER),</span><br><span class="line">new Dish(&quot;pizza&quot;, true, 550, Dish.Type.OTHER),</span><br><span class="line">new Dish(&quot;prawns&quot;, false, 300, Dish.Type.FISH),</span><br><span class="line">new Dish(&quot;salmon&quot;, false, 450, Dish.Type.FISH) );</span><br></pre></td></tr></table></figure>
+<p>我们以一个简单的示例来引入流：从菜单列表中，查找出是素食的菜品，并打印其菜品的名称。</p>
+<p>在Java8之前，我们通常是这样实现该需求的：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">List&lt;String&gt; dishNames &#x3D; new ArrayList&lt;&gt;();</span><br><span class="line">for(Dish d menu) &#123;</span><br><span class="line">    if(d.isVegetarian()) &#123;</span><br><span class="line">        dishNames.add(d.getName()); </span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line">&#x2F;&#x2F;输出帅选出来的菜品的名称：</span><br><span class="line">for(String n : dishNames) &#123;</span><br><span class="line">    System.out.println(n);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>那在java8中，我们可以这样写：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">menu.streams() .filter( Dish::isVegetarian).map( Dish::getName) .forEach( a -&gt; System.out.println(a) );</span><br></pre></td></tr></table></figure>
+<p>其运行输出的结果：<br><img src="https://img-blog.csdnimg.cn/20190518134242508.png" alt="在这里插入图片描述"><br>怎么样，神奇吧！！！</p>
+<p>在解释上面的代码之前，我们先对流做一个理论上的介绍。</p>
+<h2 id="1、流是什么？"><a href="#1、流是什么？" class="headerlink" title="1、流是什么？"></a>1、流是什么？</h2><p>流，就是数据流，是元素序列，在Java8中，流的接口定义在 java.util.stream.Stream包中，并且在Collection(集合)接口中新增一个方法：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">default Stream&lt;E&gt; stream() &#123;</span><br><span class="line">        return StreamSupport.stream(spliterator(), false);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>流的简短定义：从支持数据处理操作的源生成的元素序列。例如集合、数组都是支持数据操作的数据结构（容器），都可以做为流的创建源，该定义的核心要素如下：</p>
+<ul>
+<li>源<br>流是从一个源创建来而来，而且这个源是支持数据处理的，例如集合、数组等。</li>
+<li>元素序列<br>流代表一个元素序列（流水线），因为是从根据一个数据处理源而创建得来的。</li>
+<li>数据处理操作<br>流的侧重点并不在数据存储，而在于数据处理，例如示例中的filter、map、forEach等。</li>
+<li>迭代方式<br>流的迭代方式为内部迭代，而集合的迭代方式为外部迭代。例如我们遍历Collection接口需要用户去做迭代，例如for-each，然后在循环体中写对应的处理代码，这叫外部迭代。相反，Stream库使用内部迭代，我们只需要对流传入对应的函数即可，表示要做什么就行。</li>
+</ul>
+<blockquote>
+<p>注意：流和迭代器Iterator一样，只能遍历一次，如果要多次遍历，请创建多个流。</p>
+</blockquote>
+<p>接下来我们将重点先介绍流的常用操作方法。</p>
+<h2 id="2、常用的流操作方法"><a href="#2、常用的流操作方法" class="headerlink" title="2、常用的流操作方法"></a>2、常用的流操作方法</h2><h4 id="2-1-filter"><a href="#2-1-filter" class="headerlink" title="2.1 filter"></a>2.1 filter</h4><p>filter函数的方法声明如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">java.util.stream.Stream#filter</span><br><span class="line">Stream&lt;T&gt; filter(Predicate&lt;? super T&gt; predicate);</span><br></pre></td></tr></table></figure>
+<p>该方法接收一个谓词，返回一个流，即filter方法接收的lambda表达式需要满足 （  T  -&gt; Boolean ）。</p>
+<p>示例：从菜单中选出所有是素食的菜品：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">List&lt;Dish&gt; vegetarianDishs &#x3D; menu.stream().filter(  Dish::isVegetarian )    &#x2F;&#x2F; 使用filter过滤流中的菜品。</span><br><span class="line">                                          .collect(toList())；              &#x2F;&#x2F; 将流转换成List，该方法将在后面介绍。</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>温馨提示：流的操作可以分成中间件操作和终端操作。中间操作通常的返回结果还是流，并且在调用终端操作之前，并不会立即调用，等终端方法调用后，中间操作才会真正触发执行，该示例中的collect方法为终端方法。</p>
+</blockquote>
+<p>我们类比一下数据库查询操作，除了基本的筛选动作外，还有去重，分页等功能，那java8的流API能支持这些操作吗？<br>答案当然是肯定。</p>
+<h4 id="2-1-1-distinct"><a href="#2-1-1-distinct" class="headerlink" title="2.1.1 distinct"></a>2.1.1 distinct</h4><p>distinct，类似于数据库中的排重函数，就是对结果集去重。<br>例如有一个数值numArr = [1,5,8,6,5,2,6]，现在要输出该数值中的所有奇数并且不能重复输出，那该如何实现呢？</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Arrays.stream(numArr).filter(  a -&gt; a % 2 &#x3D;&#x3D; 0 ).distinict().forEach(System.out::println);</span><br></pre></td></tr></table></figure>
+<h4 id="2-1-2-limit"><a href="#2-1-2-limit" class="headerlink" title="2.1.2 limit"></a>2.1.2 limit</h4><p>截断流，返回一个i不超过指定元素个数的流。<br>还是以上例举例，如果要输出的元素是偶数，不能重复输出，并且只输出1个元素，那又该如何实现呢？</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Arrays.stream(numArr).filter(  a -&gt; a % 2 &#x3D;&#x3D; 0 ).distinict().limit(1).forEach(System.out::println);</span><br></pre></td></tr></table></figure>
+<h4 id="2-1-3-skip"><a href="#2-1-3-skip" class="headerlink" title="2.1.3 skip"></a>2.1.3 skip</h4><p>跳过指定元素，返回剩余元素的流，与limit互补。</p>
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/posts/3f62c87c.html#more" rel="contents">
+              阅读全文 &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
     <link itemprop="mainEntityOfPage" href="http://example.com/posts/4c12373d.html">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -2288,233 +2523,6 @@
 
 
     
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://example.com/posts/6c0cb4a9.html">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="中间件兴趣圈">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/posts/6c0cb4a9.html" itemprop="url">源码分析RateLimiter SmoothWarmingUp 实现原理(文末附流程图)</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-12-08T22:53:35+08:00">
-                2020-12-08
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/sentinel/" itemprop="url" rel="index">
-                    <span itemprop="name">sentinel</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/posts/6c0cb4a9.html#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count valine-comment-count" data-xid="/posts/6c0cb4a9.html" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-             <span id="/posts/6c0cb4a9.html" class="leancloud_visitors" data-flag-title="源码分析RateLimiter SmoothWarmingUp 实现原理(文末附流程图)">
-               <span class="post-meta-divider">|</span>
-               <span class="post-meta-item-icon">
-                 <i class="fa fa-eye"></i>
-               </span>
-               
-                 <span class="post-meta-item-text">阅读次数&#58;</span>
-               
-                 <span class="leancloud-visitors-count"></span>
-             </span>
-          
-
-          
-
-          
-            <div class="post-wordcount">
-              
-                
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-file-word-o"></i>
-                </span>
-                
-                  <span class="post-meta-item-text">字数统计&#58;</span>
-                
-                <span title="字数统计">
-                  2.6k 字
-                </span>
-              
-
-              
-                <span class="post-meta-divider">|</span>
-              
-
-              
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-clock-o"></i>
-                </span>
-                
-                  <span class="post-meta-item-text">阅读时长 &asymp;</span>
-                
-                <span title="阅读时长">
-                  10 分钟
-                </span>
-              
-            </div>
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          <p>上一篇详细介绍了 <a target="_blank" rel="noopener" href="https://blog.csdn.net/prestigeding/article/details/105027563">SmoothBursty</a> 的实现原理，本文将介绍带有预热机制的限速器实现原理。</p>
-<h2 id="1、类图"><a href="#1、类图" class="headerlink" title="1、类图"></a>1、类图</h2><p><img src="https://img-blog.csdnimg.cn/20200329155128855.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br>从上文也详细介绍了 RateLimiter 相关的类图，本文就不详细介绍。</p>
-<h2 id="2、SmoothWarmingUp-创建流程"><a href="#2、SmoothWarmingUp-创建流程" class="headerlink" title="2、SmoothWarmingUp 创建流程"></a>2、SmoothWarmingUp 创建流程</h2><p>创建 SmoothWarmingUp 限速器的入口为 RateLimiter 的 create 方法，其代码如下：<br>RateLimiter#create</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> RateLimiter <span class="title">create</span><span class="params">(<span class="keyword">double</span> permitsPerSecond, <span class="keyword">long</span> warmupPeriod, TimeUnit unit)</span> </span>&#123;  <span class="comment">// @1</span></span><br><span class="line">    checkArgument(warmupPeriod &gt;= <span class="number">0</span>, <span class="string">&quot;warmupPeriod must not be negative: %s&quot;</span>, warmupPeriod);</span><br><span class="line">    <span class="keyword">return</span> create(</span><br><span class="line">        SleepingStopwatch.createFromSystemTimer(), permitsPerSecond, warmupPeriod, unit, <span class="number">3.0</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>代码@1：首先先来看一下参数列表：</p>
-<ul>
-<li>double permitsPerSecond<br>每秒发放许可数量，即所谓的QPS。</li>
-<li>long warmupPeriod<br>设置预热时间。</li>
-<li>TimeUnit unit<br>warmupPeriod 的时间单位。</li>
-</ul>
-<p>代码@2：调用内部的重载方法创建 SmoothWarmingUp 。</p>
-<p>RateLimiter#create</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> RateLimiter <span class="title">create</span><span class="params">( SleepingStopwatch stopwatch, <span class="keyword">double</span> permitsPerSecond, <span class="keyword">long</span> warmupPeriod, TimeUnit unit, <span class="keyword">double</span> coldFactor)</span> </span>&#123;</span><br><span class="line">    RateLimiter rateLimiter = <span class="keyword">new</span> SmoothWarmingUp(stopwatch, warmupPeriod, unit, coldFactor);  <span class="comment">// @1</span></span><br><span class="line">    rateLimiter.setRate(permitsPerSecond); <span class="comment">// @2</span></span><br><span class="line">    <span class="keyword">return</span> rateLimiter;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>创建 SmoothWarmingUp 两个主要步骤分别是调用其构造方法首先创建 SmoothWarmingUp 实例，然后调用其 setRate 方法进行初始化速率。这里先突出 coldFactor，默认为 3.0，该属性的作用将在下文详细介绍。</p>
-<p>我们先来重点探讨一下 setRate 方法的实现。最终会调用其父类 SmoothRateLimiter 的doSetRate 方法。</p>
-<p>SmoothRateLimiter#doSetRate</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">final</span> <span class="keyword">void</span> <span class="title">doSetRate</span><span class="params">(<span class="keyword">double</span> permitsPerSecond, <span class="keyword">long</span> nowMicros)</span> </span>&#123;</span><br><span class="line">    resync(nowMicros);   <span class="comment">// @1 </span></span><br><span class="line">    <span class="keyword">double</span> stableIntervalMicros = SECONDS.toMicros(<span class="number">1L</span>) / permitsPerSecond;   </span><br><span class="line">    <span class="keyword">this</span>.stableIntervalMicros = stableIntervalMicros;   <span class="comment">// @2</span></span><br><span class="line">    doSetRate(permitsPerSecond, stableIntervalMicros);  <span class="comment">// @3</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>代码@1：基于当前时间重置 SmoothRateLimiter 内部的 storedPermits(已存储的许可数量) 与 nextFreeTicketMicros(下一次可以免费获取许可的时间) 值，所谓的免费指的是无需等待就可以获取设定速率的许可，该方法对理解限流许可的产生非常关键，稍后详细介绍。</p>
-<p>代码@2：根据QPS算出一个稳定的获取1个许可的时间。以一秒发放5个许可，即限速为5QPS，那发放一个许可的世界间隔为 200ms，stableIntervalMicros 变量是以微妙为单位。</p>
-<p>代码@4：调用 SmoothRateLimiter 的抽象方法 doSetRate 设置速率，这里会调用 SmoothWarmingUp 的 doSetRate 方法。</p>
-<p>在介绍 SmoothWarmingUp 的 doSetRate 方法之前，我们先来看一下 resync 方法的实现。</p>
-<p>SmoothRateLimiter#resync</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">resync</span><span class="params">(<span class="keyword">long</span> nowMicros)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (nowMicros &gt; nextFreeTicketMicros) &#123;  <span class="comment">// @1 </span></span><br><span class="line">      <span class="keyword">double</span> newPermits = (nowMicros - nextFreeTicketMicros) / coolDownIntervalMicros();  <span class="comment">// @2</span></span><br><span class="line">      storedPermits = min(maxPermits, storedPermits + newPermits);    <span class="comment">// @3</span></span><br><span class="line">      nextFreeTicketMicros = nowMicros;   <span class="comment">// @4</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>代码@1：如果当前已启动时间大于nextFreeTicketMicros（下一次可以免费获取许可的时间），则需要重新计算许可，即又可以向许可池中添加许可。</p>
-<p>代码@2：根据当前时间可增加的许可数量，由于 SmoothWarmingUp 实现了预热机制，平均生成一个许可的时间并不是固定不变的。具体由 coolDownIntervalMicros 方法实现，稍候详细介绍。</p>
-<p>代码@3：计算当前可用的许可，将新增的这些许可添加到许可池，但不会超过其最大值。</p>
-<p>代码@4：更新下一次可增加计算许可的时间。 </p>
-<p>SmoothWarmingUp#coolDownIntervalMicros</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">double</span> <span class="title">coolDownIntervalMicros</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> warmupPeriodMicros / maxPermits;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>这个方法的实现其实简单，用生成这些许可的总时间除以现在已经生成的许可数，即可得到当前时间点平均一个许可的生成时间。</p>
-          <!--noindex-->
-          <div class="post-button text-center">
-            <a class="btn" href="/posts/6c0cb4a9.html#more" rel="contents">
-              阅读全文 &raquo;
-            </a>
-          </div>
-          <!--/noindex-->
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
   </section>
 
   
@@ -2587,7 +2595,7 @@
               
               <div class="site-state-item site-state-tags">
                 <a href="/tags/index.html">
-                  <span class="site-state-item-count">99</span>
+                  <span class="site-state-item-count">103</span>
                   <span class="site-state-item-name">标签</span>
                 </a>
               </div>
@@ -2645,7 +2653,7 @@
     
       <span class="post-meta-item-text">Site words total count&#58;</span>
     
-    <span title="Site words total count">182.2k</span>
+    <span title="Site words total count">186.4k</span>
   
 </div>
 

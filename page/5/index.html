@@ -287,6 +287,212 @@
   
   
   <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://example.com/posts/56026c9f.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="中间件兴趣圈">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/posts/56026c9f.html" itemprop="url">RocketMQ事务消息实战</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-12-08T22:26:35+08:00">
+                2020-12-08
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/rocketmq/" itemprop="url" rel="index">
+                    <span itemprop="name">rocketmq</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/posts/56026c9f.html#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count valine-comment-count" data-xid="/posts/56026c9f.html" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+             <span id="/posts/56026c9f.html" class="leancloud_visitors" data-flag-title="RocketMQ事务消息实战">
+               <span class="post-meta-divider">|</span>
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               
+                 <span class="post-meta-item-text">阅读次数&#58;</span>
+               
+                 <span class="leancloud-visitors-count"></span>
+             </span>
+          
+
+          
+
+          
+            <div class="post-wordcount">
+              
+                
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-file-word-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">字数统计&#58;</span>
+                
+                <span title="字数统计">
+                  1.1k 字
+                </span>
+              
+
+              
+                <span class="post-meta-divider">|</span>
+              
+
+              
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-clock-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">阅读时长 &asymp;</span>
+                
+                <span title="阅读时长">
+                  4 分钟
+                </span>
+              
+            </div>
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          <p>我们以一个订单流转流程来举例，例如订单子系统创建订单，需要将订单数据下发到其他子系统（与第三方系统对接）这个场景，我们通常会将两个系统进行解耦，不直接使用服务调用的方式进行交互。其业务实现步骤通常为：</p>
+<ol>
+<li>A系统创建订单并入库</li>
+<li>发送消息到MQ</li>
+<li>MQ消费者消费消息，发送远程RPC服务调用，完成订单数据的同步。</li>
+</ol>
+<h2 id="1、方案一"><a href="#1、方案一" class="headerlink" title="1、方案一"></a>1、方案一</h2><ol>
+<li><img src="https://img-blog.csdn.net/20180731191040691?watermark/2/text/aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70" alt="这里写图片描述"><br>&ensp; &ensp;方案弊端：<br>&ensp; &ensp;1、如果消息发送成功，在提交事务的时候JVM突然挂掉，事务没有成功提交，导致两个系统之间数据不一致。<br>&ensp; &ensp;2、由于消息是在事务提交之前提交，发送的消息内容是订单实体的内容，会造成在消费端进行消费时如果需要去验证订单是否存在时可能出现订单不存在。<br>&ensp; &ensp;3、消息发送可以考虑异步发送。</li>
+</ol>
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/posts/56026c9f.html#more" rel="contents">
+              阅读全文 &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
     <link itemprop="mainEntityOfPage" href="http://example.com/posts/e6afac5e.html">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -2229,223 +2435,6 @@
 
 
     
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://example.com/posts/e0ec5d91.html">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="中间件兴趣圈">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/posts/e0ec5d91.html" itemprop="url">RocketMQ 升级到主从切换(DLedger、多副本)实战</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-12-08T21:53:35+08:00">
-                2020-12-08
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/rocketmq/" itemprop="url" rel="index">
-                    <span itemprop="name">rocketmq</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/posts/e0ec5d91.html#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count valine-comment-count" data-xid="/posts/e0ec5d91.html" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-             <span id="/posts/e0ec5d91.html" class="leancloud_visitors" data-flag-title="RocketMQ 升级到主从切换(DLedger、多副本)实战">
-               <span class="post-meta-divider">|</span>
-               <span class="post-meta-item-icon">
-                 <i class="fa fa-eye"></i>
-               </span>
-               
-                 <span class="post-meta-item-text">阅读次数&#58;</span>
-               
-                 <span class="leancloud-visitors-count"></span>
-             </span>
-          
-
-          
-
-          
-            <div class="post-wordcount">
-              
-                
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-file-word-o"></i>
-                </span>
-                
-                  <span class="post-meta-item-text">字数统计&#58;</span>
-                
-                <span title="字数统计">
-                  2k 字
-                </span>
-              
-
-              
-                <span class="post-meta-divider">|</span>
-              
-
-              
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-clock-o"></i>
-                </span>
-                
-                  <span class="post-meta-item-text">阅读时长 &asymp;</span>
-                
-                <span title="阅读时长">
-                  8 分钟
-                </span>
-              
-            </div>
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          <p>本文主要介绍如何将 RocketMQ 集群从原先的主从同步升级到主从切换。</p>
-<p>首先先介绍与 DLedger 多副本即 RocketMQ 主从切换相关的核心配置属性，然后尝试搭建一个主从同步集群，再从原先的 RocketMQ 集群平滑升级到 DLedger 集群的示例，并简单测试一下主从切换功能。</p>
-<h2 id="1、RocketMQ-DLedger-多副本即主从切换核心配置参数详解"><a href="#1、RocketMQ-DLedger-多副本即主从切换核心配置参数详解" class="headerlink" title="1、RocketMQ DLedger 多副本即主从切换核心配置参数详解"></a>1、RocketMQ DLedger 多副本即主从切换核心配置参数详解</h2><p>其主要的配置参数如下所示：</p>
-<ul>
-<li>enableDLegerCommitLog<br>是否启用 DLedger，即是否启用 RocketMQ 主从切换，默认值为 false。如果需要开启主从切换，则该值需要设置为 true 。</li>
-<li>dLegerGroup<br>节点所属的 raft 组，建议与 brokerName 保持一致，例如 broker-a。</li>
-<li>dLegerPeers<br>集群节点信息，示例配置如下：n0-127.0.0.1:40911;n1-127.0.0.1:40912;n2-127.0.0.1:40913，多个节点用英文冒号隔开，单个条目遵循   legerSlefId-ip:端口，这里的端口用作 dledger 内部通信。</li>
-<li>dLegerSelfId<br>当前节点id。取自 legerPeers 中条目的开头，即上述示例中的 n0，并且特别需要强调，只能第一个字符为英文，其他字符需要配置成数字。</li>
-<li>storePathRootDir<br>DLedger 日志文件的存储根目录，为了能够支持平滑升级，该值与 storePathCommitLog 设置为不同的目录。</li>
-</ul>
-<h2 id="2、搭建主从同步环境"><a href="#2、搭建主从同步环境" class="headerlink" title="2、搭建主从同步环境"></a>2、搭建主从同步环境</h2><p>首先先搭建一个传统意义上的主从同步架构，往集群中灌一定量的数据，然后升级到 DLedger 集群。</p>
-<p>在 Linux 服务器上搭建一个 rocketmq 主从同步集群我想不是一件很难的事情，故本文就不会详细介绍按照过程，只贴出相关配置。</p>
-<p>实验环境的部署结构采取 一主一次，其部署图如下：<br><img src="https://img-blog.csdnimg.cn/20191013142340811.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>下面我就重点贴一下 broker 的配置文件。<br>220 上的 broker 配置文件如下：</p>
-<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">brokerClusterName = DefaultCluster</span><br><span class="line">brokerName = broker-a</span><br><span class="line">brokerId = <span class="number">0</span></span><br><span class="line">deleteWhen = <span class="number">04</span></span><br><span class="line">fileReservedTime = <span class="number">48</span></span><br><span class="line">brokerRole = ASYNC_MASTER</span><br><span class="line">flushDiskType = ASYNC_FLUSH</span><br><span class="line">brokerIP1=<span class="number">192.168</span><span class="number">.0</span><span class="number">.220</span></span><br><span class="line">brokerIP2=<span class="number">192.168</span><span class="number">.0</span><span class="number">.220</span></span><br><span class="line">namesrvAddr=<span class="number">192.168</span><span class="number">.0</span><span class="number">.221</span>:<span class="number">9876</span>;<span class="number">192.168</span><span class="number">.0</span><span class="number">.220</span>:<span class="number">9876</span></span><br><span class="line">storePathRootDir=<span class="regexp">/opt/</span>application/rocketmq-all-<span class="number">4.5</span><span class="number">.2</span>-bin-release/store</span><br><span class="line">storePathCommitLog=<span class="regexp">/opt/</span>application/rocketmq-all-<span class="number">4.5</span><span class="number">.2</span>-bin-release/store/commitlog</span><br><span class="line">autoCreateTopicEnable=<span class="literal">false</span></span><br><span class="line">autoCreateSubscriptionGroup=<span class="literal">false</span></span><br></pre></td></tr></table></figure>
-<p>221 上 broker 的配置文件如下：</p>
-<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">brokerClusterName = DefaultCluster</span><br><span class="line">brokerName = broker-a</span><br><span class="line">brokerId = <span class="number">1</span></span><br><span class="line">deleteWhen = <span class="number">04</span></span><br><span class="line">fileReservedTime = <span class="number">48</span></span><br><span class="line">brokerRole = SLAVE</span><br><span class="line">flushDiskType = ASYNC_FLUSH</span><br><span class="line">brokerIP1=<span class="number">192.168</span><span class="number">.0</span><span class="number">.221</span></span><br><span class="line">brokerIP2=<span class="number">192.168</span><span class="number">.0</span><span class="number">.221</span></span><br><span class="line">namesrvAddr=<span class="number">192.168</span><span class="number">.0</span><span class="number">.221</span>:<span class="number">9876</span>;<span class="number">192.168</span><span class="number">.0</span><span class="number">.220</span>:<span class="number">9876</span></span><br><span class="line">storePathRootDir=<span class="regexp">/opt/</span>application/rocketmq-all-<span class="number">4.5</span><span class="number">.2</span>-bin-release/store</span><br><span class="line">storePathCommitLog=<span class="regexp">/opt/</span>application/rocketmq-all-<span class="number">4.5</span><span class="number">.2</span>-bin-release/store/commitlog</span><br><span class="line">autoCreateTopicEnable=<span class="literal">false</span></span><br><span class="line">autoCreateSubscriptionGroup=<span class="literal">false</span></span><br></pre></td></tr></table></figure>
-<p>相关的启动命令如下：</p>
-<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">nohup bin/mqnamesrv  /dev/<span class="literal">null</span>  <span class="number">2</span>&gt;&amp;<span class="number">1</span> &amp;</span><br><span class="line">nohup bin/mqbroker -c conf/broker.conf  /dev/<span class="literal">null</span>  <span class="number">2</span>&gt;&amp;<span class="number">1</span> &amp;</span><br></pre></td></tr></table></figure>
-<p>安装后的集群信息如图所示：<br><img src="https://img-blog.csdnimg.cn/20191013142514649.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"></p>
-<h2 id="3、主从同步集群升级到DLedger"><a href="#3、主从同步集群升级到DLedger" class="headerlink" title="3、主从同步集群升级到DLedger"></a>3、主从同步集群升级到DLedger</h2><h3 id="3-1-部署架构"><a href="#3-1-部署架构" class="headerlink" title="3.1 部署架构"></a>3.1 部署架构</h3><p>DLedger 集群至少需要3台机器，故搭建 DLedger 还需要再引入一台机器，其部署结构图如下：</p>
-          <!--noindex-->
-          <div class="post-button text-center">
-            <a class="btn" href="/posts/e0ec5d91.html#more" rel="contents">
-              阅读全文 &raquo;
-            </a>
-          </div>
-          <!--/noindex-->
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
   </section>
 
   
@@ -2518,7 +2507,7 @@
               
               <div class="site-state-item site-state-tags">
                 <a href="/tags/index.html">
-                  <span class="site-state-item-count">99</span>
+                  <span class="site-state-item-count">103</span>
                   <span class="site-state-item-name">标签</span>
                 </a>
               </div>
@@ -2576,7 +2565,7 @@
     
       <span class="post-meta-item-text">Site words total count&#58;</span>
     
-    <span title="Site words total count">182.2k</span>
+    <span title="Site words total count">186.4k</span>
   
 </div>
 
