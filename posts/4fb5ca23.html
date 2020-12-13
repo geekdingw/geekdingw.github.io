@@ -1,0 +1,1432 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.4" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.4">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.4" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="源码,dubbo,监控中心," />
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="中间件兴趣圈" type="application/atom+xml" />
+
+
+
+
+
+
+<meta name="description" content="Dubbo监控的实现基本原理就是在服务调用时收集服务调用并发度、服务响应时间，然后以一定频率向监控中心汇报统计数据。 1、源码分析MonitorFilter过滤器 过滤器作用监控过滤器，向监控中心汇报服务调用数据。 使用场景搭建监控中心监控Dubbo服务调用。 阻断条件非阻断过滤器。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="源码分析Dubbo监控中心实现原理">
+<meta property="og:url" content="http://example.com/posts/4fb5ca23.html">
+<meta property="og:site_name" content="中间件兴趣圈">
+<meta property="og:description" content="Dubbo监控的实现基本原理就是在服务调用时收集服务调用并发度、服务响应时间，然后以一定频率向监控中心汇报统计数据。 1、源码分析MonitorFilter过滤器 过滤器作用监控过滤器，向监控中心汇报服务调用数据。 使用场景搭建监控中心监控Dubbo服务调用。 阻断条件非阻断过滤器。">
+<meta property="og:locale">
+<meta property="og:image" content="https://img-blog.csdn.net/20180831120406607?watermark/2/text/aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70">
+<meta property="og:image" content="https://img-blog.csdn.net/20180831121101811?watermark/2/text/aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70">
+<meta property="og:image" content="https://img-blog.csdn.net/20180831122010384?watermark/2/text/aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70">
+<meta property="og:image" content="https://img-blog.csdn.net/20180831122045595?watermark/2/text/aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70">
+<meta property="og:image" content="https://img-blog.csdn.net/20180831122140555?watermark/2/text/aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70">
+<meta property="og:image" content="https://img-blog.csdn.net/20180831122232257?watermark/2/text/aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70">
+<meta property="og:image" content="https://img-blog.csdn.net/20180831122309186?watermark/2/text/aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70">
+<meta property="og:image" content="https://img-blog.csdn.net/20180831122512794?watermark/2/text/aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70">
+<meta property="og:image" content="https://img-blog.csdn.net/20180831122619913?watermark/2/text/aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70">
+<meta property="og:image" content="https://img-blog.csdn.net/20180831122656831?watermark/2/text/aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70">
+<meta property="og:image" content="https://img-blog.csdn.net/20180831122730268?watermark/2/text/aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70">
+<meta property="og:image" content="https://img-blog.csdn.net/20180831122810968?watermark/2/text/aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70">
+<meta property="article:published_time" content="2020-12-13T11:11:01.000Z">
+<meta property="article:modified_time" content="2020-12-13T11:16:47.416Z">
+<meta property="article:author" content="中间件兴趣圈">
+<meta property="article:tag" content="源码">
+<meta property="article:tag" content="dubbo">
+<meta property="article:tag" content="监控中心">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://img-blog.csdn.net/20180831120406607?watermark/2/text/aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '',
+    scheme: 'Pisces',
+    version: '5.1.4',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://example.com/posts/4fb5ca23.html"/>
+
+
+
+
+
+  <title>源码分析Dubbo监控中心实现原理 | 中间件兴趣圈</title>
+  
+
+
+
+
+
+
+
+
+<meta name="generator" content="Hexo 5.2.0"></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">中间件兴趣圈</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle">关注微信公众号「中间件兴趣圈」，第一时间获取最新干货！</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="popup-trigger">
+          
+            
+              <i class="menu-item-icon fa fa-search fa-fw"></i> <br />
+            
+            搜索
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <div class="popup search-popup local-search-popup">
+  <div class="local-search-header clearfix">
+    <span class="search-icon">
+      <i class="fa fa-search"></i>
+    </span>
+    <span class="popup-btn-close">
+      <i class="fa fa-times-circle"></i>
+    </span>
+    <div class="local-search-input-wrapper">
+      <input autocomplete="off"
+             placeholder="搜索..." spellcheck="false"
+             type="text" id="local-search-input">
+    </div>
+  </div>
+  <div id="local-search-result"></div>
+</div>
+
+
+
+    </div>
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://example.com/posts/4fb5ca23.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="中间件兴趣圈">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">源码分析Dubbo监控中心实现原理</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-12-13T19:11:01+08:00">
+                2020-12-13
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/dubbo/" itemprop="url" rel="index">
+                    <span itemprop="name">dubbo</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/posts/4fb5ca23.html#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count valine-comment-count" data-xid="/posts/4fb5ca23.html" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+             <span id="/posts/4fb5ca23.html" class="leancloud_visitors" data-flag-title="源码分析Dubbo监控中心实现原理">
+               <span class="post-meta-divider">|</span>
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               
+                 <span class="post-meta-item-text">阅读次数&#58;</span>
+               
+                 <span class="leancloud-visitors-count"></span>
+             </span>
+          
+
+          
+            <span class="post-meta-divider">|</span>
+            <span class="page-pv"><i class="fa fa-file-o"></i>
+            <span class="busuanzi-value" id="busuanzi_value_page_pv" ></span>
+            </span>
+          
+
+          
+            <div class="post-wordcount">
+              
+                
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-file-word-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">字数统计&#58;</span>
+                
+                <span title="字数统计">
+                  4k 字
+                </span>
+              
+
+              
+                <span class="post-meta-divider">|</span>
+              
+
+              
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-clock-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">阅读时长 &asymp;</span>
+                
+                <span title="阅读时长">
+                  18 分钟
+                </span>
+              
+            </div>
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <div id="vip-container"><p>Dubbo监控的实现基本原理就是在服务调用时收集服务调用并发度、服务响应时间，然后以一定频率向监控中心汇报统计数据。</p>
+<h2 id="1、源码分析MonitorFilter过滤器"><a href="#1、源码分析MonitorFilter过滤器" class="headerlink" title="1、源码分析MonitorFilter过滤器"></a>1、源码分析MonitorFilter过滤器</h2><ul>
+<li>过滤器作用<br>监控过滤器，向监控中心汇报服务调用数据。</li>
+<li>使用场景<br>搭建监控中心监控Dubbo服务调用。</li>
+<li>阻断条件<br>非阻断过滤器。</li>
+</ul>
+<a id="more"></a>
+
+<h3 id="1-1-MonitorFilter声明"><a href="#1-1-MonitorFilter声明" class="headerlink" title="1.1 MonitorFilter声明"></a>1.1 MonitorFilter声明</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">&#x2F;**</span><br><span class="line"> * MonitorFilter. (SPI, Singleton, ThreadSafe)</span><br><span class="line"> *&#x2F;</span><br><span class="line">@Activate(group &#x3D; &#123;Constants.PROVIDER, Constants.CONSUMER&#125;)</span><br><span class="line">public class MonitorFilter implements Filter &#123;</span><br><span class="line">     &#x2F;&#x2F; 省略具体代码</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>注：MonitorFilter会在生产者、消费者两端生效。</p>
+<h3 id="1-2-getConcurrent方法详解"><a href="#1-2-getConcurrent方法详解" class="headerlink" title="1.2 getConcurrent方法详解"></a>1.2 getConcurrent方法详解</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">&#x2F;&#x2F; concurrent counter</span><br><span class="line">    private AtomicInteger getConcurrent(Invoker&lt;?&gt; invoker, Invocation invocation) &#123;</span><br><span class="line">        String key &#x3D; invoker.getInterface().getName() + &quot;.&quot; + invocation.getMethodName();    &#x2F;&#x2F; @1</span><br><span class="line">        AtomicInteger concurrent &#x3D; concurrents.get(key);                     </span><br><span class="line">        if (concurrent &#x3D;&#x3D; null) &#123;</span><br><span class="line">            concurrents.putIfAbsent(key, new AtomicInteger());                                                  &#x2F;&#x2F; @2</span><br><span class="line">            concurrent &#x3D; concurrents.get(key);</span><br><span class="line">        &#125;</span><br><span class="line">        return concurrent;</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+<p>主要是获取当前调用服务的调用次数计算器。<br>代码@1：使用的是ConcurrentMap&lt; String, AtomicInteger &gt;作为缓存容器，其key为：interfaceName + “.” + methodName。<br>代码@2：如果是第一次调用，则创建AtomicInteger，否则返回原先的计数器。</p>
+<h3 id="1-3-invoker方法详解"><a href="#1-3-invoker方法详解" class="headerlink" title="1.3 invoker方法详解"></a>1.3 invoker方法详解</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">@Override</span><br><span class="line">    public Result invoke(Invoker&lt;?&gt; invoker, Invocation invocation) throws RpcException &#123;</span><br><span class="line">        if (invoker.getUrl().hasParameter(Constants.MONITOR_KEY)) &#123;      &#x2F;&#x2F; @1</span><br><span class="line">            RpcContext context &#x3D; RpcContext.getContext(); &#x2F;&#x2F; provider must fetch context before invoke() gets called              &#x2F;&#x2F; @2</span><br><span class="line">            String remoteHost &#x3D; context.getRemoteHost();</span><br><span class="line">            long start &#x3D; System.currentTimeMillis(); &#x2F;&#x2F; record start timestamp                       </span><br><span class="line">            getConcurrent(invoker, invocation).incrementAndGet(); &#x2F;&#x2F; count up                                                &#x2F;&#x2F; @3</span><br><span class="line">            try &#123;</span><br><span class="line">                Result result &#x3D; invoker.invoke(invocation); &#x2F;&#x2F; proceed invocation chain                                       &#x2F;&#x2F; @4</span><br><span class="line">                collect(invoker, invocation, result, remoteHost, start, false);                                                        &#x2F;&#x2F; @5</span><br><span class="line">                return result;</span><br><span class="line">            &#125; catch (RpcException e) &#123;</span><br><span class="line">                collect(invoker, invocation, null, remoteHost, start, true);                                                            &#x2F;&#x2F; @6</span><br><span class="line">                throw e;</span><br><span class="line">            &#125; finally &#123;</span><br><span class="line">                getConcurrent(invoker, invocation).decrementAndGet(); &#x2F;&#x2F; count down                                     &#x2F;&#x2F; @7</span><br><span class="line">            &#125;</span><br><span class="line">        &#125; else &#123;</span><br><span class="line">            return invoker.invoke(invocation);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+<p>代码@1：如果url中存在monitor,则设置了监控中心，收集调用信息。<br>代码@2：获取本次服务调用的上下文环境。<br>代码@3：服务调用并发次数增加1，（非服务调用总次数，而是当前服务的并发调用）。<br>代码@4：执行方法之前先记录当前时间，然后调用下一个过滤器，直到真实服务被调用。<br>代码@5：调用collect方法收集调用信息。<br>代码@6：如果调用发送RPC异常，则收集错误信息。<br>代码@7：一次服务调用结束，并发次数减一。<br>接下来分析一下collect方法。</p>
+<h3 id="1-4-invoker方法详解"><a href="#1-4-invoker方法详解" class="headerlink" title="1.4 invoker方法详解"></a>1.4 invoker方法详解</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br></pre></td><td class="code"><pre><span class="line">&#x2F;&#x2F; collect info</span><br><span class="line">    private void collect(Invoker&lt;?&gt; invoker, Invocation invocation, Result result, String remoteHost, long start, boolean error) &#123;     &#x2F;&#x2F; @1</span><br><span class="line">        try &#123;</span><br><span class="line">            &#x2F;&#x2F; ---- service statistics ----                                                                                                                                                      &#x2F;&#x2F; @2 start</span><br><span class="line">            long elapsed &#x3D; System.currentTimeMillis() - start; &#x2F;&#x2F; invocation cost                                                   </span><br><span class="line">            int concurrent &#x3D; getConcurrent(invoker, invocation).get(); &#x2F;&#x2F; current concurrent count</span><br><span class="line">            String application &#x3D; invoker.getUrl().getParameter(Constants.APPLICATION_KEY);</span><br><span class="line">            String service &#x3D; invoker.getInterface().getName(); &#x2F;&#x2F; service name</span><br><span class="line">            String method &#x3D; RpcUtils.getMethodName(invocation); &#x2F;&#x2F; method name</span><br><span class="line">            String group &#x3D; invoker.getUrl().getParameter(Constants.GROUP_KEY);</span><br><span class="line">            String version &#x3D; invoker.getUrl().getParameter(Constants.VERSION_KEY);</span><br><span class="line">            URL url &#x3D; invoker.getUrl().getUrlParameter(Constants.MONITOR_KEY);                                                                             &#x2F;&#x2F; @2 end</span><br><span class="line">            Monitor monitor &#x3D; monitorFactory.getMonitor(url);                                                                                                     &#x2F;&#x2F; @3</span><br><span class="line">            if (monitor &#x3D;&#x3D; null) &#123;</span><br><span class="line">                return;</span><br><span class="line">            &#125;</span><br><span class="line">            int localPort;</span><br><span class="line">            String remoteKey;</span><br><span class="line">            String remoteValue;</span><br><span class="line">            if (Constants.CONSUMER_SIDE.equals(invoker.getUrl().getParameter(Constants.SIDE_KEY))) &#123;                  &#x2F;&#x2F; @4</span><br><span class="line">                &#x2F;&#x2F; ---- for service consumer ----</span><br><span class="line">                localPort &#x3D; 0;</span><br><span class="line">                remoteKey &#x3D; MonitorService.PROVIDER;</span><br><span class="line">                remoteValue &#x3D; invoker.getUrl().getAddress();</span><br><span class="line">            &#125; else &#123;                                                                                                                                                               &#x2F;&#x2F; @5</span><br><span class="line">                &#x2F;&#x2F; ---- for service provider ----</span><br><span class="line">                localPort &#x3D; invoker.getUrl().getPort();</span><br><span class="line">                remoteKey &#x3D; MonitorService.CONSUMER;</span><br><span class="line">                remoteValue &#x3D; remoteHost;</span><br><span class="line">            &#125;</span><br><span class="line">            String input &#x3D; &quot;&quot;, output &#x3D; &quot;&quot;;</span><br><span class="line">            if (invocation.getAttachment(Constants.INPUT_KEY) !&#x3D; null) &#123;                                                                       &#x2F;&#x2F; @6</span><br><span class="line">                input &#x3D; invocation.getAttachment(Constants.INPUT_KEY);</span><br><span class="line">            &#125;</span><br><span class="line">            if (result !&#x3D; null &amp;&amp; result.getAttachment(Constants.OUTPUT_KEY) !&#x3D; null) &#123;                                               &#x2F;&#x2F; @7</span><br><span class="line">                output &#x3D; result.getAttachment(Constants.OUTPUT_KEY);</span><br><span class="line">            &#125;</span><br><span class="line">            monitor.collect(new URL(Constants.COUNT_PROTOCOL,                                                                          &#x2F;&#x2F; @8</span><br><span class="line">                    NetUtils.getLocalHost(), localPort,</span><br><span class="line">                    service + &quot;&#x2F;&quot; + method,</span><br><span class="line">                    MonitorService.APPLICATION, application,</span><br><span class="line">                    MonitorService.INTERFACE, service,</span><br><span class="line">                    MonitorService.METHOD, method,</span><br><span class="line">                    remoteKey, remoteValue,</span><br><span class="line">                    error ? MonitorService.FAILURE : MonitorService.SUCCESS, &quot;1&quot;,</span><br><span class="line">                    MonitorService.ELAPSED, String.valueOf(elapsed),</span><br><span class="line">                    MonitorService.CONCURRENT, String.valueOf(concurrent),</span><br><span class="line">                    Constants.INPUT_KEY, input,</span><br><span class="line">                    Constants.OUTPUT_KEY, output,</span><br><span class="line">                    Constants.GROUP_KEY, group,</span><br><span class="line">                    Constants.VERSION_KEY, version));</span><br><span class="line">        &#125; catch (Throwable t) &#123;</span><br><span class="line">            logger.error(&quot;Failed to monitor count service &quot; + invoker.getUrl() + &quot;, cause: &quot; + t.getMessage(), t);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+<p>代码@1：参数说明。</p>
+<ul>
+<li>Invoker&lt; ? &gt; invoker<br>服务调用Invoker。</li>
+<li>Invocation invocation<br>本次服务调用信息</li>
+<li>Result result<br>执行结果</li>
+<li>String remoteHost<br>调用者host信息。</li>
+<li>long start<br>服务开始调用时间。</li>
+<li>boolean error<br>是否发生错误。</li>
+</ul>
+<p>代码@2：统计基础信息字段说明：</p>
+<ul>
+<li>elapsed ：服务调用时长。</li>
+<li>concurrent ：当前并发度。（当前服务并发调用次数）。</li>
+<li>application ：服务归属应用名。</li>
+<li>service ：服务名。</li>
+<li>method ：方法名。</li>
+<li>group ：服务所属组。</li>
+<li>version ：服务版本号</li>
+<li>URL url：监控中心url。</li>
+</ul>
+<p>代码@3：根据监控中心获取监控中心实现类，这是监控中心实现扩展点，默认使用com.alibaba.dubbo.monitor.dubbo.DubboMonitor。</p>
+<p>代码@4：如果是消费端，由于Monitor在消费端与服务端都会生效：</p>
+<ul>
+<li>localPort ：本地端口设置为0；</li>
+<li>remoteKey：MonitorService.PROVIDER，表示为服务端。</li>
+<li>remoteValue：为invoker.getUrl().getAddress()，其值为（注册中心地址）或服务提供者地址（客户端直连服务端）。</li>
+</ul>
+<p>代码@5：如果为服务端：</p>
+<ul>
+<li>localPort ：为服务端的服务端口号。</li>
+<li>remoteKey：MonitorService.CONSUMER，表示远端为服务消费者。</li>
+<li>remoteValue：消费者host(ip:port)。</li>
+</ul>
+<p>代码@6：获取本次服务调用请求包的字节数，在服务端解码时会在RpcContext中。</p>
+<p>代码@7：获取本次服务调用响应包的字节数，在服务端对响应包编码时会写入，具体代码请参考DubboCountCodec类。</p>
+<p>代码@8：调用monitor#collect收集调用信息，Monitor默认实现为DubboMonitor。使用的协议为count://localhost:localPort/service/method?application=applicationName&amp;remoteKey=remoteValue&amp;success|failure=1&amp;elapsed=调用开销&amp;concurrent=并发调用次数&amp;input=入参字节数&amp;output=响应字节数&amp;group=服务所属组&amp;version=版本。</p>
+<h2 id="2、源码分析DubboMonitor实现原理"><a href="#2、源码分析DubboMonitor实现原理" class="headerlink" title="2、源码分析DubboMonitor实现原理"></a>2、源码分析DubboMonitor实现原理</h2><p>Dubbo中默认的Monitor监控实现类为DubboMonitor：<br><img src="https://img-blog.csdn.net/20180831120406607?watermark/2/text/aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70" alt="这里写图片描述"><br>核心属性介绍：</p>
+<ul>
+<li><p>private final ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(3, new NamedThreadFactory(“DubboMonitorSendTimer”,<br>true))：定时调度线程池，使用3个线程的线程池，线程名称以DubboMonitorSendTimer。</p>
+</li>
+<li><p>private final ScheduledFuture&lt; ? &gt; sendFuture：调度任务future。<br>private final Invoker&lt; MonitorService &gt; monitorInvoker：监控调度Invoker，Dubbo中的监控中心会作为服务提供者暴露服务，服务提供者，服务消费者可以通过注册中心订阅服务，通过该Invoker向监控中心汇报调用统计数据，也就是一次上报就是一次Dubbo RPC服务调用，其实现类为DubboInvoker，也就是可以通过该Invoker使用dubbo协议调用远程Monitor服务。</p>
+</li>
+<li><p>private final MonitorService monitorService：对monitorInvoker的proxy代理，主要是对toString、hashcode、equals无需通过RPC向MonitorServer服务提供者发起调<br> 用。主要是通过AbstractProxyFactory#getProxy创建，默认子类为JavassistProxyFactory，动态代理的InvokerHandler为：<br>com.alibaba.dubbo.rpc.proxy.InvokerInvocationHandler#invoke。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">public Object invoke(Object proxy, Method method, Object[] args) throws Throwable &#123;</span><br><span class="line">        String methodName &#x3D; method.getName();</span><br><span class="line">        Class&lt;?&gt;[] parameterTypes &#x3D; method.getParameterTypes();</span><br><span class="line">        if (method.getDeclaringClass() &#x3D;&#x3D; Object.class) &#123;</span><br><span class="line">            return method.invoke(invoker, args);</span><br><span class="line">        &#125;</span><br><span class="line">        if (&quot;toString&quot;.equals(methodName) &amp;&amp; parameterTypes.length &#x3D;&#x3D; 0) &#123;</span><br><span class="line">            return invoker.toString();</span><br><span class="line">        &#125;</span><br><span class="line">        if (&quot;hashCode&quot;.equals(methodName) &amp;&amp; parameterTypes.length &#x3D;&#x3D; 0) &#123;</span><br><span class="line">            return invoker.hashCode();</span><br><span class="line">        &#125;</span><br><span class="line">        if (&quot;equals&quot;.equals(methodName) &amp;&amp; parameterTypes.length &#x3D;&#x3D; 1) &#123;</span><br><span class="line">            return invoker.equals(args[0]);</span><br><span class="line">        &#125;</span><br><span class="line">        return invoker.invoke(new RpcInvocation(method, args)).recreate();</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure></li>
+<li><p>private final long monitorInterval：向监控中心汇报的频率，也就是调用MonitorService RPC服务的调用频率，默认为1分钟。</p>
+</li>
+<li><p>private final ConcurrentMap&lt; Statistics, AtomicReference&lt; long[]&gt;&gt; statisticsMap：统计信息Map。</p>
+</li>
+</ul>
+<h3 id="2-1-构造函数分析"><a href="#2-1-构造函数分析" class="headerlink" title="2.1 构造函数分析"></a>2.1 构造函数分析</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">public DubboMonitor(Invoker&lt;MonitorService&gt; monitorInvoker, MonitorService monitorService) &#123;</span><br><span class="line">        this.monitorInvoker &#x3D; monitorInvoker;</span><br><span class="line">        this.monitorService &#x3D; monitorService;</span><br><span class="line">        this.monitorInterval &#x3D; monitorInvoker.getUrl().getPositiveParameter(&quot;interval&quot;, 60000);      &#x2F;&#x2F; @1 </span><br><span class="line">        &#x2F;&#x2F; collect timer for collecting statistics data</span><br><span class="line">        sendFuture &#x3D; scheduledExecutorService.scheduleWithFixedDelay(new Runnable() &#123;      &#x2F;&#x2F; @2</span><br><span class="line">            @Override</span><br><span class="line">            public void run() &#123;</span><br><span class="line">                &#x2F;&#x2F; collect data</span><br><span class="line">                try &#123;</span><br><span class="line">                    send();</span><br><span class="line">                &#125; catch (Throwable t) &#123;</span><br><span class="line">                    logger.error(&quot;Unexpected error occur at send statistic, cause: &quot; + t.getMessage(), t);</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;, monitorInterval, monitorInterval, TimeUnit.MILLISECONDS);</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+<p>代码@1，从url参数中获取interval属性，如果为空，默认为60000，代表60S。<br>代码@2：启动定时调度任务，默认60S的间隔执行send()方法，向监控中心汇报服务调用统计数据。</p>
+<h3 id="2-2-collect-收集统计信息方法"><a href="#2-2-collect-收集统计信息方法" class="headerlink" title="2.2 collect 收集统计信息方法"></a>2.2 collect 收集统计信息方法</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br></pre></td><td class="code"><pre><span class="line">public void collect(URL url) &#123;</span><br><span class="line">        &#x2F;&#x2F; data to collect from url</span><br><span class="line">        int success &#x3D; url.getParameter(MonitorService.SUCCESS, 0);</span><br><span class="line">        int failure &#x3D; url.getParameter(MonitorService.FAILURE, 0);</span><br><span class="line">        int input &#x3D; url.getParameter(MonitorService.INPUT, 0);</span><br><span class="line">        int output &#x3D; url.getParameter(MonitorService.OUTPUT, 0);</span><br><span class="line">        int elapsed &#x3D; url.getParameter(MonitorService.ELAPSED, 0);</span><br><span class="line">        int concurrent &#x3D; url.getParameter(MonitorService.CONCURRENT, 0);</span><br><span class="line">        &#x2F;&#x2F; init atomic reference</span><br><span class="line">        Statistics statistics &#x3D; new Statistics(url);</span><br><span class="line">        AtomicReference&lt;long[]&gt; reference &#x3D; statisticsMap.get(statistics);</span><br><span class="line">        if (reference &#x3D;&#x3D; null) &#123;</span><br><span class="line">            statisticsMap.putIfAbsent(statistics, new AtomicReference&lt;long[]&gt;());</span><br><span class="line">            reference &#x3D; statisticsMap.get(statistics);</span><br><span class="line">        &#125;</span><br><span class="line">        &#x2F;&#x2F; use CompareAndSet to sum</span><br><span class="line">        long[] current;</span><br><span class="line">        long[] update &#x3D; new long[LENGTH];</span><br><span class="line">        do &#123;</span><br><span class="line">            current &#x3D; reference.get();</span><br><span class="line">            if (current &#x3D;&#x3D; null) &#123;</span><br><span class="line">                update[0] &#x3D; success;</span><br><span class="line">                update[1] &#x3D; failure;</span><br><span class="line">                update[2] &#x3D; input;</span><br><span class="line">                update[3] &#x3D; output;</span><br><span class="line">                update[4] &#x3D; elapsed;</span><br><span class="line">                update[5] &#x3D; concurrent;</span><br><span class="line">                update[6] &#x3D; input;</span><br><span class="line">                update[7] &#x3D; output;</span><br><span class="line">                update[8] &#x3D; elapsed;</span><br><span class="line">                update[9] &#x3D; concurrent;</span><br><span class="line">            &#125; else &#123;</span><br><span class="line">                update[0] &#x3D; current[0] + success;</span><br><span class="line">                update[1] &#x3D; current[1] + failure;</span><br><span class="line">                update[2] &#x3D; current[2] + input;</span><br><span class="line">                update[3] &#x3D; current[3] + output;</span><br><span class="line">                update[4] &#x3D; current[4] + elapsed;</span><br><span class="line">                update[5] &#x3D; (current[5] + concurrent) &#x2F; 2;</span><br><span class="line">                update[6] &#x3D; current[6] &gt; input ? current[6] : input;</span><br><span class="line">                update[7] &#x3D; current[7] &gt; output ? current[7] : output;</span><br><span class="line">                update[8] &#x3D; current[8] &gt; elapsed ? current[8] : elapsed;</span><br><span class="line">                update[9] &#x3D; current[9] &gt; concurrent ? current[9] : concurrent;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125; while (!reference.compareAndSet(current, update));</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+<p>收集的信息主要是10个字段<br>update[0] ：调用成功的次数<br>update[1] ：调用失败的次数<br>update[2] ：总调用流量（请求包的总大小）。<br>update[3] ：总响应流量（响应包的总大小）。<br>update[4] ：总响应时长（总服务调用开销）。<br>update[5] ：一次收集周期的平均TPS。<br>update[6] ：最大请求包大小。<br>update[7] ：最大响应包大小。<br>update[8] ：最大响应时间。<br>update[9] ：最大TPS。</p>
+<h3 id="2-3-send方法"><a href="#2-3-send方法" class="headerlink" title="2.3 send方法"></a>2.3 send方法</h3><p>通过monitorService，最终通过monitorInvoker去调用RPC服务向监控中心汇报数据。接下来看一下监控中心的具体实现。</p>
+<h2 id="3、Dubbo监控中心实现原理"><a href="#3、Dubbo监控中心实现原理" class="headerlink" title="3、Dubbo监控中心实现原理"></a>3、Dubbo监控中心实现原理</h2><p>Dubbo官方提供了简易版本的监控中心，其项目为dubbo-ops:dubbo-monitor-simple。该项目是个spring-boot项目，启动后可以看到后台管理界面。<br>该项目服务提供者文件如下：<br><img src="https://img-blog.csdn.net/20180831121101811?watermark/2/text/aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70" alt="这里写图片描述"><br>从中可以看出，监控中心服务提供者实现类为SimpleMonitorService，其实现接口为MonitorService。<br>接下来重点分析SimpleMonitorService监控中心的实现，关注如下两个点：<br>1、监控数据持久化。<br>2、监控报表生成逻辑。<br>核心属性说明：</p>
+<ul>
+<li>ScheduledExecutorService scheduledExecutorService：定时调度线程，将监控数据写入饼图的定时任务，固定1个线程。</li>
+<li>Thread writeThread：监控数据持久化线程。</li>
+<li>BlockingQueue&lt; URL &gt; queue：持久化数据任务阻塞队列。</li>
+<li>String statisticsDirectory = “statistics”：数据持久化目录，SimpleMonitorService将数据持久化到磁盘文件。该值指定目录名称。</li>
+<li>String chartsDirectory = “charts”：饼图存储目录。</li>
+<li>private volatile boolean running = true：持久化数据线程是否处于运行状态。</li>
+</ul>
+<h3 id="3-1-SimpleMonitorService构造函数"><a href="#3-1-SimpleMonitorService构造函数" class="headerlink" title="3.1 SimpleMonitorService构造函数"></a>3.1 SimpleMonitorService构造函数</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line">public SimpleMonitorService() &#123;</span><br><span class="line">        queue &#x3D; new LinkedBlockingQueue&lt;URL&gt;(Integer.parseInt(ConfigUtils.getProperty(&quot;dubbo.monitor.queue&quot;, &quot;100000&quot;)));    &#x2F;&#x2F; @1</span><br><span class="line">        writeThread &#x3D; new Thread(new Runnable() &#123;                      &#x2F;&#x2F; @2 start</span><br><span class="line">            public void run() &#123;</span><br><span class="line">                while (running) &#123;</span><br><span class="line">                    try &#123;</span><br><span class="line">                        write(); &#x2F;&#x2F; write statistics</span><br><span class="line">                    &#125; catch (Throwable t) &#123;</span><br><span class="line">                        logger.error(&quot;Unexpected error occur at write stat log, cause: &quot; + t.getMessage(), t);</span><br><span class="line">                        try &#123;</span><br><span class="line">                            Thread.sleep(5000); &#x2F;&#x2F; retry after 5 secs</span><br><span class="line">                        &#125; catch (Throwable t2) &#123;</span><br><span class="line">                        &#125;</span><br><span class="line">                    &#125;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;);</span><br><span class="line">        writeThread.setDaemon(true);</span><br><span class="line">        writeThread.setName(&quot;DubboMonitorAsyncWriteLogThread&quot;);    </span><br><span class="line">        writeThread.start();                                                                        &#x2F;&#x2F; @2 end</span><br><span class="line">        chartFuture &#x3D; scheduledExecutorService.scheduleWithFixedDelay(new Runnable() &#123;</span><br><span class="line">            public void run() &#123;</span><br><span class="line">                try &#123;</span><br><span class="line">                    draw(); &#x2F;&#x2F; draw chart</span><br><span class="line">                &#125; catch (Throwable t) &#123;</span><br><span class="line">                    logger.error(&quot;Unexpected error occur at draw stat chart, cause: &quot; + t.getMessage(), t);</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;, 1, 300, TimeUnit.SECONDS);     &#x2F;&#x2F; @3</span><br><span class="line">        statisticsDirectory &#x3D; ConfigUtils.getProperty(&quot;dubbo.statistics.directory&quot;);</span><br><span class="line">        chartsDirectory &#x3D; ConfigUtils.getProperty(&quot;dubbo.charts.directory&quot;);  &#x2F;&#x2F; @4</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+<p>代码@1：创建有界阻塞队列LinkedBlockingQueue，容量默认为100000个，可通过配置参数dubbo.monitor.queue改变默认值，如果队列中已挤压未被处理，后续监控数据将被默认丢弃。<br>代码@2：创建持久化监控数据线程，名称为DubboMonitorAsyncWriteLogThread，其使命是从LinkedBlockingQueue中获取监控原始数据，如果队列中没数据则被阻塞，然后写入文件中。<br>代码@3：开启定时调度任务，已每个5分钟的频率，根据持久化的监控数据，生成饼图。<br>代码@4：获取数据持久化目录与饼图存放目录。</p>
+<h3 id="3-2-SimpleMonitorService-write"><a href="#3-2-SimpleMonitorService-write" class="headerlink" title="3.2 SimpleMonitorService#write"></a>3.2 SimpleMonitorService#write</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br></pre></td><td class="code"><pre><span class="line">private void write() throws Exception &#123;</span><br><span class="line">        URL statistics &#x3D; queue.take();</span><br><span class="line">        if (POISON_PROTOCOL.equals(statistics.getProtocol())) &#123;</span><br><span class="line">            return;</span><br><span class="line">        &#125;</span><br><span class="line">        String timestamp &#x3D; statistics.getParameter(Constants.TIMESTAMP_KEY);</span><br><span class="line">        Date now;</span><br><span class="line">        if (timestamp &#x3D;&#x3D; null || timestamp.length() &#x3D;&#x3D; 0) &#123;</span><br><span class="line">            now &#x3D; new Date();</span><br><span class="line">        &#125; else if (timestamp.length() &#x3D;&#x3D; &quot;yyyyMMddHHmmss&quot;.length()) &#123;</span><br><span class="line">            now &#x3D; new SimpleDateFormat(&quot;yyyyMMddHHmmss&quot;).parse(timestamp);</span><br><span class="line">        &#125; else &#123;</span><br><span class="line">            now &#x3D; new Date(Long.parseLong(timestamp));</span><br><span class="line">        &#125;</span><br><span class="line">        String day &#x3D; new SimpleDateFormat(&quot;yyyyMMdd&quot;).format(now);</span><br><span class="line">        SimpleDateFormat format &#x3D; new SimpleDateFormat(&quot;HHmm&quot;);</span><br><span class="line">        for (String key : types) &#123;</span><br><span class="line">            try &#123;</span><br><span class="line">                String type;</span><br><span class="line">                String consumer;</span><br><span class="line">                String provider;</span><br><span class="line">                if (statistics.hasParameter(PROVIDER)) &#123;</span><br><span class="line">                    type &#x3D; CONSUMER;</span><br><span class="line">                    consumer &#x3D; statistics.getHost();</span><br><span class="line">                    provider &#x3D; statistics.getParameter(PROVIDER);</span><br><span class="line">                    int i &#x3D; provider.indexOf(&#39;:&#39;);</span><br><span class="line">                    if (i &gt; 0) &#123;</span><br><span class="line">                        provider &#x3D; provider.substring(0, i);</span><br><span class="line">                    &#125;</span><br><span class="line">                &#125; else &#123;</span><br><span class="line">                    type &#x3D; PROVIDER;</span><br><span class="line">                    consumer &#x3D; statistics.getParameter(CONSUMER);</span><br><span class="line">                    int i &#x3D; consumer &#x3D;&#x3D; null ? -1 : consumer.indexOf(&#39;:&#39;);</span><br><span class="line">                    if (i &gt; 0) &#123;</span><br><span class="line">                        consumer &#x3D; consumer.substring(0, i);</span><br><span class="line">                    &#125;</span><br><span class="line">                    provider &#x3D; statistics.getHost();</span><br><span class="line">                &#125;</span><br><span class="line">                String filename &#x3D; statisticsDirectory</span><br><span class="line">                        + &quot;&#x2F;&quot; + day</span><br><span class="line">                        + &quot;&#x2F;&quot; + statistics.getServiceInterface()</span><br><span class="line">                        + &quot;&#x2F;&quot; + statistics.getParameter(METHOD)</span><br><span class="line">                        + &quot;&#x2F;&quot; + consumer</span><br><span class="line">                        + &quot;&#x2F;&quot; + provider</span><br><span class="line">                        + &quot;&#x2F;&quot; + type + &quot;.&quot; + key;</span><br><span class="line">                File file &#x3D; new File(filename);</span><br><span class="line">                File dir &#x3D; file.getParentFile();</span><br><span class="line">                if (dir !&#x3D; null &amp;&amp; !dir.exists()) &#123;</span><br><span class="line">                    dir.mkdirs();</span><br><span class="line">                &#125;</span><br><span class="line">                FileWriter writer &#x3D; new FileWriter(file, true);</span><br><span class="line">                try &#123;</span><br><span class="line">                    writer.write(format.format(now) + &quot; &quot; + statistics.getParameter(key, 0) + &quot;\n&quot;);</span><br><span class="line">                    writer.flush();</span><br><span class="line">                &#125; finally &#123;</span><br><span class="line">                    writer.close();</span><br><span class="line">                &#125;</span><br><span class="line">            &#125; catch (Throwable t) &#123;</span><br><span class="line">                logger.error(t.getMessage(), t);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+<p>数据存储在物理磁盘上，其文件为为：”${dubbo.statistics.directory} /${day}/${interfacename}/${method}/${consumer}/ ${provider}/[consume|provider]/key”，<br>key:{SUCCESS, FAILURE, ELAPSED, CONCURRENT, MAX_ELAPSED, MAX_CONCURRENT},分别调用成功次数、调用失败次数、调用开销（响应时间），TPS、最大响应时间，最大TPS。其文件存储如下：<br><img src="https://img-blog.csdn.net/20180831122010384?watermark/2/text/aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70" alt="这里写图片描述"><br>以provider.concurrent为例，说明一下其内容：<br><img src="https://img-blog.csdn.net/20180831122045595?watermark/2/text/aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70" alt="这里写图片描述"><br>其内容组织方式为：时间（时分：采集的值）。</p>
+<h3 id="3-3-draw"><a href="#3-3-draw" class="headerlink" title="3.3 draw"></a>3.3 draw</h3><p>根据持久化的数据，在特定的目录下创建饼图，创建饼图方法createChart，具体使用JFreeChart相关类图，在这里就不细细讲解了，感兴趣的朋友可以百度查询相关用法。</p>
+<h2 id="3-4-监控中心使用效果一览"><a href="#3-4-监控中心使用效果一览" class="headerlink" title="3.4 监控中心使用效果一览"></a>3.4 监控中心使用效果一览</h2><h3 id="3-4-1-应用一览表"><a href="#3-4-1-应用一览表" class="headerlink" title="3.4.1 应用一览表"></a>3.4.1 应用一览表</h3><p>这个功能可以描述系统与系统的关联关系。<br><img src="https://img-blog.csdn.net/20180831122140555?watermark/2/text/aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70" alt="这里写图片描述"><br>表格字段说明：<br>1、Application Name：应用名称<br>2、Providers：该应用包含的服务提供者信息，点击进去可以查看具体的服务提供者URL。<br>3、Consumers(1)：该应用包含的服务消费者信息，点击进去可以查看具体的服务消费者URL。<br>4、Depends On：该应用依懒的应用。<br><img src="https://img-blog.csdn.net/20180831122232257?watermark/2/text/aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70" alt="这里写图片描述"><br>5、Used By：该应用被依懒的应用。<br><img src="https://img-blog.csdn.net/20180831122309186?watermark/2/text/aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70" alt="这里写图片描述"><br>3.4.2服务一览表<br><img src="https://img-blog.csdn.net/20180831122512794?watermark/2/text/aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70" alt="这里写图片描述"><br>表格字段说明：<br>Service Name：服务名。<br>Application：服务所属应用名。<br>Providers：服务提供者信息，点击进去，可以看到详细的服务提供者信息。<br><img src="https://img-blog.csdn.net/20180831122619913?watermark/2/text/aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70" alt="这里写图片描述"><br>Consumers：该服务的消费者信息。<br><img src="https://img-blog.csdn.net/20180831122656831?watermark/2/text/aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70" alt="这里写图片描述"><br>Statistics：表格统计信息<br><img src="https://img-blog.csdn.net/20180831122730268?watermark/2/text/aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70" alt="这里写图片描述"><br>Charts：饼图统计信息<br><img src="https://img-blog.csdn.net/20180831122810968?watermark/2/text/aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70" alt="这里写图片描述"><br>饼图统计信息，主要从两个维度展示:QPS(接口每秒请求数)、平均响应时间（包含最大，最小响应时间）。</p>
+<h3 id="3-4-3、-Dubbo简易监控中心使用方法"><a href="#3-4-3、-Dubbo简易监控中心使用方法" class="headerlink" title="3.4.3、 Dubbo简易监控中心使用方法"></a>3.4.3、 Dubbo简易监控中心使用方法</h3><p>1、安装Dubbo简易监控中心<br>从github dubbo仓库中下载dubbo-simple-monitor即可。<br>2、应用程序如何使用Dubbo监控中心<br>成功安装完监控中心还只是第一步，为了监控中心能收集服务调用信息，需要在Dubbo服务提、Dubbo消费者供者所在的应用的dubbo配置文件中加上如下内容：<br>&lt; dubbo:monitor protocol=”registry” /&gt;，表示从注册中心发现监控中心的地址，并将服务调用信息提交到监控中心。<br>服务提供者默认以一分钟的频率（可配置）调用监控中心的dubbo服务，向监控中心上报服务调用信息。监控中心宕机，并不影响消费者，服务提供者的正常工作。<br>如果要配置其调用频率，可通过如下配置，默认建议保持一分钟的频率，甚至更小，这个频率设置低点，对整个服务器的压力不会增加更大</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">&lt; dubbo:monitor protocol&#x3D;&quot;registry&quot;&gt;</span><br><span class="line">	&lt;dubbo:parameter key &#x3D; &quot;interval&quot; value&#x3D;&quot;60000&quot;&gt; &lt;!-- 单位为毫秒--&gt;</span><br><span class="line">&lt;&#x2F; dubbo:monitor&gt;</span><br></pre></td></tr></table></figure>
+<p>注：Dubbo监控中心，服务提供者、服务消费者都可以单独按需配置。</p>
+</div>
+
+			<script src="https://my.openwrite.cn/js/readmore.js" type="text/javascript"></script>
+			<script>
+			var isMobile = navigator.userAgent.match(/(phone|pad|pod|iPhone|iPod|ios|iPad|Android|Mobile|BlackBerry|IEMobile|MQQBrowser|JUC|Fennec|wOSBrowser|BrowserNG|WebOS|Symbian|Windows Phone)/i);
+			if (!isMobile) {
+			    var btw = new BTWPlugin();
+			    btw.init({
+			        "id": "vip-container",
+			        "blogId": "18019-1573088808868-542",
+			        "name": "中间件兴趣圈",
+			        "qrcode": "https://img-blog.csdnimg.cn/20190314214003962.jpg",
+			        "keyword": "more"
+			    });
+			}
+			</script>
+		
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/%E6%BA%90%E7%A0%81/" rel="tag"># 源码</a>
+          
+            <a href="/tags/dubbo/" rel="tag"># dubbo</a>
+          
+            <a href="/tags/%E7%9B%91%E6%8E%A7%E4%B8%AD%E5%BF%83/" rel="tag"># 监控中心</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/posts/a061d56c.html" rel="next" title="Dubbo Filter机制概述">
+                <i class="fa fa-chevron-left"></i> Dubbo Filter机制概述
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/posts/70022ae6.html" rel="prev" title="源码分析Dubbo异步调用与事件回调机制">
+                源码分析Dubbo异步调用与事件回调机制 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+    <div class="comments" id="comments">
+    </div>
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name"></p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/">
+              
+                  <span class="site-state-item-count">115</span>
+                  <span class="site-state-item-name">日志</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                <a href="/categories/index.html">
+                  <span class="site-state-item-count">13</span>
+                  <span class="site-state-item-name">分类</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                <a href="/tags/index.html">
+                  <span class="site-state-item-count">183</span>
+                  <span class="site-state-item-name">标签</span>
+                </a>
+              </div>
+            
+
+          </nav>
+
+          
+            <div class="feed-link motion-element">
+              <a href="/atom.xml" rel="alternate">
+                <i class="fa fa-rss"></i>
+                RSS
+              </a>
+            </div>
+          
+
+          
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#1%E3%80%81%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90MonitorFilter%E8%BF%87%E6%BB%A4%E5%99%A8"><span class="nav-number">1.</span> <span class="nav-text">1、源码分析MonitorFilter过滤器</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-1-MonitorFilter%E5%A3%B0%E6%98%8E"><span class="nav-number">1.1.</span> <span class="nav-text">1.1 MonitorFilter声明</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-2-getConcurrent%E6%96%B9%E6%B3%95%E8%AF%A6%E8%A7%A3"><span class="nav-number">1.2.</span> <span class="nav-text">1.2 getConcurrent方法详解</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-3-invoker%E6%96%B9%E6%B3%95%E8%AF%A6%E8%A7%A3"><span class="nav-number">1.3.</span> <span class="nav-text">1.3 invoker方法详解</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-4-invoker%E6%96%B9%E6%B3%95%E8%AF%A6%E8%A7%A3"><span class="nav-number">1.4.</span> <span class="nav-text">1.4 invoker方法详解</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2%E3%80%81%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90DubboMonitor%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86"><span class="nav-number">2.</span> <span class="nav-text">2、源码分析DubboMonitor实现原理</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-%E6%9E%84%E9%80%A0%E5%87%BD%E6%95%B0%E5%88%86%E6%9E%90"><span class="nav-number">2.1.</span> <span class="nav-text">2.1 构造函数分析</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-collect-%E6%94%B6%E9%9B%86%E7%BB%9F%E8%AE%A1%E4%BF%A1%E6%81%AF%E6%96%B9%E6%B3%95"><span class="nav-number">2.2.</span> <span class="nav-text">2.2 collect 收集统计信息方法</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-3-send%E6%96%B9%E6%B3%95"><span class="nav-number">2.3.</span> <span class="nav-text">2.3 send方法</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3%E3%80%81Dubbo%E7%9B%91%E6%8E%A7%E4%B8%AD%E5%BF%83%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86"><span class="nav-number">3.</span> <span class="nav-text">3、Dubbo监控中心实现原理</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-1-SimpleMonitorService%E6%9E%84%E9%80%A0%E5%87%BD%E6%95%B0"><span class="nav-number">3.1.</span> <span class="nav-text">3.1 SimpleMonitorService构造函数</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-2-SimpleMonitorService-write"><span class="nav-number">3.2.</span> <span class="nav-text">3.2 SimpleMonitorService#write</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-3-draw"><span class="nav-number">3.3.</span> <span class="nav-text">3.3 draw</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-4-%E7%9B%91%E6%8E%A7%E4%B8%AD%E5%BF%83%E4%BD%BF%E7%94%A8%E6%95%88%E6%9E%9C%E4%B8%80%E8%A7%88"><span class="nav-number">4.</span> <span class="nav-text">3.4 监控中心使用效果一览</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-4-1-%E5%BA%94%E7%94%A8%E4%B8%80%E8%A7%88%E8%A1%A8"><span class="nav-number">4.1.</span> <span class="nav-text">3.4.1 应用一览表</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-4-3%E3%80%81-Dubbo%E7%AE%80%E6%98%93%E7%9B%91%E6%8E%A7%E4%B8%AD%E5%BF%83%E4%BD%BF%E7%94%A8%E6%96%B9%E6%B3%95"><span class="nav-number">4.2.</span> <span class="nav-text">3.4.3、 Dubbo简易监控中心使用方法</span></a></li></ol></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">中间件兴趣圈</span>
+
+  
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-area-chart"></i>
+    </span>
+    
+      <span class="post-meta-item-text">Site words total count&#58;</span>
+    
+    <span title="Site words total count">301.9k</span>
+  
+</div>
+
+
+  <div class="powered-by">由 <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> 强力驱动</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Pisces</a> v5.1.4</div>
+
+
+
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+  
+    <span class="site-uv">
+      <i class="fa fa-user"></i>总访客
+      <span class="busuanzi-value" id="busuanzi_value_site_uv"></span>
+      人
+    </span>
+  
+
+  
+    <span class="site-pv">
+      <i class="fa fa-eye"></i>总访问量
+      <span class="busuanzi-value" id="busuanzi_value_site_pv"></span>
+      次
+    </span>
+  
+</div>
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.4"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.1.4"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.4"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+  <script src="//cdn1.lncld.net/static/js/3.0.4/av-min.js"></script>
+  <script src="//unpkg.com/valine/dist/Valine.min.js"></script>
+  
+  <script type="text/javascript">
+    var GUEST = ['nick','mail','link'];
+    var guest = 'nick,mail,link';
+    guest = guest.split(',').filter(item=>{
+      return GUEST.indexOf(item)>-1;
+    });
+    new Valine({
+        el: '#comments' ,
+        verify: false,
+        notify: false,
+        appId: 'NNEhOL0iOcflg8f1U3HUqiCq-gzGzoHsz',
+        appKey: '7kSmkbbb3DktmHALlShDsBUF',
+        placeholder: '来都来了，不撩一句嘛~，留言记得在上面留下【邮箱】，方便收到回复通知~',
+        avatar:'mm',
+        guest_info:guest,
+        pageSize:'10' || 10,
+    });
+  </script>
+
+
+
+  
+
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    var isXml = true;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length === 0) {
+      search_path = "search.xml";
+    } else if (/json$/i.test(search_path)) {
+      isXml = false;
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    var onPopupClose = function (e) {
+      $('.popup').hide();
+      $('#local-search-input').val('');
+      $('.search-result-list').remove();
+      $('#no-result').remove();
+      $(".local-search-pop-overlay").remove();
+      $('body').css('overflow', '');
+    }
+
+    function proceedsearch() {
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay"></div>')
+        .css('overflow', 'hidden');
+      $('.search-popup-overlay').click(onPopupClose);
+      $('.popup').toggle();
+      var $localSearchInput = $('#local-search-input');
+      $localSearchInput.attr("autocapitalize", "none");
+      $localSearchInput.attr("autocorrect", "off");
+      $localSearchInput.focus();
+    }
+
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+      'use strict';
+
+      // start loading animation
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay">' +
+          '<div id="search-loading-icon">' +
+          '<i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>' +
+          '</div>' +
+          '</div>')
+        .css('overflow', 'hidden');
+      $("#search-loading-icon").css('margin', '20% auto 0 auto').css('text-align', 'center');
+
+      $.ajax({
+        url: path,
+        dataType: isXml ? "xml" : "json",
+        async: true,
+        success: function(res) {
+          // get the contents from search data
+          isfetched = true;
+          $('.popup').detach().appendTo('.header-inner');
+          var datas = isXml ? $("entry", res).map(function() {
+            return {
+              title: $("title", this).text(),
+              content: $("content",this).text(),
+              url: $("url" , this).text()
+            };
+          }).get() : res;
+          var input = document.getElementById(search_id);
+          var resultContent = document.getElementById(content_id);
+          var inputEventFunction = function() {
+            var searchText = input.value.trim().toLowerCase();
+            var keywords = searchText.split(/[\s\-]+/);
+            if (keywords.length > 1) {
+              keywords.push(searchText);
+            }
+            var resultItems = [];
+            if (searchText.length > 0) {
+              // perform local searching
+              datas.forEach(function(data) {
+                var isMatch = false;
+                var hitCount = 0;
+                var searchTextCount = 0;
+                var title = data.title.trim();
+                var titleInLowerCase = title.toLowerCase();
+                var content = data.content.trim().replace(/<[^>]+>/g,"");
+                var contentInLowerCase = content.toLowerCase();
+                var articleUrl = decodeURIComponent(data.url);
+                var indexOfTitle = [];
+                var indexOfContent = [];
+                // only match articles with not empty titles
+                if(title != '') {
+                  keywords.forEach(function(keyword) {
+                    function getIndexByWord(word, text, caseSensitive) {
+                      var wordLen = word.length;
+                      if (wordLen === 0) {
+                        return [];
+                      }
+                      var startPosition = 0, position = [], index = [];
+                      if (!caseSensitive) {
+                        text = text.toLowerCase();
+                        word = word.toLowerCase();
+                      }
+                      while ((position = text.indexOf(word, startPosition)) > -1) {
+                        index.push({position: position, word: word});
+                        startPosition = position + wordLen;
+                      }
+                      return index;
+                    }
+
+                    indexOfTitle = indexOfTitle.concat(getIndexByWord(keyword, titleInLowerCase, false));
+                    indexOfContent = indexOfContent.concat(getIndexByWord(keyword, contentInLowerCase, false));
+                  });
+                  if (indexOfTitle.length > 0 || indexOfContent.length > 0) {
+                    isMatch = true;
+                    hitCount = indexOfTitle.length + indexOfContent.length;
+                  }
+                }
+
+                // show search results
+
+                if (isMatch) {
+                  // sort index by position of keyword
+
+                  [indexOfTitle, indexOfContent].forEach(function (index) {
+                    index.sort(function (itemLeft, itemRight) {
+                      if (itemRight.position !== itemLeft.position) {
+                        return itemRight.position - itemLeft.position;
+                      } else {
+                        return itemLeft.word.length - itemRight.word.length;
+                      }
+                    });
+                  });
+
+                  // merge hits into slices
+
+                  function mergeIntoSlice(text, start, end, index) {
+                    var item = index[index.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    var hits = [];
+                    var searchTextCountInSlice = 0;
+                    while (position + word.length <= end && index.length != 0) {
+                      if (word === searchText) {
+                        searchTextCountInSlice++;
+                      }
+                      hits.push({position: position, length: word.length});
+                      var wordEnd = position + word.length;
+
+                      // move to next position of hit
+
+                      index.pop();
+                      while (index.length != 0) {
+                        item = index[index.length - 1];
+                        position = item.position;
+                        word = item.word;
+                        if (wordEnd > position) {
+                          index.pop();
+                        } else {
+                          break;
+                        }
+                      }
+                    }
+                    searchTextCount += searchTextCountInSlice;
+                    return {
+                      hits: hits,
+                      start: start,
+                      end: end,
+                      searchTextCount: searchTextCountInSlice
+                    };
+                  }
+
+                  var slicesOfTitle = [];
+                  if (indexOfTitle.length != 0) {
+                    slicesOfTitle.push(mergeIntoSlice(title, 0, title.length, indexOfTitle));
+                  }
+
+                  var slicesOfContent = [];
+                  while (indexOfContent.length != 0) {
+                    var item = indexOfContent[indexOfContent.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    // cut out 100 characters
+                    var start = position - 20;
+                    var end = position + 80;
+                    if(start < 0){
+                      start = 0;
+                    }
+                    if (end < position + word.length) {
+                      end = position + word.length;
+                    }
+                    if(end > content.length){
+                      end = content.length;
+                    }
+                    slicesOfContent.push(mergeIntoSlice(content, start, end, indexOfContent));
+                  }
+
+                  // sort slices in content by search text's count and hits' count
+
+                  slicesOfContent.sort(function (sliceLeft, sliceRight) {
+                    if (sliceLeft.searchTextCount !== sliceRight.searchTextCount) {
+                      return sliceRight.searchTextCount - sliceLeft.searchTextCount;
+                    } else if (sliceLeft.hits.length !== sliceRight.hits.length) {
+                      return sliceRight.hits.length - sliceLeft.hits.length;
+                    } else {
+                      return sliceLeft.start - sliceRight.start;
+                    }
+                  });
+
+                  // select top N slices in content
+
+                  var upperBound = parseInt('1');
+                  if (upperBound >= 0) {
+                    slicesOfContent = slicesOfContent.slice(0, upperBound);
+                  }
+
+                  // highlight title and content
+
+                  function highlightKeyword(text, slice) {
+                    var result = '';
+                    var prevEnd = slice.start;
+                    slice.hits.forEach(function (hit) {
+                      result += text.substring(prevEnd, hit.position);
+                      var end = hit.position + hit.length;
+                      result += '<b class="search-keyword">' + text.substring(hit.position, end) + '</b>';
+                      prevEnd = end;
+                    });
+                    result += text.substring(prevEnd, slice.end);
+                    return result;
+                  }
+
+                  var resultItem = '';
+
+                  if (slicesOfTitle.length != 0) {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + highlightKeyword(title, slicesOfTitle[0]) + "</a>";
+                  } else {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + title + "</a>";
+                  }
+
+                  slicesOfContent.forEach(function (slice) {
+                    resultItem += "<a href='" + articleUrl + "'>" +
+                      "<p class=\"search-result\">" + highlightKeyword(content, slice) +
+                      "...</p>" + "</a>";
+                  });
+
+                  resultItem += "</li>";
+                  resultItems.push({
+                    item: resultItem,
+                    searchTextCount: searchTextCount,
+                    hitCount: hitCount,
+                    id: resultItems.length
+                  });
+                }
+              })
+            };
+            if (keywords.length === 1 && keywords[0] === "") {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-search fa-5x" /></div>'
+            } else if (resultItems.length === 0) {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-frown-o fa-5x" /></div>'
+            } else {
+              resultItems.sort(function (resultLeft, resultRight) {
+                if (resultLeft.searchTextCount !== resultRight.searchTextCount) {
+                  return resultRight.searchTextCount - resultLeft.searchTextCount;
+                } else if (resultLeft.hitCount !== resultRight.hitCount) {
+                  return resultRight.hitCount - resultLeft.hitCount;
+                } else {
+                  return resultRight.id - resultLeft.id;
+                }
+              });
+              var searchResultList = '<ul class=\"search-result-list\">';
+              resultItems.forEach(function (result) {
+                searchResultList += result.item;
+              })
+              searchResultList += "</ul>";
+              resultContent.innerHTML = searchResultList;
+            }
+          }
+
+          if ('auto' === 'auto') {
+            input.addEventListener('input', inputEventFunction);
+          } else {
+            $('.search-icon').click(inputEventFunction);
+            input.addEventListener('keypress', function (event) {
+              if (event.keyCode === 13) {
+                inputEventFunction();
+              }
+            });
+          }
+
+          // remove loading animation
+          $(".local-search-pop-overlay").remove();
+          $('body').css('overflow', '');
+
+          proceedsearch();
+        }
+      });
+    }
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched === false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+    });
+
+    $('.popup-btn-close').click(onPopupClose);
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+    $(document).on('keyup', function (event) {
+      var shouldDismissSearchPopup = event.which === 27 &&
+        $('.search-popup').is(':visible');
+      if (shouldDismissSearchPopup) {
+        onPopupClose();
+      }
+    });
+  </script>
+
+
+
+
+
+  
+
+  
+  <script src="https://cdn1.lncld.net/static/js/av-core-mini-0.6.4.js"></script>
+  <script>AV.initialize("NNEhOL0iOcflg8f1U3HUqiCq-gzGzoHsz", "7kSmkbbb3DktmHALlShDsBUF");</script>
+  <script>
+    function showTime(Counter) {
+      var query = new AV.Query(Counter);
+      var entries = [];
+      var $visitors = $(".leancloud_visitors");
+
+      $visitors.each(function () {
+        entries.push( $(this).attr("id").trim() );
+      });
+
+      query.containedIn('url', entries);
+      query.find()
+        .done(function (results) {
+          var COUNT_CONTAINER_REF = '.leancloud-visitors-count';
+
+          if (results.length === 0) {
+            $visitors.find(COUNT_CONTAINER_REF).text(0);
+            return;
+          }
+
+          for (var i = 0; i < results.length; i++) {
+            var item = results[i];
+            var url = item.get('url');
+            var time = item.get('time');
+            var element = document.getElementById(url);
+
+            $(element).find(COUNT_CONTAINER_REF).text(time);
+          }
+          for(var i = 0; i < entries.length; i++) {
+            var url = entries[i];
+            var element = document.getElementById(url);
+            var countSpan = $(element).find(COUNT_CONTAINER_REF);
+            if( countSpan.text() == '') {
+              countSpan.text(0);
+            }
+          }
+        })
+        .fail(function (object, error) {
+          console.log("Error: " + error.code + " " + error.message);
+        });
+    }
+
+    function addCount(Counter) {
+      var $visitors = $(".leancloud_visitors");
+      var url = $visitors.attr('id').trim();
+      var title = $visitors.attr('data-flag-title').trim();
+      var query = new AV.Query(Counter);
+
+      query.equalTo("url", url);
+      query.find({
+        success: function(results) {
+          if (results.length > 0) {
+            var counter = results[0];
+            counter.fetchWhenSave(true);
+            counter.increment("time");
+            counter.save(null, {
+              success: function(counter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(counter.get('time'));
+              },
+              error: function(counter, error) {
+                console.log('Failed to save Visitor num, with error message: ' + error.message);
+              }
+            });
+          } else {
+            var newcounter = new Counter();
+            /* Set ACL */
+            var acl = new AV.ACL();
+            acl.setPublicReadAccess(true);
+            acl.setPublicWriteAccess(true);
+            newcounter.setACL(acl);
+            /* End Set ACL */
+            newcounter.set("title", title);
+            newcounter.set("url", url);
+            newcounter.set("time", 1);
+            newcounter.save(null, {
+              success: function(newcounter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(newcounter.get('time'));
+              },
+              error: function(newcounter, error) {
+                console.log('Failed to create');
+              }
+            });
+          }
+        },
+        error: function(error) {
+          console.log('Error:' + error.code + " " + error.message);
+        }
+      });
+    }
+
+    $(function() {
+      var Counter = AV.Object.extend("Counter");
+      if ($('.leancloud_visitors').length == 1) {
+        addCount(Counter);
+      } else if ($('.post-title-link').length > 1) {
+        showTime(Counter);
+      }
+    });
+  </script>
+
+
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

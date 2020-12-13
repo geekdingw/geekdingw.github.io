@@ -1,0 +1,1401 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.4" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.4">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.4" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="源码,dubbo,线程模型,dispatch," />
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="中间件兴趣圈" type="application/atom+xml" />
+
+
+
+
+
+
+<meta name="description" content="本节将主要学习Dubbo是如何使用Netty来实现网络通讯的。从官网我们得知，Dubbo协议是使用单一长连接来进行网络传输，也就是说服务调用方持久与服务提供者建立一条连接，所有的服务调用调用信息通过。一条TCP连接进行传输，在网络层至少要考虑如下问题：1、服务端，客户端网络通讯模型（线程模型）2、传输（编码解码、序列化）。3、服务端转发策略等。Dubbo服务端的网络启动流程，在上篇中已给出序列图，">
+<meta property="og:type" content="article">
+<meta property="og:title" content="源码分析Dubbo网络通讯篇之NettyServer网络事件派发机制(Dispatch)">
+<meta property="og:url" content="http://example.com/posts/dff42af6.html">
+<meta property="og:site_name" content="中间件兴趣圈">
+<meta property="og:description" content="本节将主要学习Dubbo是如何使用Netty来实现网络通讯的。从官网我们得知，Dubbo协议是使用单一长连接来进行网络传输，也就是说服务调用方持久与服务提供者建立一条连接，所有的服务调用调用信息通过。一条TCP连接进行传输，在网络层至少要考虑如下问题：1、服务端，客户端网络通讯模型（线程模型）2、传输（编码解码、序列化）。3、服务端转发策略等。Dubbo服务端的网络启动流程，在上篇中已给出序列图，">
+<meta property="og:locale">
+<meta property="og:image" content="https://img-blog.csdn.net/20180717115949813?watermark/2/text/aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70">
+<meta property="og:image" content="https://img-blog.csdn.net/20180717120028786?watermark/2/text/aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70">
+<meta property="og:image" content="https://img-blog.csdn.net/20180717120125818?watermark/2/text/aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70">
+<meta property="og:image" content="https://img-blog.csdn.net/20180717120858860?watermark/2/text/aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70">
+<meta property="og:image" content="https://img-blog.csdn.net/20180717120945500?watermark/2/text/aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70">
+<meta property="og:image" content="https://img-blog.csdn.net/20180717121040241?watermark/2/text/aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70">
+<meta property="og:image" content="https://img-blog.csdn.net/20180717121110311?watermark/2/text/aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70">
+<meta property="og:image" content="https://img-blog.csdn.net/20180717121431231?watermark/2/text/aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70">
+<meta property="article:published_time" content="2020-12-13T09:40:01.000Z">
+<meta property="article:modified_time" content="2020-12-13T09:42:25.142Z">
+<meta property="article:author" content="中间件兴趣圈">
+<meta property="article:tag" content="源码">
+<meta property="article:tag" content="dubbo">
+<meta property="article:tag" content="线程模型">
+<meta property="article:tag" content="dispatch">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://img-blog.csdn.net/20180717115949813?watermark/2/text/aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '',
+    scheme: 'Pisces',
+    version: '5.1.4',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://example.com/posts/dff42af6.html"/>
+
+
+
+
+
+  <title>源码分析Dubbo网络通讯篇之NettyServer网络事件派发机制(Dispatch) | 中间件兴趣圈</title>
+  
+
+
+
+
+
+
+
+
+<meta name="generator" content="Hexo 5.2.0"></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">中间件兴趣圈</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle">关注微信公众号「中间件兴趣圈」，第一时间获取最新干货！</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="popup-trigger">
+          
+            
+              <i class="menu-item-icon fa fa-search fa-fw"></i> <br />
+            
+            搜索
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <div class="popup search-popup local-search-popup">
+  <div class="local-search-header clearfix">
+    <span class="search-icon">
+      <i class="fa fa-search"></i>
+    </span>
+    <span class="popup-btn-close">
+      <i class="fa fa-times-circle"></i>
+    </span>
+    <div class="local-search-input-wrapper">
+      <input autocomplete="off"
+             placeholder="搜索..." spellcheck="false"
+             type="text" id="local-search-input">
+    </div>
+  </div>
+  <div id="local-search-result"></div>
+</div>
+
+
+
+    </div>
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://example.com/posts/dff42af6.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="中间件兴趣圈">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">源码分析Dubbo网络通讯篇之NettyServer网络事件派发机制(Dispatch)</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-12-13T17:40:01+08:00">
+                2020-12-13
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/dubbo/" itemprop="url" rel="index">
+                    <span itemprop="name">dubbo</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/posts/dff42af6.html#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count valine-comment-count" data-xid="/posts/dff42af6.html" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+             <span id="/posts/dff42af6.html" class="leancloud_visitors" data-flag-title="源码分析Dubbo网络通讯篇之NettyServer网络事件派发机制(Dispatch)">
+               <span class="post-meta-divider">|</span>
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               
+                 <span class="post-meta-item-text">阅读次数&#58;</span>
+               
+                 <span class="leancloud-visitors-count"></span>
+             </span>
+          
+
+          
+            <span class="post-meta-divider">|</span>
+            <span class="page-pv"><i class="fa fa-file-o"></i>
+            <span class="busuanzi-value" id="busuanzi_value_page_pv" ></span>
+            </span>
+          
+
+          
+            <div class="post-wordcount">
+              
+                
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-file-word-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">字数统计&#58;</span>
+                
+                <span title="字数统计">
+                  2.9k 字
+                </span>
+              
+
+              
+                <span class="post-meta-divider">|</span>
+              
+
+              
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-clock-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">阅读时长 &asymp;</span>
+                
+                <span title="阅读时长">
+                  12 分钟
+                </span>
+              
+            </div>
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <div id="vip-container"><p>本节将主要学习Dubbo是如何使用Netty来实现网络通讯的。<br>从官网我们得知，Dubbo协议是使用单一长连接来进行网络传输，也就是说服务调用方持久与服务提供者建立一条连接，所有的服务调用调用信息通过。<br>一条TCP连接进行传输，在网络层至少要考虑如下问题：<br>1、服务端，客户端网络通讯模型（线程模型）<br>2、传输（编码解码、序列化）。<br>3、服务端转发策略等。<br>Dubbo服务端的网络启动流程，在上篇中已给出序列图，本节还是以该图为切入点，引入本文的两个主人公：NettyServer、NettyClient。<br><img src="https://img-blog.csdn.net/20180717115949813?watermark/2/text/aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70" alt="这里写图片描述"></p>
+<a id="more"></a>
+
+<p>dubbo使用SPI机制，根据配置，可以支持如下框架实现网络通讯模型，例如netty3,netty4、mina、grizzly，本文重点分析基于Netty4的实现，包路径：dubbo-remoting-netty4。<br>从上面的流程图，NettyTransport的职责就是调用new NettyServer的构造方法，从而构建NettyServer对象，在深入NettyServer对象构造过程之前，先来看一下NettyServer的类继承层次：<br><img src="https://img-blog.csdn.net/20180717120028786?watermark/2/text/aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70" alt="这里写图片描述"><br>NettyServer构造函数：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">public NettyServer(URL url, ChannelHandler handler) throws RemotingException &#123;  &#x2F;&#x2F; @1</span><br><span class="line">        super(url, ChannelHandlers.wrap(handler, ExecutorUtil.setThreadName(url, SERVER_THREAD_POOL_NAME)));    &#x2F;&#x2F; @2</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>代码@1：URL url：服务提供者URL；ChannelHandler网络事件处理器，<br><img src="https://img-blog.csdn.net/20180717120125818?watermark/2/text/aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70" alt="这里写图片描述"><br>也就是当相应网络事件触发时，执行的事件处理器。</p>
+<ul>
+<li>void connected(Channel channel) throws RemotingException<br>  连接事件，当收到客户端的连接事件时，执行该方法处理相关业务操作。</li>
+<li>void disconnected(Channel channel) throws RemotingException：连接断开事件</li>
+<li>void sent(Channel channel, Object message) throws RemotingException<br> 当可写事件触发时，服务端向客户端返回响应数据，就是通过该方法发送的。</li>
+<li>void received(Channel channel, Object message) throws RemotingException<br> 当读事件触发时执行该方法，服务端在收到客户端的请求数据是，调用该方法执行解包等操作。</li>
+<li>void caught(Channel channel, Throwable exception) throws RemotingException<br>  发生异常时，调用该方法。</li>
+</ul>
+<p>代码@2：调用ChannelHandlers.wrap对原生Handler进行包装，然后调用其父类的构造方法，首先，设置Dubbo服务端线程池中线程的名称，可以通过参数threadname来指定线程池中线程的前缀，默认为：DubboServerHandler + dubbo服务端IP与接口号。我比较好奇的是这里为什么需要对ChannelHandler进行包装呢？是增加了些什么逻辑呢？带着者问题，引出本节重点探讨的内容：事件派发机制。<br>事件派发机制指的是网络事件（连接、读、写）等事件触发后，这些事件如何执行，是由IO线程还是派发到线程池中执行。Dubbo定义了如下5种事件派发机制：<br><img src="https://img-blog.csdn.net/20180717120858860?watermark/2/text/aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70" alt="这里写图片描述"><br>本文将详细分析各种事件的派发实现原理。<br>ChannelHandlers#wrapInternal</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">protected ChannelHandler wrapInternal(ChannelHandler handler, URL url) &#123;</span><br><span class="line">        return new MultiMessageHandler(new HeartbeatHandler(ExtensionLoader.getExtensionLoader(Dispatcher.class)</span><br><span class="line">                .getAdaptiveExtension().dispatch(handler, url)));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这里是典型的装饰模式，MultiMessageHandler，多消息处理Handler,HeartbeatHandler，心跳Handler,其主要功能是处理心跳返回与心跳请求，直接在IO线程中执行，每次收到信息，更新通道的读事件戳，每次发送数据时，记录通道的写事件戳。这里的核心关键是利用SPI自适配，返回合适的事件派发机制。Dispatcher的类层次结构如图所示：<br><img src="https://img-blog.csdn.net/20180717120945500?watermark/2/text/aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70" alt="这里写图片描述"></p>
+<h2 id="1、源码分析AllDispatcher实现原理"><a href="#1、源码分析AllDispatcher实现原理" class="headerlink" title="1、源码分析AllDispatcher实现原理"></a>1、源码分析AllDispatcher实现原理</h2><p>线程派发机制：所有的消息都派发到线程池，包括请求、响应、连接事件、断开事件、心跳等。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">public class AllDispatcher implements Dispatcher &#123;</span><br><span class="line">    public static final String NAME &#x3D; &quot;all&quot;;</span><br><span class="line">    @Override</span><br><span class="line">    public ChannelHandler dispatch(ChannelHandler handler, URL url) &#123;</span><br><span class="line">        return new AllChannelHandler(handler, url);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>从中可以看出，事件派发类继承图分两个维度，Dispatcher（事件派发器）、与之对应的ChannelHandler,例如AllChannelHandler。</p>
+<h3 id="1-1-WrappedChannelHandler"><a href="#1-1-WrappedChannelHandler" class="headerlink" title="1.1 WrappedChannelHandler"></a>1.1 WrappedChannelHandler</h3><p>接下来分析事件派发机制，重点关注ChannelHandler类的实现体系。<br><img src="https://img-blog.csdn.net/20180717121040241?watermark/2/text/aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70" alt="这里写图片描述"><br>纵观Dubbo ChannelHanler体系的设计，是经典的类装饰器模式，上述派发器主要解决的问题，是相关网络事件（连接、读（请求）、写（响应）、心跳请求、心跳响应）是在IO线程、还是在额外定义的线程池，故WrappedChannelHandler的主要职责是定义线程池相关的逻辑，具体是在IO线程上执行，还是在定义的线程池中执行，则由子类具体去定制，WrappedChannelHandler默认实现ChannelHandler的所有方法，各个方法的实现直接调用被装饰Handler的方法，见下图：<br><img src="https://img-blog.csdn.net/20180717121110311?watermark/2/text/aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70" alt="这里写图片描述"><br>接下来先重点关注一下WrappedChannelHandler的成员变量和构造方法的实现。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">protected static final ExecutorService SHARED_EXECUTOR &#x3D; Executors.newCachedThreadPool(new NamedThreadFactory(&quot;DubboSharedHandler&quot;, true));</span><br><span class="line">protected final ExecutorService executor;</span><br><span class="line">protected final ChannelHandler handler;</span><br><span class="line">protected final URL url;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>ExecutorService SHARED_EXECUTOR：共享线程池，默认线程池，如果<br>ExecutorService executor为空，则使用SHARED_EXECUTOR </li>
+<li>ExecutorService executor 定义的线程池</li>
+<li>ChannelHandler handler：被装饰的ChannelHandler</li>
+<li>URL url 服务提供者URL<br>接下来关注一下其构造函数：<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">public WrappedChannelHandler(ChannelHandler handler, URL url) &#123;</span><br><span class="line">        this.handler &#x3D; handler;</span><br><span class="line">        this.url &#x3D; url;</span><br><span class="line">        executor &#x3D; (ExecutorService) ExtensionLoader.getExtensionLoader(ThreadPool.class).getAdaptiveExtension().getExecutor(url);    &#x2F;&#x2F; @1</span><br><span class="line"></span><br><span class="line">        String componentKey &#x3D; Constants.EXECUTOR_SERVICE_COMPONENT_KEY;</span><br><span class="line">        if (Constants.CONSUMER_SIDE.equalsIgnoreCase(url.getParameter(Constants.SIDE_KEY))) &#123;</span><br><span class="line">            componentKey &#x3D; Constants.CONSUMER_SIDE;</span><br><span class="line">        &#125;</span><br><span class="line">        DataStore dataStore &#x3D; ExtensionLoader.getExtensionLoader(DataStore.class).getDefaultExtension();</span><br><span class="line">        dataStore.put(componentKey, Integer.toString(url.getPort()), executor);  &#x2F;&#x2F; @2</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+代码@1：构建线程池，这里基于SPI机制，用户可选择cached、eager、fixed、limited，将在本节下面详细介绍，这里只需要知道是构建了一个线程池。<br>代码@2：将服务端都与线程池缓存起来，在服务端，线程池的缓存级别是 服务提供者协议（端口）：线程池。<h3 id="1-2-AllChannelHandler"><a href="#1-2-AllChannelHandler" class="headerlink" title="1.2 AllChannelHandler"></a>1.2 AllChannelHandler</h3>事件派发机制：所有网络事件在线程池中执行，其实现机制肯定是重写ChannelHandler的所有网络事件方法，将调用其修饰的ChannelHanlder在线程池中执行。由于AllChannelHandler是第一个事件派发机制，故对其实现做一个详细描述。</li>
+</ul>
+<h4 id="1-2-1-AllChannelHandler-connected"><a href="#1-2-1-AllChannelHandler-connected" class="headerlink" title="1.2.1 AllChannelHandler#connected"></a>1.2.1 AllChannelHandler#connected</h4><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">public void connected(Channel channel) throws RemotingException &#123;</span><br><span class="line">        ExecutorService cexecutor &#x3D; getExecutorService();</span><br><span class="line">        try &#123;</span><br><span class="line">            cexecutor.execute(new ChannelEventRunnable(channel, handler, ChannelState.CONNECTED));</span><br><span class="line">        &#125; catch (Throwable t) &#123;</span><br><span class="line">            throw new ExecutionException(&quot;connect event&quot;, channel, getClass() + &quot; error when process connected event .&quot;, t);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+<p>连接事件，其主要实现是，首先先获取执行线程池，其获取逻辑是如果executor = (ExecutorService) ExtensionLoader.getExtensionLoader(ThreadPool.class).<br>getAdaptiveExtension().getExecutor(url);获取不到线程池，则使用共享线程池。可以看出，连接事件的业务调用时异步执行，基于线程池。<br>注：调用时机，服务端收到客户端连接后，该方法会被调用。</p>
+<h4 id="2-2-2-AllChannelHandler-disconnected"><a href="#2-2-2-AllChannelHandler-disconnected" class="headerlink" title="2.2.2 AllChannelHandler#disconnected"></a>2.2.2 AllChannelHandler#disconnected</h4><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">public void disconnected(Channel channel) throws RemotingException &#123;</span><br><span class="line">        ExecutorService cexecutor &#x3D; getExecutorService();</span><br><span class="line">        try &#123;</span><br><span class="line">            cexecutor.execute(new ChannelEventRunnable(channel, handler, ChannelState.DISCONNECTED));</span><br><span class="line">        &#125; catch (Throwable t) &#123;</span><br><span class="line">            throw new ExecutionException(&quot;disconnect event&quot;, channel, getClass() + &quot; error when process disconnected event .&quot;, t);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+<p>其基本实现与connected相同，就是将具体的disconnected 事件所对应的业务扩展方法在线程池中执行。<br>注：调用时机，服务端收到客户端断开连接后，该方法会被调用。</p>
+<h4 id="2-2-3-AllChannelHandler-received"><a href="#2-2-3-AllChannelHandler-received" class="headerlink" title="2.2.3 AllChannelHandler#received"></a>2.2.3 AllChannelHandler#received</h4><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">public void received(Channel channel, Object message) throws RemotingException &#123;</span><br><span class="line">        ExecutorService cexecutor &#x3D; getExecutorService();</span><br><span class="line">        try &#123;</span><br><span class="line">            cexecutor.execute(new ChannelEventRunnable(channel, handler, ChannelState.RECEIVED, message));</span><br><span class="line">        &#125; catch (Throwable t) &#123;</span><br><span class="line">            &#x2F;&#x2F;TODO A temporary solution to the problem that the exception information can not be sent to the opposite end after the thread pool is full. Need a refactoring</span><br><span class="line">            &#x2F;&#x2F;fix The thread pool is full, refuses to call, does not return, and causes the consumer to wait for time out</span><br><span class="line">        	if(message instanceof Request &amp;&amp; t instanceof RejectedExecutionException)&#123;</span><br><span class="line">        		Request request &#x3D; (Request)message;</span><br><span class="line">        		if(request.isTwoWay())&#123;</span><br><span class="line">        			String msg &#x3D; &quot;Server side(&quot; + url.getIp() + &quot;,&quot; + url.getPort() + &quot;) threadpool is exhausted ,detail msg:&quot; + t.getMessage();</span><br><span class="line">        			Response response &#x3D; new Response(request.getId(), request.getVersion());</span><br><span class="line">        			response.setStatus(Response.SERVER_THREADPOOL_EXHAUSTED_ERROR);</span><br><span class="line">        			response.setErrorMessage(msg);</span><br><span class="line">        			channel.send(response);</span><br><span class="line">        			return;</span><br><span class="line">        		&#125;</span><br><span class="line">        	&#125;</span><br><span class="line">            throw new ExecutionException(message, channel, getClass() + &quot; error when process received event .&quot;, t);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+<p>调用时机：当服务端收到客户端发送的请求后，经过IO线程（Netty）会首先从二进制流中解码出一个个的请求，参数Object message，就是调用请求，然后在提交给线程池执行，执行完后，当业务处理完毕后，组装结果后，必然会在该线程中调用通道(Channel#write,flush)方法，向通道写入响应结果。<br>注：all事件派发机制，ChannelHandler#recive是在线程池中执行。</p>
+<h4 id="2-2-4-AllChannelHandler-caught"><a href="#2-2-4-AllChannelHandler-caught" class="headerlink" title="2.2.4 AllChannelHandler#caught"></a>2.2.4 AllChannelHandler#caught</h4><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">public void caught(Channel channel, Throwable exception) throws RemotingException &#123;</span><br><span class="line">        ExecutorService cexecutor &#x3D; getExecutorService();</span><br><span class="line">        try &#123;</span><br><span class="line">            cexecutor.execute(new ChannelEventRunnable(channel, handler, ChannelState.CAUGHT, exception));</span><br><span class="line">        &#125; catch (Throwable t) &#123;</span><br><span class="line">            throw new ExecutionException(&quot;caught event&quot;, channel, getClass() + &quot; error when process caught event .&quot;, t);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+<p>当发生异常时，ChannelHandler#caught也在线程池中执行。<br>令人颇感意外的是，AllChannelHandler并未重写WrappedChannelHandler的sent方法，也就是说ChannelHandler#sent事件回调方法，是在IO线程中执行。<br>WrappedChannelHandler#sent</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">public void sent(Channel channel, Object message) throws RemotingException &#123;</span><br><span class="line">        handler.sent(channel, message);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这个和官方文档还是有一定出入的。<br><img src="https://img-blog.csdn.net/20180717121431231?watermark/2/text/aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70" alt="这里写图片描述"></p>
+<h3 id="1-3-ExecutionChannelHandler"><a href="#1-3-ExecutionChannelHandler" class="headerlink" title="1.3 ExecutionChannelHandler"></a>1.3 ExecutionChannelHandler</h3><p>对应事件派件器：ExecutionDispatcher，其配置值：execution,从其源码的实现来看，与AllDispatcher实现基本类似，唯一的区别是，如果executor线程池为空时，并不会使用共享线程池，目前我还想不出什么情况下，线程池会初始化失败。</p>
+<h3 id="1-4-DirectDispatcher"><a href="#1-4-DirectDispatcher" class="headerlink" title="1.4 DirectDispatcher"></a>1.4 DirectDispatcher</h3><p>直接派发，也就是所有的事件全部在IO线程中执行，故其实现非常简单：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">public class DirectDispatcher implements Dispatcher &#123;</span><br><span class="line">    public static final String NAME &#x3D; &quot;direct&quot;;</span><br><span class="line">    @Override</span><br><span class="line">    public ChannelHandler dispatch(ChannelHandler handler, URL url) &#123;</span><br><span class="line">        return handler;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="1-5-MessageOnlyDispatcher、MessageOnlyChannelHandler"><a href="#1-5-MessageOnlyDispatcher、MessageOnlyChannelHandler" class="headerlink" title="1.5 MessageOnlyDispatcher、MessageOnlyChannelHandler"></a>1.5 MessageOnlyDispatcher、MessageOnlyChannelHandler</h3><p>事件派发器：只有请求事件在线程池中执行，其他响应事件、心跳，连接，断开连接等事件在IO线程上执行，故其只需要重写recive方法即可：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">@Override</span><br><span class="line">    public void received(Channel channel, Object message) throws RemotingException &#123;</span><br><span class="line">        ExecutorService cexecutor &#x3D; executor;</span><br><span class="line">        if (cexecutor &#x3D;&#x3D; null || cexecutor.isShutdown()) &#123;</span><br><span class="line">            cexecutor &#x3D; SHARED_EXECUTOR;</span><br><span class="line">        &#125;</span><br><span class="line">        try &#123;</span><br><span class="line">            cexecutor.execute(new ChannelEventRunnable(channel, handler, ChannelState.RECEIVED, message));</span><br><span class="line">        &#125; catch (Throwable t) &#123;</span><br><span class="line">            throw new ExecutionException(message, channel, getClass() + &quot; error when process received event .&quot;, t);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+<h3 id="1-6-ConnectionOrderedDispatcher-ConnectionOrderedChannelHandler"><a href="#1-6-ConnectionOrderedDispatcher-ConnectionOrderedChannelHandler" class="headerlink" title="1.6 ConnectionOrderedDispatcher ConnectionOrderedChannelHandler"></a>1.6 ConnectionOrderedDispatcher ConnectionOrderedChannelHandler</h3><p>事件派发器：连接、断开连接事件排队执行，并可通过connect.queue.capacity属性设置队列长度，请求事件、异常事件在线程池中执行。</p>
+<h4 id="1-6-1-构造方法"><a href="#1-6-1-构造方法" class="headerlink" title="1.6.1 构造方法"></a>1.6.1 构造方法</h4><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">public ConnectionOrderedChannelHandler(ChannelHandler handler, URL url) &#123;</span><br><span class="line">        super(handler, url);</span><br><span class="line">        String threadName &#x3D; url.getParameter(Constants.THREAD_NAME_KEY, Constants.DEFAULT_THREAD_NAME);</span><br><span class="line">        connectionExecutor &#x3D; new ThreadPoolExecutor(1, 1,</span><br><span class="line">                0L, TimeUnit.MILLISECONDS,</span><br><span class="line">                new LinkedBlockingQueue&lt;Runnable&gt;(url.getPositiveParameter(Constants.CONNECT_QUEUE_CAPACITY, Integer.MAX_VALUE)),</span><br><span class="line">                new NamedThreadFactory(threadName, true),</span><br><span class="line">                new AbortPolicyWithReport(threadName, url)</span><br><span class="line">        );  &#x2F;&#x2F; FIXME There&#39;s no place to release connectionExecutor!</span><br><span class="line">        queuewarninglimit &#x3D; url.getParameter(Constants.CONNECT_QUEUE_WARNING_SIZE, Constants.DEFAULT_CONNECT_QUEUE_WARNING_SIZE);</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+<p>重点关注一下connectionExecutor ，用来执行连接、断开事件的线程池，线程池中只有一个线程，并且队列可以选择时有界队列，通过connect.queue.capacity属性配置，超过的事件，则拒绝执行。</p>
+<h4 id="1-6-2-ConnectionOrderedChannelHandler-connected"><a href="#1-6-2-ConnectionOrderedChannelHandler-connected" class="headerlink" title="1.6.2 ConnectionOrderedChannelHandler#connected"></a>1.6.2 ConnectionOrderedChannelHandler#connected</h4><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">public void connected(Channel channel) throws RemotingException &#123;</span><br><span class="line">        try &#123;</span><br><span class="line">            checkQueueLength();</span><br><span class="line">            connectionExecutor.execute(new ChannelEventRunnable(channel, handler, ChannelState.CONNECTED));</span><br><span class="line">        &#125; catch (Throwable t) &#123;</span><br><span class="line">            throw new ExecutionException(&quot;connect event&quot;, channel, getClass() + &quot; error when process connected event .&quot;, t);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+<p>检查队列长度，如果超过警告值，则输出警告信息，然后提交连接线程池中执行，disconnected事件类似。其他received、caught事件，则与AllDispatcher相同，就不在重复。</p>
+<p><strong>总结</strong>：本文主要是分析阐述了Dubbo Dispatch机制，但与官方文档存在出入，先归纳如下：Dispatch所有的sent事件方法、心跳请求全部在IO线程上执行。</p>
+<ul>
+<li>all<br>除sent事件回调方法、心跳外，全部在线程池上执行。</li>
+<li>execution<br>与all类似，唯一区就是all在线程池未指定时，可以使用共享线程池，这个差别等同于没有。</li>
+<li>message<br>只有请求事件在线程池中执行，其他在IO线程上执行。</li>
+<li>connection<br>请求事件在线程池中执行，连接、断开连接事件排队执行（含一个线程的线程池）</li>
+<li>direct<br>所有事件都在IO线程中执行。</li>
+</ul>
+</div>
+
+			<script src="https://my.openwrite.cn/js/readmore.js" type="text/javascript"></script>
+			<script>
+			var isMobile = navigator.userAgent.match(/(phone|pad|pod|iPhone|iPod|ios|iPad|Android|Mobile|BlackBerry|IEMobile|MQQBrowser|JUC|Fennec|wOSBrowser|BrowserNG|WebOS|Symbian|Windows Phone)/i);
+			if (!isMobile) {
+			    var btw = new BTWPlugin();
+			    btw.init({
+			        "id": "vip-container",
+			        "blogId": "18019-1573088808868-542",
+			        "name": "中间件兴趣圈",
+			        "qrcode": "https://img-blog.csdnimg.cn/20190314214003962.jpg",
+			        "keyword": "more"
+			    });
+			}
+			</script>
+		
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/%E6%BA%90%E7%A0%81/" rel="tag"># 源码</a>
+          
+            <a href="/tags/dubbo/" rel="tag"># dubbo</a>
+          
+            <a href="/tags/%E7%BA%BF%E7%A8%8B%E6%A8%A1%E5%9E%8B/" rel="tag"># 线程模型</a>
+          
+            <a href="/tags/dispatch/" rel="tag"># dispatch</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/posts/5b5952d6.html" rel="next" title="源码分析Dubbo网络通信篇NettyServer、HeaderExchangeServer">
+                <i class="fa fa-chevron-left"></i> 源码分析Dubbo网络通信篇NettyServer、HeaderExchangeServer
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/posts/caabd6c1.html" rel="prev" title="源码分析Dubbo序列化-源码分析kryo各数据类型的序列化编码机制">
+                源码分析Dubbo序列化-源码分析kryo各数据类型的序列化编码机制 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+    <div class="comments" id="comments">
+    </div>
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name"></p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/">
+              
+                  <span class="site-state-item-count">115</span>
+                  <span class="site-state-item-name">日志</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                <a href="/categories/index.html">
+                  <span class="site-state-item-count">13</span>
+                  <span class="site-state-item-name">分类</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                <a href="/tags/index.html">
+                  <span class="site-state-item-count">183</span>
+                  <span class="site-state-item-name">标签</span>
+                </a>
+              </div>
+            
+
+          </nav>
+
+          
+            <div class="feed-link motion-element">
+              <a href="/atom.xml" rel="alternate">
+                <i class="fa fa-rss"></i>
+                RSS
+              </a>
+            </div>
+          
+
+          
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#1%E3%80%81%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90AllDispatcher%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86"><span class="nav-number">1.</span> <span class="nav-text">1、源码分析AllDispatcher实现原理</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-1-WrappedChannelHandler"><span class="nav-number">1.1.</span> <span class="nav-text">1.1 WrappedChannelHandler</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-2-AllChannelHandler"><span class="nav-number">1.2.</span> <span class="nav-text">1.2 AllChannelHandler</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-2-1-AllChannelHandler-connected"><span class="nav-number">1.2.1.</span> <span class="nav-text">1.2.1 AllChannelHandler#connected</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-2-2-AllChannelHandler-disconnected"><span class="nav-number">1.2.2.</span> <span class="nav-text">2.2.2 AllChannelHandler#disconnected</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-2-3-AllChannelHandler-received"><span class="nav-number">1.2.3.</span> <span class="nav-text">2.2.3 AllChannelHandler#received</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-2-4-AllChannelHandler-caught"><span class="nav-number">1.2.4.</span> <span class="nav-text">2.2.4 AllChannelHandler#caught</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-3-ExecutionChannelHandler"><span class="nav-number">1.3.</span> <span class="nav-text">1.3 ExecutionChannelHandler</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-4-DirectDispatcher"><span class="nav-number">1.4.</span> <span class="nav-text">1.4 DirectDispatcher</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-5-MessageOnlyDispatcher%E3%80%81MessageOnlyChannelHandler"><span class="nav-number">1.5.</span> <span class="nav-text">1.5 MessageOnlyDispatcher、MessageOnlyChannelHandler</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-6-ConnectionOrderedDispatcher-ConnectionOrderedChannelHandler"><span class="nav-number">1.6.</span> <span class="nav-text">1.6 ConnectionOrderedDispatcher ConnectionOrderedChannelHandler</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-6-1-%E6%9E%84%E9%80%A0%E6%96%B9%E6%B3%95"><span class="nav-number">1.6.1.</span> <span class="nav-text">1.6.1 构造方法</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-6-2-ConnectionOrderedChannelHandler-connected"><span class="nav-number">1.6.2.</span> <span class="nav-text">1.6.2 ConnectionOrderedChannelHandler#connected</span></a></li></ol></li></ol></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">中间件兴趣圈</span>
+
+  
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-area-chart"></i>
+    </span>
+    
+      <span class="post-meta-item-text">Site words total count&#58;</span>
+    
+    <span title="Site words total count">301.9k</span>
+  
+</div>
+
+
+  <div class="powered-by">由 <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> 强力驱动</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Pisces</a> v5.1.4</div>
+
+
+
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+  
+    <span class="site-uv">
+      <i class="fa fa-user"></i>总访客
+      <span class="busuanzi-value" id="busuanzi_value_site_uv"></span>
+      人
+    </span>
+  
+
+  
+    <span class="site-pv">
+      <i class="fa fa-eye"></i>总访问量
+      <span class="busuanzi-value" id="busuanzi_value_site_pv"></span>
+      次
+    </span>
+  
+</div>
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.4"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.1.4"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.4"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+  <script src="//cdn1.lncld.net/static/js/3.0.4/av-min.js"></script>
+  <script src="//unpkg.com/valine/dist/Valine.min.js"></script>
+  
+  <script type="text/javascript">
+    var GUEST = ['nick','mail','link'];
+    var guest = 'nick,mail,link';
+    guest = guest.split(',').filter(item=>{
+      return GUEST.indexOf(item)>-1;
+    });
+    new Valine({
+        el: '#comments' ,
+        verify: false,
+        notify: false,
+        appId: 'NNEhOL0iOcflg8f1U3HUqiCq-gzGzoHsz',
+        appKey: '7kSmkbbb3DktmHALlShDsBUF',
+        placeholder: '来都来了，不撩一句嘛~，留言记得在上面留下【邮箱】，方便收到回复通知~',
+        avatar:'mm',
+        guest_info:guest,
+        pageSize:'10' || 10,
+    });
+  </script>
+
+
+
+  
+
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    var isXml = true;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length === 0) {
+      search_path = "search.xml";
+    } else if (/json$/i.test(search_path)) {
+      isXml = false;
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    var onPopupClose = function (e) {
+      $('.popup').hide();
+      $('#local-search-input').val('');
+      $('.search-result-list').remove();
+      $('#no-result').remove();
+      $(".local-search-pop-overlay").remove();
+      $('body').css('overflow', '');
+    }
+
+    function proceedsearch() {
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay"></div>')
+        .css('overflow', 'hidden');
+      $('.search-popup-overlay').click(onPopupClose);
+      $('.popup').toggle();
+      var $localSearchInput = $('#local-search-input');
+      $localSearchInput.attr("autocapitalize", "none");
+      $localSearchInput.attr("autocorrect", "off");
+      $localSearchInput.focus();
+    }
+
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+      'use strict';
+
+      // start loading animation
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay">' +
+          '<div id="search-loading-icon">' +
+          '<i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>' +
+          '</div>' +
+          '</div>')
+        .css('overflow', 'hidden');
+      $("#search-loading-icon").css('margin', '20% auto 0 auto').css('text-align', 'center');
+
+      $.ajax({
+        url: path,
+        dataType: isXml ? "xml" : "json",
+        async: true,
+        success: function(res) {
+          // get the contents from search data
+          isfetched = true;
+          $('.popup').detach().appendTo('.header-inner');
+          var datas = isXml ? $("entry", res).map(function() {
+            return {
+              title: $("title", this).text(),
+              content: $("content",this).text(),
+              url: $("url" , this).text()
+            };
+          }).get() : res;
+          var input = document.getElementById(search_id);
+          var resultContent = document.getElementById(content_id);
+          var inputEventFunction = function() {
+            var searchText = input.value.trim().toLowerCase();
+            var keywords = searchText.split(/[\s\-]+/);
+            if (keywords.length > 1) {
+              keywords.push(searchText);
+            }
+            var resultItems = [];
+            if (searchText.length > 0) {
+              // perform local searching
+              datas.forEach(function(data) {
+                var isMatch = false;
+                var hitCount = 0;
+                var searchTextCount = 0;
+                var title = data.title.trim();
+                var titleInLowerCase = title.toLowerCase();
+                var content = data.content.trim().replace(/<[^>]+>/g,"");
+                var contentInLowerCase = content.toLowerCase();
+                var articleUrl = decodeURIComponent(data.url);
+                var indexOfTitle = [];
+                var indexOfContent = [];
+                // only match articles with not empty titles
+                if(title != '') {
+                  keywords.forEach(function(keyword) {
+                    function getIndexByWord(word, text, caseSensitive) {
+                      var wordLen = word.length;
+                      if (wordLen === 0) {
+                        return [];
+                      }
+                      var startPosition = 0, position = [], index = [];
+                      if (!caseSensitive) {
+                        text = text.toLowerCase();
+                        word = word.toLowerCase();
+                      }
+                      while ((position = text.indexOf(word, startPosition)) > -1) {
+                        index.push({position: position, word: word});
+                        startPosition = position + wordLen;
+                      }
+                      return index;
+                    }
+
+                    indexOfTitle = indexOfTitle.concat(getIndexByWord(keyword, titleInLowerCase, false));
+                    indexOfContent = indexOfContent.concat(getIndexByWord(keyword, contentInLowerCase, false));
+                  });
+                  if (indexOfTitle.length > 0 || indexOfContent.length > 0) {
+                    isMatch = true;
+                    hitCount = indexOfTitle.length + indexOfContent.length;
+                  }
+                }
+
+                // show search results
+
+                if (isMatch) {
+                  // sort index by position of keyword
+
+                  [indexOfTitle, indexOfContent].forEach(function (index) {
+                    index.sort(function (itemLeft, itemRight) {
+                      if (itemRight.position !== itemLeft.position) {
+                        return itemRight.position - itemLeft.position;
+                      } else {
+                        return itemLeft.word.length - itemRight.word.length;
+                      }
+                    });
+                  });
+
+                  // merge hits into slices
+
+                  function mergeIntoSlice(text, start, end, index) {
+                    var item = index[index.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    var hits = [];
+                    var searchTextCountInSlice = 0;
+                    while (position + word.length <= end && index.length != 0) {
+                      if (word === searchText) {
+                        searchTextCountInSlice++;
+                      }
+                      hits.push({position: position, length: word.length});
+                      var wordEnd = position + word.length;
+
+                      // move to next position of hit
+
+                      index.pop();
+                      while (index.length != 0) {
+                        item = index[index.length - 1];
+                        position = item.position;
+                        word = item.word;
+                        if (wordEnd > position) {
+                          index.pop();
+                        } else {
+                          break;
+                        }
+                      }
+                    }
+                    searchTextCount += searchTextCountInSlice;
+                    return {
+                      hits: hits,
+                      start: start,
+                      end: end,
+                      searchTextCount: searchTextCountInSlice
+                    };
+                  }
+
+                  var slicesOfTitle = [];
+                  if (indexOfTitle.length != 0) {
+                    slicesOfTitle.push(mergeIntoSlice(title, 0, title.length, indexOfTitle));
+                  }
+
+                  var slicesOfContent = [];
+                  while (indexOfContent.length != 0) {
+                    var item = indexOfContent[indexOfContent.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    // cut out 100 characters
+                    var start = position - 20;
+                    var end = position + 80;
+                    if(start < 0){
+                      start = 0;
+                    }
+                    if (end < position + word.length) {
+                      end = position + word.length;
+                    }
+                    if(end > content.length){
+                      end = content.length;
+                    }
+                    slicesOfContent.push(mergeIntoSlice(content, start, end, indexOfContent));
+                  }
+
+                  // sort slices in content by search text's count and hits' count
+
+                  slicesOfContent.sort(function (sliceLeft, sliceRight) {
+                    if (sliceLeft.searchTextCount !== sliceRight.searchTextCount) {
+                      return sliceRight.searchTextCount - sliceLeft.searchTextCount;
+                    } else if (sliceLeft.hits.length !== sliceRight.hits.length) {
+                      return sliceRight.hits.length - sliceLeft.hits.length;
+                    } else {
+                      return sliceLeft.start - sliceRight.start;
+                    }
+                  });
+
+                  // select top N slices in content
+
+                  var upperBound = parseInt('1');
+                  if (upperBound >= 0) {
+                    slicesOfContent = slicesOfContent.slice(0, upperBound);
+                  }
+
+                  // highlight title and content
+
+                  function highlightKeyword(text, slice) {
+                    var result = '';
+                    var prevEnd = slice.start;
+                    slice.hits.forEach(function (hit) {
+                      result += text.substring(prevEnd, hit.position);
+                      var end = hit.position + hit.length;
+                      result += '<b class="search-keyword">' + text.substring(hit.position, end) + '</b>';
+                      prevEnd = end;
+                    });
+                    result += text.substring(prevEnd, slice.end);
+                    return result;
+                  }
+
+                  var resultItem = '';
+
+                  if (slicesOfTitle.length != 0) {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + highlightKeyword(title, slicesOfTitle[0]) + "</a>";
+                  } else {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + title + "</a>";
+                  }
+
+                  slicesOfContent.forEach(function (slice) {
+                    resultItem += "<a href='" + articleUrl + "'>" +
+                      "<p class=\"search-result\">" + highlightKeyword(content, slice) +
+                      "...</p>" + "</a>";
+                  });
+
+                  resultItem += "</li>";
+                  resultItems.push({
+                    item: resultItem,
+                    searchTextCount: searchTextCount,
+                    hitCount: hitCount,
+                    id: resultItems.length
+                  });
+                }
+              })
+            };
+            if (keywords.length === 1 && keywords[0] === "") {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-search fa-5x" /></div>'
+            } else if (resultItems.length === 0) {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-frown-o fa-5x" /></div>'
+            } else {
+              resultItems.sort(function (resultLeft, resultRight) {
+                if (resultLeft.searchTextCount !== resultRight.searchTextCount) {
+                  return resultRight.searchTextCount - resultLeft.searchTextCount;
+                } else if (resultLeft.hitCount !== resultRight.hitCount) {
+                  return resultRight.hitCount - resultLeft.hitCount;
+                } else {
+                  return resultRight.id - resultLeft.id;
+                }
+              });
+              var searchResultList = '<ul class=\"search-result-list\">';
+              resultItems.forEach(function (result) {
+                searchResultList += result.item;
+              })
+              searchResultList += "</ul>";
+              resultContent.innerHTML = searchResultList;
+            }
+          }
+
+          if ('auto' === 'auto') {
+            input.addEventListener('input', inputEventFunction);
+          } else {
+            $('.search-icon').click(inputEventFunction);
+            input.addEventListener('keypress', function (event) {
+              if (event.keyCode === 13) {
+                inputEventFunction();
+              }
+            });
+          }
+
+          // remove loading animation
+          $(".local-search-pop-overlay").remove();
+          $('body').css('overflow', '');
+
+          proceedsearch();
+        }
+      });
+    }
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched === false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+    });
+
+    $('.popup-btn-close').click(onPopupClose);
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+    $(document).on('keyup', function (event) {
+      var shouldDismissSearchPopup = event.which === 27 &&
+        $('.search-popup').is(':visible');
+      if (shouldDismissSearchPopup) {
+        onPopupClose();
+      }
+    });
+  </script>
+
+
+
+
+
+  
+
+  
+  <script src="https://cdn1.lncld.net/static/js/av-core-mini-0.6.4.js"></script>
+  <script>AV.initialize("NNEhOL0iOcflg8f1U3HUqiCq-gzGzoHsz", "7kSmkbbb3DktmHALlShDsBUF");</script>
+  <script>
+    function showTime(Counter) {
+      var query = new AV.Query(Counter);
+      var entries = [];
+      var $visitors = $(".leancloud_visitors");
+
+      $visitors.each(function () {
+        entries.push( $(this).attr("id").trim() );
+      });
+
+      query.containedIn('url', entries);
+      query.find()
+        .done(function (results) {
+          var COUNT_CONTAINER_REF = '.leancloud-visitors-count';
+
+          if (results.length === 0) {
+            $visitors.find(COUNT_CONTAINER_REF).text(0);
+            return;
+          }
+
+          for (var i = 0; i < results.length; i++) {
+            var item = results[i];
+            var url = item.get('url');
+            var time = item.get('time');
+            var element = document.getElementById(url);
+
+            $(element).find(COUNT_CONTAINER_REF).text(time);
+          }
+          for(var i = 0; i < entries.length; i++) {
+            var url = entries[i];
+            var element = document.getElementById(url);
+            var countSpan = $(element).find(COUNT_CONTAINER_REF);
+            if( countSpan.text() == '') {
+              countSpan.text(0);
+            }
+          }
+        })
+        .fail(function (object, error) {
+          console.log("Error: " + error.code + " " + error.message);
+        });
+    }
+
+    function addCount(Counter) {
+      var $visitors = $(".leancloud_visitors");
+      var url = $visitors.attr('id').trim();
+      var title = $visitors.attr('data-flag-title').trim();
+      var query = new AV.Query(Counter);
+
+      query.equalTo("url", url);
+      query.find({
+        success: function(results) {
+          if (results.length > 0) {
+            var counter = results[0];
+            counter.fetchWhenSave(true);
+            counter.increment("time");
+            counter.save(null, {
+              success: function(counter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(counter.get('time'));
+              },
+              error: function(counter, error) {
+                console.log('Failed to save Visitor num, with error message: ' + error.message);
+              }
+            });
+          } else {
+            var newcounter = new Counter();
+            /* Set ACL */
+            var acl = new AV.ACL();
+            acl.setPublicReadAccess(true);
+            acl.setPublicWriteAccess(true);
+            newcounter.setACL(acl);
+            /* End Set ACL */
+            newcounter.set("title", title);
+            newcounter.set("url", url);
+            newcounter.set("time", 1);
+            newcounter.save(null, {
+              success: function(newcounter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(newcounter.get('time'));
+              },
+              error: function(newcounter, error) {
+                console.log('Failed to create');
+              }
+            });
+          }
+        },
+        error: function(error) {
+          console.log('Error:' + error.code + " " + error.message);
+        }
+      });
+    }
+
+    $(function() {
+      var Counter = AV.Object.extend("Counter");
+      if ($('.leancloud_visitors').length == 1) {
+        addCount(Counter);
+      } else if ($('.post-title-link').length > 1) {
+        showTime(Counter);
+      }
+    });
+  </script>
+
+
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

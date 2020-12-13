@@ -287,7 +287,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://example.com/posts/497923c7.html">
+    <link itemprop="mainEntityOfPage" href="http://example.com/posts/caabd6c1.html">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="">
@@ -306,7 +306,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/posts/497923c7.html" itemprop="url">源码分析Kafka 消息拉取流程</a></h1>
+                <a class="post-title-link" href="/posts/caabd6c1.html" itemprop="url">源码分析Dubbo序列化-源码分析kryo各数据类型的序列化编码机制</a></h1>
         
 
         <div class="post-meta">
@@ -318,8 +318,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-12-11T23:19:01+08:00">
-                2020-12-11
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-12-13T18:26:01+08:00">
+                2020-12-13
               </time>
             
 
@@ -341,8 +341,8 @@
               
               
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/kafka/" itemprop="url" rel="index">
-                    <span itemprop="name">kafka</span>
+                  <a href="/categories/dubbo/" itemprop="url" rel="index">
+                    <span itemprop="name">dubbo</span>
                   </a>
                 </span>
 
@@ -359,8 +359,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/posts/497923c7.html#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count valine-comment-count" data-xid="/posts/497923c7.html" itemprop="commentCount"></span>
+                <a href="/posts/caabd6c1.html#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count valine-comment-count" data-xid="/posts/caabd6c1.html" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -368,7 +368,7 @@
 
           
           
-             <span id="/posts/497923c7.html" class="leancloud_visitors" data-flag-title="源码分析Kafka 消息拉取流程">
+             <span id="/posts/caabd6c1.html" class="leancloud_visitors" data-flag-title="源码分析Dubbo序列化-源码分析kryo各数据类型的序列化编码机制">
                <span class="post-meta-divider">|</span>
                <span class="post-meta-item-icon">
                  <i class="fa fa-eye"></i>
@@ -393,7 +393,7 @@
                   <span class="post-meta-item-text">字数统计&#58;</span>
                 
                 <span title="字数统计">
-                  7.3k 字
+                  7.9k 字
                 </span>
               
 
@@ -409,7 +409,7 @@
                   <span class="post-meta-item-text">阅读时长 &asymp;</span>
                 
                 <span title="阅读时长">
-                  31 分钟
+                  35 分钟
                 </span>
               
             </div>
@@ -431,40 +431,21 @@
 
       
         
-          <h2 id="１、KafkaConsumer-poll-详解"><a href="#１、KafkaConsumer-poll-详解" class="headerlink" title="１、KafkaConsumer poll 详解"></a>１、KafkaConsumer poll 详解</h2><p>消息拉起主要入口为：KafkaConsumer#poll方法，其声明如下：</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> ConsumerRecords&lt;K, V&gt; <span class="title">poll</span><span class="params">(<span class="keyword">final</span> Duration timeout)</span> </span>&#123;  <span class="comment">// @1</span></span><br><span class="line">    <span class="keyword">return</span> poll(time.timer(timeout), <span class="keyword">true</span>);                                     <span class="comment">// @2</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>代码＠１：参数为超时时间，使用 java 的 Duration 来定义。<br>代码＠２：调用内部的 poll 方法。</p>
-<p>KafkaConsumer#poll</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> ConsumerRecords&lt;K, V&gt; <span class="title">poll</span><span class="params">(<span class="keyword">final</span> Timer timer, <span class="keyword">final</span> <span class="keyword">boolean</span> includeMetadataInTimeout)</span> </span>&#123;  <span class="comment">// @1</span></span><br><span class="line">    acquireAndEnsureOpen();                                                                                                               <span class="comment">// @2</span></span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        <span class="keyword">if</span> (<span class="keyword">this</span>.subscriptions.hasNoSubscriptionOrUserAssignment()) &#123;                                                  <span class="comment">// @3</span></span><br><span class="line">            <span class="keyword">throw</span> <span class="keyword">new</span> IllegalStateException(<span class="string">&quot;Consumer is not subscribed to any topics or assigned any partitions&quot;</span>);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// poll for new data until the timeout expires</span></span><br><span class="line">        <span class="keyword">do</span> &#123;　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　<span class="comment">// @4</span></span><br><span class="line">            client.maybeTriggerWakeup();                                                                                               <span class="comment">//@5</span></span><br><span class="line"></span><br><span class="line">            <span class="keyword">if</span> (includeMetadataInTimeout) &#123;                       　　　　　　　　　　　　　　　　　　　 <span class="comment">// @6 　　　　　　　　　　　　　　　　　　　　                                                          </span></span><br><span class="line">                <span class="keyword">if</span> (!updateAssignmentMetadataIfNeeded(timer)) &#123;</span><br><span class="line">                    <span class="keyword">return</span> ConsumerRecords.empty();</span><br><span class="line">                &#125;</span><br><span class="line">            &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                <span class="keyword">while</span> (!updateAssignmentMetadataIfNeeded(time.timer(Long.MAX_VALUE))) &#123;        </span><br><span class="line">                    log.warn(<span class="string">&quot;Still waiting for metadata&quot;</span>);</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            <span class="keyword">final</span> Map&lt;TopicPartition, List&lt;ConsumerRecord&lt;K, V&gt;&gt;&gt; records = pollForFetches(timer);   <span class="comment">// @7</span></span><br><span class="line">            <span class="keyword">if</span> (!records.isEmpty()) &#123;                                                                                                           </span><br><span class="line">                <span class="keyword">if</span> (fetcher.sendFetches() &gt; <span class="number">0</span> || client.hasPendingRequests()) &#123;                                           <span class="comment">// @8</span></span><br><span class="line">                    client.pollNoWakeup();</span><br><span class="line">                &#125;</span><br><span class="line">                <span class="keyword">return</span> <span class="keyword">this</span>.interceptors.onConsume(<span class="keyword">new</span> ConsumerRecords&lt;&gt;(records));                         <span class="comment">// @９</span></span><br><span class="line">            &#125;</span><br><span class="line">        &#125; <span class="keyword">while</span> (timer.notExpired());                                                                                                         </span><br><span class="line"></span><br><span class="line">        <span class="keyword">return</span> ConsumerRecords.empty();</span><br><span class="line">    &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">        release();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>代码＠１：首先先对其参数含义进行讲解。</p>
+          <p>kryo序列化原理：<br>用过dubbo的开发人员，在选取序列化时都会根据“经验”来选kryo为序列化框，其原因是序列化协议非常高效，超过java原生序列化协议、hessian2协议，那kryo为什么高效呢？<br><strong>序列化协议，所谓的高效，通常应该从两方面考虑：</strong></p>
 <ul>
-<li>boolean includeMetadataInTimeout<br>拉取消息的超时时间是否包含更新元数据的时间，默认为true，即包含。</li>
+<li>序列化后的二进制序列大小。（核心）</li>
+<li>序列化、反序列化的速率。</li>
 </ul>
-<p>代码＠２：检查是否可以拉取消息，其主要判断依据如下：</p>
+<p>本节将重点探讨，kryo在减少序列化化二进制流上做的努力。</p>
 <ul>
-<li>KafkaConsumer 是否有其他线程再执行，如果有，则抛出异常，因为 - KafkaConsumer 是线程不安全的，同一时间只能一个线程执行。</li>
-<li>KafkaConsumer 没有被关闭。</li>
+<li>序列化：将各种数据类型（基本类型、包装类型、对象、数组、集合）等序列化为byte数组的过程。</li>
+<li>反序列化：将byte数组转换为各种数据类型（基本类型、包装类型、对象、数组、集合）。</li>
 </ul>
-<p>代码＠３：如果当前消费者未订阅任何主题或者没有指定队列，则抛出错误，结束本次消息拉取。</p>
-<p>代码＠４：使用 do while 结构循环拉取消息，直到超时或拉取到消息。</p>
-<p>代码＠５：避免在禁止禁用wakeup时，有请求想唤醒时则抛出异常，例如在下面的@8时，会禁用wakeup。</p>
-<p>代码＠６：更新相关元数据，为真正向 broker 发送消息拉取请求做好准备，该方法将在下面详细介绍，现在先简单介绍其核心实现点：</p>
-<ul>
-<li>如有必要，先向 broker 端拉取最新的订阅信息(包含消费组内的在线的消费客户端)。</li>
-<li>执行已完成(异步提交)的 offset 提交请求的回调函数。</li>
-<li>维护与 broker 端的心跳请求，确保不会被“踢出”消费组。</li>
-<li>更新元信息。</li>
-<li>如果是自动提交消费偏移量，则自动提交偏移量。</li>
-<li>更新各个分区下次待拉取的偏移量。</li>
-</ul>
-<p>这里会有一个更新元数据是否占用消息拉取的超时时间，默认为 true。</p>
-<p>代码＠７：调用 pollForFetches 向broker拉取消息，该方法将在下文详细介绍。</p>
-<p>代码＠８：如果拉取到的消息集合不为空，再返回该批消息之前，如果还有挤压的拉取请求，可以继续发送拉取请求，但此时会禁用warkup，主要的目的是用户在处理消息时，KafkaConsumer 还可以继续向broker 拉取消息。</p>
-<p>代码＠９：执行消费拦截器。</p>
-<p>接下来对上文提到的代码＠６、＠７进行详细介绍。</p>
+<p>java中定义的数据类型所对应的序列化器在Kryo的构造函数中构造，其代码截图：<br><img src="https://img-blog.csdn.net/20180812195919737?watermark/2/text/aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70" alt="这里写图片描述"></p>
+<p>接下来将详细介绍java常用的数据类型的序列化机制，即Kryo是如何编码二进制流。</p>
           <!--noindex-->
           <div class="post-button text-center">
-            <a class="btn" href="/posts/497923c7.html#more" rel="contents">
+            <a class="btn" href="/posts/caabd6c1.html#more" rel="contents">
               阅读全文 &raquo;
             </a>
           </div>
@@ -515,7 +496,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://example.com/posts/d9d4c345.html">
+    <link itemprop="mainEntityOfPage" href="http://example.com/posts/dff42af6.html">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="">
@@ -534,7 +515,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/posts/d9d4c345.html" itemprop="url">初始 Kafka Consumer 消费者</a></h1>
+                <a class="post-title-link" href="/posts/dff42af6.html" itemprop="url">源码分析Dubbo网络通讯篇之NettyServer网络事件派发机制(Dispatch)</a></h1>
         
 
         <div class="post-meta">
@@ -546,8 +527,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-12-11T23:18:01+08:00">
-                2020-12-11
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-12-13T17:40:01+08:00">
+                2020-12-13
               </time>
             
 
@@ -569,8 +550,8 @@
               
               
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/kafka/" itemprop="url" rel="index">
-                    <span itemprop="name">kafka</span>
+                  <a href="/categories/dubbo/" itemprop="url" rel="index">
+                    <span itemprop="name">dubbo</span>
                   </a>
                 </span>
 
@@ -587,8 +568,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/posts/d9d4c345.html#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count valine-comment-count" data-xid="/posts/d9d4c345.html" itemprop="commentCount"></span>
+                <a href="/posts/dff42af6.html#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count valine-comment-count" data-xid="/posts/dff42af6.html" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -596,7 +577,7 @@
 
           
           
-             <span id="/posts/d9d4c345.html" class="leancloud_visitors" data-flag-title="初始 Kafka Consumer 消费者">
+             <span id="/posts/dff42af6.html" class="leancloud_visitors" data-flag-title="源码分析Dubbo网络通讯篇之NettyServer网络事件派发机制(Dispatch)">
                <span class="post-meta-divider">|</span>
                <span class="post-meta-item-icon">
                  <i class="fa fa-eye"></i>
@@ -621,7 +602,7 @@
                   <span class="post-meta-item-text">字数统计&#58;</span>
                 
                 <span title="字数统计">
-                  2.4k 字
+                  2.9k 字
                 </span>
               
 
@@ -637,7 +618,7 @@
                   <span class="post-meta-item-text">阅读时长 &asymp;</span>
                 
                 <span title="阅读时长">
-                  10 分钟
+                  12 分钟
                 </span>
               
             </div>
@@ -659,35 +640,10 @@
 
       
         
-          <h2 id="1、KafkaConsumer-概述"><a href="#1、KafkaConsumer-概述" class="headerlink" title="1、KafkaConsumer 概述"></a>1、KafkaConsumer 概述</h2><p>根据 KafkaConsumer 类上的注释上来看 KafkaConsumer 具有如下特征：</p>
-<ul>
-<li><p>在 Kafka 中 KafkaConsumer 是线程不安全的。</p>
-</li>
-<li><p>2.2.1 版本的KafkaConsumer 兼容 kafka 0.10.0 和 0.11.0 等低版本。</p>
-</li>
-<li><p>消息偏移量与消费偏移量(消息消费进度)<br>Kafka 为分区中的每一条消息维护一个偏移量，即消息偏移量。这个偏移量充当该分区内记录的唯一标识符。消费偏移量(消息消费进度)存储的是消费组当前的处理进度。消息消费进度的提交在 kafka 中可以定时自动提交也可以手动提交。手动提交可以调用 ommitSync() 或 commitAsync 方法。</p>
-</li>
-<li><p>消费组 与 订阅关系<br>多个消费这可以同属于一个消费组，消费组内的所有消费者共同消费主题下的所有消息。一个消费组可以订阅多个主题。</p>
-</li>
-<li><p>队列负载机制<br>既然同一个消费组内的消费者共同承担主题下所有队列的消费，那他们如何进行分工呢？默认情况下采取平均分配，例如一个消费组有两个消费者c1、c2，一个 topic 的分区数为6，那 c1 会负责3个分区的消费，同样 c2 会负责另外3个分区的分配。</p>
-<p>那如果其中一个消费者宕机或新增一个消费者，那队列能动态调整吗？</p>
-<p>答案是会重新再次平衡，例如如果新增一个消费者 c3，则c1,c2,c3都会负责2个分区的消息消费，分区重平衡会在后续文章中重点介绍。消费者也可以通过 assign 方法手动指定分区，此时会禁用默认的自动分配机制。</p>
-</li>
-<li><p>消费者故障检测机制<br>当通过 subscribe 方法订阅某些主题时，此时该消费者还未真正加入到订阅组，只有当 consumeer#poll 方法被调用后，并且会向 broker 定时发送心跳包，如果 broker 在 session.timeout.ms 时间内未收到心跳包，则 broker 会任务该消费者已宕机，会将其剔除，并触发消费端的分区重平衡。</p>
-<p>消费者也有可能遇到“活体锁”的情况，即它继续发送心跳，但没有任何进展。在这种情况下，为了防止消费者无限期地占用它的分区，可以使用max.poll.interval.ms 设置提供了一个活性检测机制。基本上，如果您调用轮询的频率低于配置的最大间隔，那么客户机将主动离开组，以便另一个消费者可以接管它的分区。当这种情况发生时,您可能会看到一个偏移提交失败(由调用{@link #commitSync()}抛出的{@link CommitFailedException}表示)。</p>
-</li>
-<li><p>kafka 对 poll loop 行为的控制参数<br>Kafka 提供了如下两个参数来控制 poll 的行为：</p>
-<ul>
-<li> max.poll.interval.ms<br>允许 两次调用 poll 方法的最大间隔，即设置每一批任务最大的处理时间。</li>
-<li> max.poll.records<br>每一次 poll 最大拉取的消息条数。</li>
-</ul>
-<p>对于消息处理时间不可预测的情况下上述两个参数可能不够用，那将如何是好呢？</p>
-<p>通常的建议将消息拉取与消息消费分开，一个线程负责 poll 消息，处理这些消息使用另外的线程，这里就需要手动提交消费进度。为了控制消息拉起的过快，您可能会需要用到 Consumer#pause(Collection) 方法，暂时停止向该分区拉起消息。RocketMQ 的推模式就是采用了这种策略。如果大家有兴趣的话，可以从笔者所著的《RocketMQ技术内幕》一书中详细了解。</p>
-</li>
-</ul>
+          <p>本节将主要学习Dubbo是如何使用Netty来实现网络通讯的。<br>从官网我们得知，Dubbo协议是使用单一长连接来进行网络传输，也就是说服务调用方持久与服务提供者建立一条连接，所有的服务调用调用信息通过。<br>一条TCP连接进行传输，在网络层至少要考虑如下问题：<br>1、服务端，客户端网络通讯模型（线程模型）<br>2、传输（编码解码、序列化）。<br>3、服务端转发策略等。<br>Dubbo服务端的网络启动流程，在上篇中已给出序列图，本节还是以该图为切入点，引入本文的两个主人公：NettyServer、NettyClient。<br><img src="https://img-blog.csdn.net/20180717115949813?watermark/2/text/aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70" alt="这里写图片描述"></p>
           <!--noindex-->
           <div class="post-button text-center">
-            <a class="btn" href="/posts/d9d4c345.html#more" rel="contents">
+            <a class="btn" href="/posts/dff42af6.html#more" rel="contents">
               阅读全文 &raquo;
             </a>
           </div>
@@ -738,7 +694,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://example.com/posts/80780dfa.html">
+    <link itemprop="mainEntityOfPage" href="http://example.com/posts/5b5952d6.html">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="">
@@ -757,7 +713,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/posts/80780dfa.html" itemprop="url">KafkaProducer Sender 线程详解（含详细的执行流程图）</a></h1>
+                <a class="post-title-link" href="/posts/5b5952d6.html" itemprop="url">源码分析Dubbo网络通信篇NettyServer、HeaderExchangeServer</a></h1>
         
 
         <div class="post-meta">
@@ -769,8 +725,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-12-11T23:16:01+08:00">
-                2020-12-11
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-12-13T17:33:01+08:00">
+                2020-12-13
               </time>
             
 
@@ -792,8 +748,8 @@
               
               
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/kafka/" itemprop="url" rel="index">
-                    <span itemprop="name">kafka</span>
+                  <a href="/categories/dubbo/" itemprop="url" rel="index">
+                    <span itemprop="name">dubbo</span>
                   </a>
                 </span>
 
@@ -810,8 +766,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/posts/80780dfa.html#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count valine-comment-count" data-xid="/posts/80780dfa.html" itemprop="commentCount"></span>
+                <a href="/posts/5b5952d6.html#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count valine-comment-count" data-xid="/posts/5b5952d6.html" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -819,1083 +775,7 @@
 
           
           
-             <span id="/posts/80780dfa.html" class="leancloud_visitors" data-flag-title="KafkaProducer Sender 线程详解（含详细的执行流程图）">
-               <span class="post-meta-divider">|</span>
-               <span class="post-meta-item-icon">
-                 <i class="fa fa-eye"></i>
-               </span>
-               
-                 <span class="post-meta-item-text">阅读次数&#58;</span>
-               
-                 <span class="leancloud-visitors-count"></span>
-             </span>
-          
-
-          
-
-          
-            <div class="post-wordcount">
-              
-                
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-file-word-o"></i>
-                </span>
-                
-                  <span class="post-meta-item-text">字数统计&#58;</span>
-                
-                <span title="字数统计">
-                  4.4k 字
-                </span>
-              
-
-              
-                <span class="post-meta-divider">|</span>
-              
-
-              
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-clock-o"></i>
-                </span>
-                
-                  <span class="post-meta-item-text">阅读时长 &asymp;</span>
-                
-                <span title="阅读时长">
-                  19 分钟
-                </span>
-              
-            </div>
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          <p>上文 <a target="_blank" rel="noopener" href="https://blog.csdn.net/prestigeding/article/details/102994716">《源码分析 Kafka 消息发送流程》</a> 已经详细介绍了 KafkaProducer send 方法的流程，该方法只是将消息追加到 KafKaProducer 的缓存中，并未真正的向 broker 发送消息，本文将来探讨 Kafka 的 Sender 线程。</p>
-<p>在 KafkaProducer 中会启动一个单独的线程，其名称为 “kafka-producer-network-thread | clientID”，其中 clientID 为生产者的 id 。</p>
-<h2 id="1、Sender-线程详解"><a href="#1、Sender-线程详解" class="headerlink" title="1、Sender 线程详解"></a>1、Sender 线程详解</h2><h4 id="1-1-类图"><a href="#1-1-类图" class="headerlink" title="1.1 类图"></a>1.1 类图</h4><p><img src="https://img-blog.csdnimg.cn/20191117174420482.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>我们先来看一下其各个属性的含义：</p>
-<ul>
-<li>KafkaClient client<br>kafka 网络通信客户端，主要封装与 broker 的网络通信。</li>
-<li>RecordAccumulator accumulator<br>消息记录累积器，消息追加的入口(RecordAccumulator 的 append 方法)。</li>
-<li>Metadata metadata<br>元数据管理器，即 topic 的路由分区信息。</li>
-<li>boolean guaranteeMessageOrder<br>是否需要保证消息的顺序性。</li>
-<li>int maxRequestSize<br>调用 send 方法发送的最大请求大小，包括 key、消息体序列化后的消息总大小不能超过该值。通过参数 max.request.size 来设置。</li>
-<li>short acks<br>用来定义消息“已提交”的条件(标准)，就是 Broker 端向客户端承偌已提交的条件，可选值如下0、-1、1.</li>
-<li>int retries<br>重试次数。</li>
-<li>Time time<br>时间工具类。</li>
-<li>boolean running<br>该线程状态，为 true 表示运行中。</li>
-<li>boolean forceClose<br>是否强制关闭，此时会忽略正在发送中的消息。</li>
-<li>SenderMetrics sensors<br>消息发送相关的统计指标收集器。</li>
-<li>int requestTimeoutMs<br>请求的超时时间。</li>
-<li>long retryBackoffMs<br>请求失败之在重试之前等待的时间。</li>
-<li>ApiVersions apiVersions<br>API版本信息。</li>
-<li>TransactionManager transactionManager<br>事务处理器。</li>
-<li>Map&lt; TopicPartition, List&lt; ProducerBatch&gt;&gt; inFlightBatches<br>正在执行发送相关的消息批次。</li>
-</ul>
-          <!--noindex-->
-          <div class="post-button text-center">
-            <a class="btn" href="/posts/80780dfa.html#more" rel="contents">
-              阅读全文 &raquo;
-            </a>
-          </div>
-          <!--/noindex-->
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://example.com/posts/b579d244.html">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="中间件兴趣圈">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/posts/b579d244.html" itemprop="url">初识 Kafka Producer 生产者</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-12-11T22:56:01+08:00">
-                2020-12-11
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/kafka/" itemprop="url" rel="index">
-                    <span itemprop="name">kafka</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/posts/b579d244.html#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count valine-comment-count" data-xid="/posts/b579d244.html" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-             <span id="/posts/b579d244.html" class="leancloud_visitors" data-flag-title="初识 Kafka Producer 生产者">
-               <span class="post-meta-divider">|</span>
-               <span class="post-meta-item-icon">
-                 <i class="fa fa-eye"></i>
-               </span>
-               
-                 <span class="post-meta-item-text">阅读次数&#58;</span>
-               
-                 <span class="leancloud-visitors-count"></span>
-             </span>
-          
-
-          
-
-          
-            <div class="post-wordcount">
-              
-                
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-file-word-o"></i>
-                </span>
-                
-                  <span class="post-meta-item-text">字数统计&#58;</span>
-                
-                <span title="字数统计">
-                  2.1k 字
-                </span>
-              
-
-              
-                <span class="post-meta-divider">|</span>
-              
-
-              
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-clock-o"></i>
-                </span>
-                
-                  <span class="post-meta-item-text">阅读时长 &asymp;</span>
-                
-                <span title="阅读时长">
-                  8 分钟
-                </span>
-              
-            </div>
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          <h2 id="1、KafkaProducer-概述"><a href="#1、KafkaProducer-概述" class="headerlink" title="1、KafkaProducer 概述"></a>1、KafkaProducer 概述</h2><p>根据 KafkaProducer 类上的注释上来看 KafkaProducer 具有如下特征：</p>
-<ul>
-<li>KafkaProducer 是线程安全的，可以被多个线程交叉使用。</li>
-<li>KafkaProducer 内部包含一个缓存池，存放待发送消息，即 ProducerRecord 队列，与此同时会开启一个IO线程将 ProducerRecord 对象发送到 Kafka 集群。</li>
-<li>KafkaProducer 的消息发送 API send 方法是异步，只负责将待发送消息 ProducerRecord 发送到缓存区中，立即返回，并返回一个结果凭证 Future。</li>
-<li>acks<br>KafkaProducer 提供了一个核心参数 acks 用来定义消息“已提交”的条件(标准)，就是 Broker 端向客户端承偌已提交的条件，可选值如下：<ul>
-<li>0<br>表示生产者不关系该条消息在 broker 端的处理结果，只要调用 KafkaProducer 的 send 方法返回后即认为成功，显然这种方式是最不安全的，因为 Broker 端可能压根都没有收到该条消息或存储失败。</li>
-<li>all 或 -1<br>表示消息不仅需要 Leader 节点已存储该消息，并且要求其副本（准确的来说是 ISR 中的节点）全部存储才认为已提交，才向客户端返回提交成功。这是最严格的持久化保障，当然性能也最低。</li>
-<li>1<br>表示消息只需要写入 Leader 节点后就可以向客户端返回提交成功。</li>
-</ul>
-</li>
-</ul>
-          <!--noindex-->
-          <div class="post-button text-center">
-            <a class="btn" href="/posts/b579d244.html#more" rel="contents">
-              阅读全文 &raquo;
-            </a>
-          </div>
-          <!--/noindex-->
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://example.com/posts/f81e58bb.html">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="中间件兴趣圈">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/posts/f81e58bb.html" itemprop="url">源码分析 Kafka 消息发送流程(文末附流程图)</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-12-11T22:56:01+08:00">
-                2020-12-11
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/kafka/" itemprop="url" rel="index">
-                    <span itemprop="name">kafka</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/posts/f81e58bb.html#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count valine-comment-count" data-xid="/posts/f81e58bb.html" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-             <span id="/posts/f81e58bb.html" class="leancloud_visitors" data-flag-title="源码分析 Kafka 消息发送流程(文末附流程图)">
-               <span class="post-meta-divider">|</span>
-               <span class="post-meta-item-icon">
-                 <i class="fa fa-eye"></i>
-               </span>
-               
-                 <span class="post-meta-item-text">阅读次数&#58;</span>
-               
-                 <span class="leancloud-visitors-count"></span>
-             </span>
-          
-
-          
-
-          
-            <div class="post-wordcount">
-              
-                
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-file-word-o"></i>
-                </span>
-                
-                  <span class="post-meta-item-text">字数统计&#58;</span>
-                
-                <span title="字数统计">
-                  3.5k 字
-                </span>
-              
-
-              
-                <span class="post-meta-divider">|</span>
-              
-
-              
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-clock-o"></i>
-                </span>
-                
-                  <span class="post-meta-item-text">阅读时长 &asymp;</span>
-                
-                <span title="阅读时长">
-                  14 分钟
-                </span>
-              
-            </div>
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          <blockquote>
-<p>温馨提示：本文基于 Kafka 2.2.1 版本。本文主要是以源码的手段一步一步探究消息发送流程，如果对源码不感兴趣，可以直接跳到文末查看消息发送流程图与消息发送本地缓存存储结构。</p>
-</blockquote>
-<p>从上文 <a target="_blank" rel="noopener" href="https://blog.csdn.net/prestigeding/article/details/102881472">初识 Kafka Producer 生产者</a>，可以通过 KafkaProducer 的 send 方法发送消息，send 方法的声明如下：</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="function">Future&lt;RecordMetadata&gt; <span class="title">send</span><span class="params">(ProducerRecord&lt;K, V&gt; record)</span></span></span><br><span class="line"><span class="function">Future&lt;RecordMetadata&gt; <span class="title">send</span><span class="params">(ProducerRecord&lt;K, V&gt; record, Callback callback)</span></span></span><br></pre></td></tr></table></figure>
-<p>从上面的 API 可以得知，用户在使用 KafkaProducer 发送消息时，首先需要将待发送的消息封装成 ProducerRecord，返回的是一个 Future 对象，典型的 Future 设计模式。在发送时也可以指定一个 Callable 接口用来执行消息发送的回调。</p>
-<p>我们在学习消息发送流程之前先来看一下用于封装一条消息的 ProducerRecord 的类图，先来认识一下 kafka 是如何对一条消息进行抽象的。</p>
-<h2 id="1、ProducerRecord-类图"><a href="#1、ProducerRecord-类图" class="headerlink" title="1、ProducerRecord 类图"></a>1、ProducerRecord 类图</h2><p><img src="https://img-blog.csdnimg.cn/201911100956254.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>我们首先来看一下 ProducerRecord 的核心属性，即构成 消息的6大核心要素：</p>
-<ul>
-<li>String topic<br>消息所属的主题。</li>
-<li>Integer partition<br>消息所在主题的队列数，可以人为指定，如果指定了 key 的话，会使用 key 的 hashCode 与队列总数进行取模来选择分区，如果前面两者都未指定，则会轮询主题下的所有分区。</li>
-<li>Headers headers<br>该消息的额外属性对，与消息体分开存储.</li>
-<li>K key<br>消息键，如果指定该值，则会使用该值的 hashcode 与 队列数进行取模来选择分区。</li>
-<li>V value<br>消息体。</li>
-<li>Long timestamp<br>消息时间戳，根据 topic 的配置信息 message.timestamp.type 的值来赋予不同的值。<ul>
-<li>CreateTime<br>发送客户端发送消息时的时间戳。</li>
-<li>LogAppendTime<br>消息在 broker 追加时的时间戳。</li>
-</ul>
-</li>
-</ul>
-<p>其中Headers是一系列的 key-value 键值对。</p>
-<p>在了解 ProducerRecord 后我们开始来探讨 Kafka 的消息发送流程。</p>
-          <!--noindex-->
-          <div class="post-button text-center">
-            <a class="btn" href="/posts/f81e58bb.html#more" rel="contents">
-              阅读全文 &raquo;
-            </a>
-          </div>
-          <!--/noindex-->
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://example.com/posts/eab70bff.html">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="中间件兴趣圈">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/posts/eab70bff.html" itemprop="url">Netty4 ChannelHandler 概述</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-12-11T22:54:01+08:00">
-                2020-12-11
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/netty4/" itemprop="url" rel="index">
-                    <span itemprop="name">netty4</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/posts/eab70bff.html#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count valine-comment-count" data-xid="/posts/eab70bff.html" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-             <span id="/posts/eab70bff.html" class="leancloud_visitors" data-flag-title="Netty4 ChannelHandler 概述">
-               <span class="post-meta-divider">|</span>
-               <span class="post-meta-item-icon">
-                 <i class="fa fa-eye"></i>
-               </span>
-               
-                 <span class="post-meta-item-text">阅读次数&#58;</span>
-               
-                 <span class="leancloud-visitors-count"></span>
-             </span>
-          
-
-          
-
-          
-            <div class="post-wordcount">
-              
-                
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-file-word-o"></i>
-                </span>
-                
-                  <span class="post-meta-item-text">字数统计&#58;</span>
-                
-                <span title="字数统计">
-                  2.2k 字
-                </span>
-              
-
-              
-                <span class="post-meta-divider">|</span>
-              
-
-              
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-clock-o"></i>
-                </span>
-                
-                  <span class="post-meta-item-text">阅读时长 &asymp;</span>
-                
-                <span title="阅读时长">
-                  8 分钟
-                </span>
-              
-            </div>
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          <blockquote>
-<p>专栏介绍：《让天下没有难学的Netty》系列，基于 Netty，以源码分析为主要手段，关键流程给出流程图，从 通道篇、内存篇、性能篇三个维度深度剖析 Netty 的实现原理。 </p>
-</blockquote>
-<h2 id="1、通道概述"><a href="#1、通道概述" class="headerlink" title="1、通道概述"></a>1、通道概述</h2><p>我们从如下几个方面来简单了解一下 Channel。</p>
-<ul>
-<li>通道的当前状态，open(端口打开)、connect(连接)。</li>
-<li>通道的配置，包含通道的配置属性与网络通信选项(ChannelOption)。</li>
-<li>IO 通道方法诸如 read、write、connect、bind 与管道(ChannelPipeline)。</li>
-<li>所有 IO 操作在 Netty 中都是异步的，调用 IO 方法例如 write 方法后，并不是等 IO 操作实际完成后再返回，而是会立即返回一个凭证，IO 操作完成后会将结果写入凭证中，典型的 Future设计模式。</li>
-<li>Channel 具有父子关系，由于所有的 SocketChannel（客户端发起TCP连接）都是由 ServerSocketChannel（服务端接收连接）接收客户端连接而创建的，故 SocketChannel 的 parent() 方法会返回对应的 ServerSocketChannel。</li>
-<li>所有通道对象在使用完后，请务必调用通道的colse方法来释放资源。</li>
-</ul>
-<p>本节将从如下3个方面来重点介绍Channel。</p>
-<ul>
-<li>Channel 常用API</li>
-<li>Channel 配置与选项</li>
-<li>NIO相关的Channel继承图</li>
-</ul>
-          <!--noindex-->
-          <div class="post-button text-center">
-            <a class="btn" href="/posts/eab70bff.html#more" rel="contents">
-              阅读全文 &raquo;
-            </a>
-          </div>
-          <!--/noindex-->
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://example.com/posts/a79560fc.html">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="中间件兴趣圈">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/posts/a79560fc.html" itemprop="url">Netty4 Channel 概述</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-12-11T22:53:01+08:00">
-                2020-12-11
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/netty4/" itemprop="url" rel="index">
-                    <span itemprop="name">netty4</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/posts/a79560fc.html#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count valine-comment-count" data-xid="/posts/a79560fc.html" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-             <span id="/posts/a79560fc.html" class="leancloud_visitors" data-flag-title="Netty4 Channel 概述">
-               <span class="post-meta-divider">|</span>
-               <span class="post-meta-item-icon">
-                 <i class="fa fa-eye"></i>
-               </span>
-               
-                 <span class="post-meta-item-text">阅读次数&#58;</span>
-               
-                 <span class="leancloud-visitors-count"></span>
-             </span>
-          
-
-          
-
-          
-            <div class="post-wordcount">
-              
-                
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-file-word-o"></i>
-                </span>
-                
-                  <span class="post-meta-item-text">字数统计&#58;</span>
-                
-                <span title="字数统计">
-                  2.2k 字
-                </span>
-              
-
-              
-                <span class="post-meta-divider">|</span>
-              
-
-              
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-clock-o"></i>
-                </span>
-                
-                  <span class="post-meta-item-text">阅读时长 &asymp;</span>
-                
-                <span title="阅读时长">
-                  8 分钟
-                </span>
-              
-            </div>
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          <blockquote>
-<p>专栏介绍：《让天下没有难学的Netty》系列，基于 Netty，以源码分析为主要手段，关键流程给出流程图，从 通道篇、内存篇、性能篇三个维度深度剖析 Netty 的实现原理。 </p>
-</blockquote>
-<h2 id="1、通道概述"><a href="#1、通道概述" class="headerlink" title="1、通道概述"></a>1、通道概述</h2><p>我们从如下几个方面来简单了解一下 Channel。</p>
-<ul>
-<li>通道的当前状态，open(端口打开)、connect(连接)。</li>
-<li>通道的配置，包含通道的配置属性与网络通信选项(ChannelOption)。</li>
-<li>IO 通道方法诸如 read、write、connect、bind 与管道(ChannelPipeline)。</li>
-<li>所有 IO 操作在 Netty 中都是异步的，调用 IO 方法例如 write 方法后，并不是等 IO 操作实际完成后再返回，而是会立即返回一个凭证，IO 操作完成后会将结果写入凭证中，典型的 Future设计模式。</li>
-<li>Channel 具有父子关系，由于所有的 SocketChannel（客户端发起TCP连接）都是由 ServerSocketChannel（服务端接收连接）接收客户端连接而创建的，故 SocketChannel 的 parent() 方法会返回对应的 ServerSocketChannel。</li>
-<li>所有通道对象在使用完后，请务必调用通道的colse方法来释放资源。</li>
-</ul>
-<p>本节将从如下3个方面来重点介绍Channel。</p>
-<ul>
-<li>Channel 常用API</li>
-<li>Channel 配置与选项</li>
-<li>NIO相关的Channel继承图</li>
-</ul>
-          <!--noindex-->
-          <div class="post-button text-center">
-            <a class="btn" href="/posts/a79560fc.html#more" rel="contents">
-              阅读全文 &raquo;
-            </a>
-          </div>
-          <!--/noindex-->
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://example.com/posts/42760d48.html">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="中间件兴趣圈">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/posts/42760d48.html" itemprop="url">快速排序算法java版实现</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-12-09T23:26:35+08:00">
-                2020-12-09
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/java/" itemprop="url" rel="index">
-                    <span itemprop="name">java</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/posts/42760d48.html#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count valine-comment-count" data-xid="/posts/42760d48.html" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-             <span id="/posts/42760d48.html" class="leancloud_visitors" data-flag-title="快速排序算法java版实现">
+             <span id="/posts/5b5952d6.html" class="leancloud_visitors" data-flag-title="源码分析Dubbo网络通信篇NettyServer、HeaderExchangeServer">
                <span class="post-meta-divider">|</span>
                <span class="post-meta-item-icon">
                  <i class="fa fa-eye"></i>
@@ -1958,17 +838,11 @@
 
       
         
-          <p>快速排序思想：从待排序序列中找到一个关键字（默认为第一个元素） 然后将比关键字少的数据排列在左边，大于关键字的排在右边，然后对关键字左右两边的序列继续上面步骤，直至关键字两边的序列都已经排好序。具体算法如下：</p>
-<p>设要排序的数组是A[0]……A[N-1]，首先任意选取一个数据（通常选用数组的第一个数）作为关键数据，</p>
-<p> 然后将所有比它小的数都放到它前面，所有比它大的数都放到它后面，这个过程称为一趟快速排序。<br> 值得注意的是，快速排序不是一种稳定的排序算法，也就是说，多个相同的值的相对位置也许会在算法结束时产生变动。<br> 一趟快速排序的算法是：<br> 1）设置两个变量i、j，排序开始的时候：i=0，j=N-1；<br> 2）以第一个数组元素作为关键数据，赋值给key，即key=A[0]；<br> 3）从j开始向前搜索，即由后开始向前搜索(j–)，找到第一个小于key的值A[j]，将A[j]和A[i]互换；<br> 4）从i开始向后搜索，即由前开始向后搜索(i++)，找到第一个大于key的A[i]，将A[i]和A[j]互换；<br> 5）重复第3、4步，直到i=j； (3,4步中，没找到符合条件的值，即3中A[j]不小于key,<br> 4中A[i]不大于key的时候改变j、i的值，使得j=j-1，i=i+1，直至找到为止。</p>
-<p> 找到符合条件的值，进行交换的时候i， j指针位置不变。另外，i==j这一过程一定正好是i+或j-完成的时候，此时令循环结束）。</p>
-<blockquote>
-<p>温馨提示：上述算法的描述来源与百度，大家也可以按照上面的算法，用自己熟悉的语言尝试实现一遍。</p>
-</blockquote>
-<p>一言不合继续用代码说话。</p>
+          <p> 本文主要分析一下NettyServer，HeaderExchangeServer实现细节。</p>
+<h2 id="1、NettyServer"><a href="#1、NettyServer" class="headerlink" title="1、NettyServer"></a>1、NettyServer</h2><p> NettyServer整个类图如下：<br><img src="https://img-blog.csdn.net/20180723120806159?watermark/2/text/aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70" alt="这里写图片描述"><br> 首先从全貌上大概看一下NettyServer对象所持有的属性：</p>
           <!--noindex-->
           <div class="post-button text-center">
-            <a class="btn" href="/posts/42760d48.html#more" rel="contents">
+            <a class="btn" href="/posts/5b5952d6.html#more" rel="contents">
               阅读全文 &raquo;
             </a>
           </div>
@@ -2019,7 +893,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://example.com/posts/3b6094a6.html">
+    <link itemprop="mainEntityOfPage" href="http://example.com/posts/25a8fc09.html">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="">
@@ -2038,7 +912,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/posts/3b6094a6.html" itemprop="url">排序二叉树JAVA版实现</a></h1>
+                <a class="post-title-link" href="/posts/25a8fc09.html" itemprop="url">源码分析Dubbo网络通讯篇之NettyServer网络事件之线程池</a></h1>
         
 
         <div class="post-meta">
@@ -2050,8 +924,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-12-09T23:22:35+08:00">
-                2020-12-09
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-12-13T17:17:01+08:00">
+                2020-12-13
               </time>
             
 
@@ -2073,8 +947,8 @@
               
               
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/java/" itemprop="url" rel="index">
-                    <span itemprop="name">java</span>
+                  <a href="/categories/dubbo/" itemprop="url" rel="index">
+                    <span itemprop="name">dubbo</span>
                   </a>
                 </span>
 
@@ -2091,8 +965,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/posts/3b6094a6.html#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count valine-comment-count" data-xid="/posts/3b6094a6.html" itemprop="commentCount"></span>
+                <a href="/posts/25a8fc09.html#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count valine-comment-count" data-xid="/posts/25a8fc09.html" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -2100,7 +974,7 @@
 
           
           
-             <span id="/posts/3b6094a6.html" class="leancloud_visitors" data-flag-title="排序二叉树JAVA版实现">
+             <span id="/posts/25a8fc09.html" class="leancloud_visitors" data-flag-title="源码分析Dubbo网络通讯篇之NettyServer网络事件之线程池">
                <span class="post-meta-divider">|</span>
                <span class="post-meta-item-icon">
                  <i class="fa fa-eye"></i>
@@ -2141,7 +1015,7 @@
                   <span class="post-meta-item-text">阅读时长 &asymp;</span>
                 
                 <span title="阅读时长">
-                  10 分钟
+                  9 分钟
                 </span>
               
             </div>
@@ -2163,23 +1037,17 @@
 
       
         
-          <p>1、排序二叉树特点</p>
+          <p>本文主要分析Dubbo线程池的构建过程，主要介绍官方文档中有关于ThreadPool的种类：</p>
 <ul>
-<li>根节点的值大于等于左子树的节点</li>
-<li>根节点的值小于等于它右子树的节点。</li>
+<li>fixed<br>固定大小线程池，启动时建立线程，不关闭，一致持有。（缺省)</li>
+<li>cached<br>缓存线程池，空闲一分钟，线程会消费，需要时重新创建新线程。</li>
+<li>limited<br>可伸缩线程池，但池中的线程数只会增长不会收缩。</li>
+<li>eager<br>优先使用线程来执行新提交任务。（渴望立即执行，而不是进入队列排队执行）。</li>
 </ul>
-<p>2、遍历二叉树的方法</p>
-<ul>
-<li>先序遍历：先遍历根节点，然后遍历左子树，再遍历右子树</li>
-<li>中序遍历：先遍历左子树，然后遍历根节点，再遍历右子树</li>
-<li>后续遍历  </li>
-</ul>
-<p><strong>如果要保证节点从小到大排序，采用中序遍历</strong>；</p>
-<p>一言不合就写代码实现，提供详细的可视化角度（代码可运行）。</p>
-<p>目前代码中，已经实现 新增单个元素、删除单个元素、中序遍历整颗树。</p>
+<p>在介绍这各种线程策略之前，先简单回顾一下线程池的基本知识。</p>
           <!--noindex-->
           <div class="post-button text-center">
-            <a class="btn" href="/posts/3b6094a6.html#more" rel="contents">
+            <a class="btn" href="/posts/25a8fc09.html#more" rel="contents">
               阅读全文 &raquo;
             </a>
           </div>
@@ -2230,7 +1098,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://example.com/posts/3c69fbc4.html">
+    <link itemprop="mainEntityOfPage" href="http://example.com/posts/531bec0b.html">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="">
@@ -2249,7 +1117,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/posts/3c69fbc4.html" itemprop="url">java Reference 引用学习总结</a></h1>
+                <a class="post-title-link" href="/posts/531bec0b.html" itemprop="url">源码分析Dubbo网络通讯篇概要总结(类图一览、服务端、客户端网络构造流程一览)</a></h1>
         
 
         <div class="post-meta">
@@ -2261,8 +1129,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-12-09T23:12:35+08:00">
-                2020-12-09
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-12-13T16:59:01+08:00">
+                2020-12-13
               </time>
             
 
@@ -2284,8 +1152,8 @@
               
               
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/java/" itemprop="url" rel="index">
-                    <span itemprop="name">java</span>
+                  <a href="/categories/dubbo/" itemprop="url" rel="index">
+                    <span itemprop="name">dubbo</span>
                   </a>
                 </span>
 
@@ -2302,8 +1170,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/posts/3c69fbc4.html#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count valine-comment-count" data-xid="/posts/3c69fbc4.html" itemprop="commentCount"></span>
+                <a href="/posts/531bec0b.html#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count valine-comment-count" data-xid="/posts/531bec0b.html" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -2311,7 +1179,7 @@
 
           
           
-             <span id="/posts/3c69fbc4.html" class="leancloud_visitors" data-flag-title="java Reference 引用学习总结">
+             <span id="/posts/531bec0b.html" class="leancloud_visitors" data-flag-title="源码分析Dubbo网络通讯篇概要总结(类图一览、服务端、客户端网络构造流程一览)">
                <span class="post-meta-divider">|</span>
                <span class="post-meta-item-icon">
                  <i class="fa fa-eye"></i>
@@ -2336,7 +1204,816 @@
                   <span class="post-meta-item-text">字数统计&#58;</span>
                 
                 <span title="字数统计">
-                  2.1k 字
+                  429 字
+                </span>
+              
+
+              
+                <span class="post-meta-divider">|</span>
+              
+
+              
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-clock-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">阅读时长 &asymp;</span>
+                
+                <span title="阅读时长">
+                  1 分钟
+                </span>
+              
+            </div>
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          <p>从本节开始将开始深入学习Dubbo网络通讯的底层实现细节，在深入学习Dubbo网络模型时，首先应从整体上了解Dubbo的网络通讯模型、线程模型是怎样的？下图是Dubbo官方给出的线程模型：<br><img src="https://img-blog.csdn.net/20180712121146997?watermark/2/text/aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70" alt="这里写图片描述"></p>
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/posts/531bec0b.html#more" rel="contents">
+              阅读全文 &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://example.com/posts/b5542131.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="中间件兴趣圈">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/posts/b5542131.html" itemprop="url">源码分析Dubbo集群容错策略</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-12-12T23:38:01+08:00">
+                2020-12-12
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/dubbo/" itemprop="url" rel="index">
+                    <span itemprop="name">dubbo</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/posts/b5542131.html#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count valine-comment-count" data-xid="/posts/b5542131.html" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+             <span id="/posts/b5542131.html" class="leancloud_visitors" data-flag-title="源码分析Dubbo集群容错策略">
+               <span class="post-meta-divider">|</span>
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               
+                 <span class="post-meta-item-text">阅读次数&#58;</span>
+               
+                 <span class="leancloud-visitors-count"></span>
+             </span>
+          
+
+          
+
+          
+            <div class="post-wordcount">
+              
+                
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-file-word-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">字数统计&#58;</span>
+                
+                <span title="字数统计">
+                  4.5k 字
+                </span>
+              
+
+              
+                <span class="post-meta-divider">|</span>
+              
+
+              
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-clock-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">阅读时长 &asymp;</span>
+                
+                <span title="阅读时长">
+                  21 分钟
+                </span>
+              
+            </div>
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          <p>前面的文章，已经单独对服务发现(Directory、RegistryDirectory)、路由机制(Router)、负载均衡机制(LoadBalance),本节将重点分析集群容错机制(AbstractClusterInvoker) ,AbstractClusterInvoker 就是将上述机制融合在一起，整个集群容错中，上述组件扮演的角色见下图所示，本文将重点分析AbstractClusterInvoker是如何融合这些组件的。<img src="https://img-blog.csdn.net/20180708230808373?watermark/2/text/aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70" alt="这里写图片描述"><br>AbstractClusterInvoker#invoke</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">@Override</span><br><span class="line">    public Result invoke(final Invocation invocation) throws RpcException &#123;</span><br><span class="line">        checkWhetherDestroyed();</span><br><span class="line">        LoadBalance loadbalance &#x3D; null;</span><br><span class="line">        List&lt;Invoker&lt;T&gt;&gt; invokers &#x3D; list(invocation);    &#x2F;&#x2F; @1</span><br><span class="line">        if (invokers !&#x3D; null &amp;&amp; !invokers.isEmpty()) &#123;</span><br><span class="line">            loadbalance &#x3D; ExtensionLoader.getExtensionLoader(LoadBalance.class).getExtension(invokers.get(0).getUrl()</span><br><span class="line">                    .getMethodParameter(invocation.getMethodName(), Constants.LOADBALANCE_KEY, Constants.DEFAULT_LOADBALANCE));      &#x2F;&#x2F; @2</span><br><span class="line">        &#125;</span><br><span class="line">        RpcUtils.attachInvocationIdIfAsync(getUrl(), invocation);   </span><br><span class="line">        return doInvoke(invocation, invokers, loadbalance);  &#x2F;&#x2F; @3</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+<p>代码@1：根据调用上下文，获取服务提供者列表，服务提供者从Directory中获取。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">protected List&lt;Invoker&lt;T&gt;&gt; list(Invocation invocation) throws RpcException &#123;</span><br><span class="line">        List&lt;Invoker&lt;T&gt;&gt; invokers &#x3D; directory.list(invocation);</span><br><span class="line">        return invokers;</span><br><span class="line"> &#125;</span><br></pre></td></tr></table></figure>
+<p>最终会调用RegistryDirecotry的list方法，该方法的服务提供者是当该消费者订阅的服务的服务提供者列表发送变化后，会在注册中心产生事件，然后通知消费者更新服务提供者列表（本地缓存）。需要注意的是RegistryDirecotry在返回Invoker之前，已经使用Router进行了一次筛选，具体实现在RegistryDirectory#notify方法时。</p>
+<p>代码@2：根据SPI机制，获取负载均衡算法的实现类,根据&lt; dubbo:consumer loadbalance=””/&gt;、&lt; dubbo:reference loadbalance=””/&gt;等标签的配置值，默认为random，加权随机算法。</p>
+<p>代码@3：根据调用上下文，服务提供者列表，负载均衡算法选择一服务提供者，具体代码由AbstractClusterInvoker的各个子类实现。</p>
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/posts/b5542131.html#more" rel="contents">
+              阅读全文 &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://example.com/posts/398539d9.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="中间件兴趣圈">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/posts/398539d9.html" itemprop="url">源码分析Dubbo负载算法</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-12-12T23:31:01+08:00">
+                2020-12-12
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/dubbo/" itemprop="url" rel="index">
+                    <span itemprop="name">dubbo</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/posts/398539d9.html#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count valine-comment-count" data-xid="/posts/398539d9.html" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+             <span id="/posts/398539d9.html" class="leancloud_visitors" data-flag-title="源码分析Dubbo负载算法">
+               <span class="post-meta-divider">|</span>
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               
+                 <span class="post-meta-item-text">阅读次数&#58;</span>
+               
+                 <span class="leancloud-visitors-count"></span>
+             </span>
+          
+
+          
+
+          
+            <div class="post-wordcount">
+              
+                
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-file-word-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">字数统计&#58;</span>
+                
+                <span title="字数统计">
+                  4.2k 字
+                </span>
+              
+
+              
+                <span class="post-meta-divider">|</span>
+              
+
+              
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-clock-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">阅读时长 &asymp;</span>
+                
+                <span title="阅读时长">
+                  20 分钟
+                </span>
+              
+            </div>
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          <p>Dubbo支持在服务调用方对服务提供者采用负载均衡算法，LoadBalance 接口定义如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">@SPI(RandomLoadBalance.NAME)</span><br><span class="line">public interface LoadBalance &#123;</span><br><span class="line"></span><br><span class="line">	&#x2F;**</span><br><span class="line">	 * select one invoker in list.</span><br><span class="line">	 * </span><br><span class="line">	 * @param invokers invokers.</span><br><span class="line">	 * @param url refer url</span><br><span class="line">	 * @param invocation invocation.</span><br><span class="line">	 * @return selected invoker.</span><br><span class="line">	 *&#x2F;</span><br><span class="line">    @Adaptive(&quot;loadbalance&quot;)</span><br><span class="line">	&lt;T&gt; Invoker&lt;T&gt; select(List&lt;Invoker&lt;T&gt;&gt; invokers, URL url, Invocation invocation) throws RpcException;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>从中透露出如下几个信息：默认如果不配置，使用RandomLoadBalance策略(加权随机负载算法）。整个Dubbo的负载均衡类图如下所示：<br><img src="https://img-blog.csdn.net/20180706123312775?watermark/2/text/aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70" alt="这里写图片描述"><br>上述各种路由负载策略，对应的配置值如下：dubbo-cluster\src\main\resources\META-INF\dubbo\internal\com.alibaba.dubbo.rpc.cluster.LoadBalance</p>
+<ul>
+<li>random<br> random=com.alibaba.dubbo.rpc.cluster.loadbalance.RandomLoadBalance</li>
+<li>roundrobin<br> roundrobin=com.alibaba.dubbo.rpc.cluster.loadbalance.RoundRobinLoadBalance</li>
+<li>leastactive<br> leastactive=com.alibaba.dubbo.rpc.cluster.loadbalance.LeastActiveLoadBalance</li>
+<li>consistenthash<br>consistenthash=com.alibaba.dubbo.rpc.cluster.loadbalance.ConsistentHashLoadBalance<br>其配置使用，通常一般在&lt; dubbo:consumer/&gt;、&lt; dubbo:service /&gt;、&lt; dubbo:reference /&gt;的loadbalance属性配置，通常&lt; dubbo:consumer/&gt;这个属性指定消费端的默认策略，某些服务需要指定特殊负载均衡策略的话，一般通过&lt; dubbo:reference /&gt;来指定。<br>如果各位对其源码实现比较有兴趣的话，可以看接下来的部分，源码分析各种负载算法的具体实现细节。</li>
+</ul>
+<h2 id="1、源码分析ConsistentHashLoadBalance（一致性Hash算法）"><a href="#1、源码分析ConsistentHashLoadBalance（一致性Hash算法）" class="headerlink" title="1、源码分析ConsistentHashLoadBalance（一致性Hash算法）"></a>1、源码分析ConsistentHashLoadBalance（一致性Hash算法）</h2><p><img src="https://img-blog.csdn.net/20180706123621108?watermark/2/text/aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70" alt="这里写图片描述"><br>一致Hash算法，通常用在缓存领域，主要解决的问题是当数据节点数量发送变化后，尽量减少数据的迁移，在负责算法领域，个人不建议使用。Dubbo一致性Hash算法的实现逻辑主要分布在ConsistentHashLoadBalance$ConsistentHashSelector中。</p>
+<h3 id="1-1-核心属性与构造方法"><a href="#1-1-核心属性与构造方法" class="headerlink" title="1.1 核心属性与构造方法"></a>1.1 核心属性与构造方法</h3>
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/posts/398539d9.html#more" rel="contents">
+              阅读全文 &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://example.com/posts/9d847bb5.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="中间件兴趣圈">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/posts/9d847bb5.html" itemprop="url">Dubbo路由机制概述</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-12-12T23:17:01+08:00">
+                2020-12-12
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/dubbo/" itemprop="url" rel="index">
+                    <span itemprop="name">dubbo</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/posts/9d847bb5.html#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count valine-comment-count" data-xid="/posts/9d847bb5.html" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+             <span id="/posts/9d847bb5.html" class="leancloud_visitors" data-flag-title="Dubbo路由机制概述">
+               <span class="post-meta-divider">|</span>
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               
+                 <span class="post-meta-item-text">阅读次数&#58;</span>
+               
+                 <span class="leancloud-visitors-count"></span>
+             </span>
+          
+
+          
+
+          
+            <div class="post-wordcount">
+              
+                
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-file-word-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">字数统计&#58;</span>
+                
+                <span title="字数统计">
+                  959 字
+                </span>
+              
+
+              
+                <span class="post-meta-divider">|</span>
+              
+
+              
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-clock-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">阅读时长 &asymp;</span>
+                
+                <span title="阅读时长">
+                  4 分钟
+                </span>
+              
+            </div>
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          <p>上一节我们主要讲解了利用dubbo-admin如何进行参数的动态修改，本节将重点介绍集群实现中另外一个实现细节：路由机制，Dubbo的路由机制主要解决的目的就是服务调用时，从已知的所有服务提供者中根据路由规则刷选服务提供者。</p>
+<h2 id="1、Dubbo路由机制概述"><a href="#1、Dubbo路由机制概述" class="headerlink" title="1、Dubbo路由机制概述"></a>1、Dubbo路由机制概述</h2><p>以下内容来源于官方文档：<br><img src="https://img-blog.csdn.net/20180628201426372?watermark/2/text/aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70" alt="这里写图片描述"><br><img src="https://img-blog.csdn.net/20180628201447412?watermark/2/text/aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70" alt="这里写图片描述"><br><img src="https://img-blog.csdn.net/20180628201509453?watermark/2/text/aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70" alt="这里写图片描述"><br><img src="https://img-blog.csdn.net/2018062820152941?watermark/2/text/aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70" alt="这里写图片描述"><br><img src="https://img-blog.csdn.net/20180628201547105?watermark/2/text/aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70" alt="这里写图片描述"><br>以上是Dubbo 路由机制的基本知识，接下来从源码的角度分析一下其实现原理。</p>
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/posts/9d847bb5.html#more" rel="contents">
+              阅读全文 &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://example.com/posts/a0fe1016.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="中间件兴趣圈">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/posts/a0fe1016.html" itemprop="url">源码分析Dubbo配置规则机制(override协议)</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-12-12T23:14:01+08:00">
+                2020-12-12
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/dubbo/" itemprop="url" rel="index">
+                    <span itemprop="name">dubbo</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/posts/a0fe1016.html#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count valine-comment-count" data-xid="/posts/a0fe1016.html" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+             <span id="/posts/a0fe1016.html" class="leancloud_visitors" data-flag-title="源码分析Dubbo配置规则机制(override协议)">
+               <span class="post-meta-divider">|</span>
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               
+                 <span class="post-meta-item-text">阅读次数&#58;</span>
+               
+                 <span class="leancloud-visitors-count"></span>
+             </span>
+          
+
+          
+
+          
+            <div class="post-wordcount">
+              
+                
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-file-word-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">字数统计&#58;</span>
+                
+                <span title="字数统计">
+                  1.8k 字
                 </span>
               
 
@@ -2374,21 +2051,251 @@
 
       
         
-          <h2 id="1、Java引用的类型"><a href="#1、Java引用的类型" class="headerlink" title="1、Java引用的类型"></a>1、Java引用的类型</h2><p>强引用、软引用(java.lang.ref.SoftReference)、弱引用(java.lang.ref.WeakReference)、虚引用(　java.lang.ref.PhantomReference　)。</p>
-<p>java默认的引用类型为强引用，比如 Object a = new Object();其中 a 为强引用，new Object()为一个具体的对象。</p>
-<p>至于软应用，弱引用，虚引用，就是 JAVA 虚拟机管理对象的范畴了，可以这样理解，SoftReference、WeakReference、PlantomReference 只是一种标记，JAVA 虚拟机在垃圾回收时，对上述不同的标记【引用的对象】采取不同的措施。采取措施如下：</p>
-<ul>
-<li><p>软引用(SoftReference)：当内存足够时，该引用【引用的对象】不会被回收，那什么是内存足够呢？进行年轻代的垃圾回收不会触发SoftReference所指向对象的回收,如果触发Full GC，那SoftReference所指向的对象将被回收。</p>
-</li>
-<li><p>弱引用(WeakReference) :当进行年轻代垃圾回收时，该引用指向的对象，就会被回收。</p>
-</li>
-<li><p>虚引用(PhantomeReference) 该引用指向的对象，无法对垃圾收集器收集对象时产生任何影响，唯一有用的是，如果被垃圾收集器收集的对象，被PhantomeReference标记，垃圾收集器会通过注册在PhantomeReference上的队列来通知应用程序，该引用指向的对象，已经被垃圾收集器回收。</p>
-</li>
-</ul>
-<p>从上文的描述，也清楚的知道，上述应用是直接JVM打交道，更直接的说是与垃圾回收器直接的交互。</p>
+          <p>在上篇在讲解RegistryDirectory的时候，dubbo管理员可以通过dubbo-admin管理系统在线上修改dubbo服务提供者的参数，最终将存储在注册中心的configurators catalog，然后通知RegistryDirectory更新服务提供者的URL中相关属性，按照最新的配置，重新创建Invoker并销毁原来的Invoker。<br>有关官方文档关于动态改变配置(override协议）的详细描述如下：<br><img src="https://img-blog.csdn.net/20180624225822489?watermark/2/text/aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70" alt="这里写图片描述"><br><img src="https://img-blog.csdn.net/2018062422584447?watermark/2/text/aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70" alt="这里写图片描述"><br>dubbo-admin 管理后台，界面如下：<br><img src="https://img-blog.csdn.net/20180624225915334?watermark/2/text/aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70" alt="这里写图片描述"><br><img src="https://img-blog.csdn.net/20180624225933538?watermark/2/text/aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70" alt="这里写图片描述"></p>
           <!--noindex-->
           <div class="post-button text-center">
-            <a class="btn" href="/posts/3c69fbc4.html#more" rel="contents">
+            <a class="btn" href="/posts/a0fe1016.html#more" rel="contents">
+              阅读全文 &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://example.com/posts/7c2dea71.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="中间件兴趣圈">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/posts/7c2dea71.html" itemprop="url">源码分析Dubbo服务注册与发现机制RegistryDirectory)</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-12-12T23:03:01+08:00">
+                2020-12-12
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/dubbo/" itemprop="url" rel="index">
+                    <span itemprop="name">dubbo</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/posts/7c2dea71.html#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count valine-comment-count" data-xid="/posts/7c2dea71.html" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+             <span id="/posts/7c2dea71.html" class="leancloud_visitors" data-flag-title="源码分析Dubbo服务注册与发现机制RegistryDirectory)">
+               <span class="post-meta-divider">|</span>
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               
+                 <span class="post-meta-item-text">阅读次数&#58;</span>
+               
+                 <span class="leancloud-visitors-count"></span>
+             </span>
+          
+
+          
+
+          
+            <div class="post-wordcount">
+              
+                
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-file-word-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">字数统计&#58;</span>
+                
+                <span title="字数统计">
+                  4.6k 字
+                </span>
+              
+
+              
+                <span class="post-meta-divider">|</span>
+              
+
+              
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-clock-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">阅读时长 &asymp;</span>
+                
+                <span title="阅读时长">
+                  21 分钟
+                </span>
+              
+            </div>
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          <p>RegistryDirectory，基于注册中心的服务发现，本文将重点探讨Dubbo是如何实现服务的自动注册与发现。从上篇文章，得知在消息消费者在创建服务调用器(Invoker)【消费者在初始时】时需要根据不同的协议，例如dubbo、registry(从注册中心获取服务提供者)来构建，其调用的方法为Protocol#refer，基于注册中心发现服务提供者的实现协议为RegistryProtocol。</p>
+<p>RegistryProtocol#refer —-&gt; doRefer方法。</p>
+<p>RegistryProtocol#doRefer</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">private &lt;T&gt; Invoker&lt;T&gt; doRefer(Cluster cluster, Registry registry, Class&lt;T&gt; type, URL url) &#123;    &#x2F;&#x2F; @1</span><br><span class="line">        RegistryDirectory&lt;T&gt; directory &#x3D; new RegistryDirectory&lt;T&gt;(type, url);   &#x2F;&#x2F; @2</span><br><span class="line">        directory.setRegistry(registry);</span><br><span class="line">        directory.setProtocol(protocol);   &#x2F;&#x2F; @3</span><br><span class="line">        &#x2F;&#x2F; all attributes of REFER_KEY</span><br><span class="line">        Map&lt;String, String&gt; parameters &#x3D; new HashMap&lt;String, String&gt;(directory.getUrl().getParameters());   &#x2F;&#x2F; @4</span><br><span class="line">        URL subscribeUrl &#x3D; new URL(Constants.CONSUMER_PROTOCOL, parameters.remove(Constants.REGISTER_IP_KEY), 0, type.getName(), parameters);  &#x2F;&#x2F; @5</span><br><span class="line">        if (!Constants.ANY_VALUE.equals(url.getServiceInterface())</span><br><span class="line">                &amp;&amp; url.getParameter(Constants.REGISTER_KEY, true)) &#123;</span><br><span class="line">            registry.register(subscribeUrl.addParameters(Constants.CATEGORY_KEY, Constants.CONSUMERS_CATEGORY,</span><br><span class="line">                    Constants.CHECK_KEY, String.valueOf(false)));</span><br><span class="line">        &#125;   &#x2F;&#x2F; @6</span><br><span class="line">        directory.subscribe(subscribeUrl.addParameter(Constants.CATEGORY_KEY,</span><br><span class="line">                Constants.PROVIDERS_CATEGORY</span><br><span class="line">                        + &quot;,&quot; + Constants.CONFIGURATORS_CATEGORY</span><br><span class="line">                        + &quot;,&quot; + Constants.ROUTERS_CATEGORY));     &#x2F;&#x2F; @7</span><br><span class="line"></span><br><span class="line">        Invoker invoker &#x3D; cluster.join(directory);    &#x2F;&#x2F; @8</span><br><span class="line">        ProviderConsumerRegTable.registerConsumer(invoker, url, subscribeUrl, directory);     &#x2F;&#x2F; @9</span><br><span class="line">        return invoker;</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+<p>代码@1：参数详解</p>
+<ul>
+<li>Cluster cluster：集群策略。</li>
+<li> Registry registry：注册中心实现类。</li>
+<li>Class<T> type：引用服务名，dubbo:reference interface。</li>
+<li>URL url：注册中心URL。</li>
+</ul>
+<p>代码@2：构建RegistryDirectory对象，基于注册中心动态发现服务提供者（服务提供者新增或减少），本节重点会剖析该类的实现细节。</p>
+<p>代码@3：为RegistryDirectory设置注册中心、协议。</p>
+<p>代码@4：获取服务消费者的配置属性。</p>
+<p>代码@5：构建消费者URL，例如：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">consumer:&#x2F;&#x2F;192.168.56.1&#x2F;com.alibaba.dubbo.demo.DemoService?application&#x3D;demo-consumer&amp;check&#x3D;false&amp;dubbo&#x3D;2.0.0&amp;interface&#x3D;com.alibaba.dubbo.demo.DemoService&amp;methods&#x3D;sayHello&amp;pid&#x3D;9892&amp;qos.port&#x3D;33333&amp;side&#x3D;consumer&amp;timestamp&#x3D;1528380277185</span><br></pre></td></tr></table></figure>
+<p>代码@6：向注册中心消息消费者：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">consumer:&#x2F;&#x2F;192.168.56.1&#x2F;com.alibaba.dubbo.demo.DemoService?application&#x3D;demo-consumer&amp;category&#x3D;consumers&amp;check&#x3D;false&amp;dubbo&#x3D;2.0.0&amp;interface&#x3D;com.alibaba.dubbo.demo.DemoService&amp;methods&#x3D;sayHello&amp;pid&#x3D;9892&amp;qos.port&#x3D;33333&amp;side&#x3D;consumer&amp;timestamp&#x3D;1528380277185</span><br></pre></td></tr></table></figure>
+<p>相比第5步的URL，增加了category=consumers、check=false，其中category表示在注册中心的命名空间，这里代表消费端。该步骤的作用就是向注册中心为服务增加一个消息消费者，其生成的效果如下：【以zookeeper为例】。<br><img src="https://img-blog.csdn.net/20180618220050346?watermark/2/text/aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70" alt="这里写图片描述"><br>代码@7：为消息消费者添加category=providers,configurators,routers属性后，然后向注册中心订阅该URL，关注该服务下的providers,configurators,routers发生变化时通知RegistryDirectory，以便及时发现服务提供者、配置、路由规则的变化。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">consumer:&#x2F;&#x2F;192.168.56.1&#x2F;com.alibaba.dubbo.demo.DemoService?application&#x3D;demo-consumer&amp;category&#x3D;providers,configurators,routers&amp;check&#x3D;false&amp;dubbo&#x3D;2.0.0&amp;interface&#x3D;com.alibaba.dubbo.demo.DemoService&amp;methods&#x3D;sayHello&amp;pid&#x3D;9892&amp;qos.port&#x3D;33333&amp;side&#x3D;consumer&amp;timestamp&#x3D;1528380277185</span><br></pre></td></tr></table></figure>
+<p>其订阅关系调用的入口为：RegistryDirectory#subscribe方法，是接下来需要重点分析的重点。</p>
+<p>代码@8：根据Directory，利用集群策略返回集群Invoker。</p>
+<p>代码@9：缓存服务消费者、服务提供者对应关系。</p>
+<p>从这里发现，服务的注册与发现与RegistryDirectory联系非常紧密，接下来让我们来详细分析RegistryDirectory的实现细节。</p>
+<h2 id="1、RegistryDirectory类图"><a href="#1、RegistryDirectory类图" class="headerlink" title="1、RegistryDirectory类图"></a>1、RegistryDirectory类图</h2><p><img src="https://img-blog.csdn.net/20180618223543475?watermark/2/text/aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70" alt="这里写图片描述"></p>
+<ul>
+<li>private static final Cluster cluster = ExtensionLoader.getExtensionLoader(Cluster.class).getAdaptiveExtension();<pre><code>集群策略，默认为failover。</code></pre>
+</li>
+<li>private static final RouterFactory routerFactory = ExtensionLoader.getExtensionLoader (RouterFactory.class).getAdaptiveExtension()路由工厂，可以通过监控中心或治理中心配置。</li>
+<li>private static final ConfiguratorFactory configuratorFactory = ExtensionLoader.getExtensionLoader(ConfiguratorFactory.class).getAdaptiveExtension();配置实现工厂类。</li>
+<li>private final String serviceKey;  服务key，默认为服务接口名。com.alibaba.dubbo.registry.RegistryService，注册中心在Dubbo中也是使用服务暴露。</li>
+<li>private final Class&lt; T &gt; serviceType;服务提供者接口类，例如interface com.alibaba.dubbo.demo.DemoService</li>
+<li>private final Map&lt; String, String&gt; queryMap：服务消费者URL中的所有属性。</li>
+<li>private final URL directoryUrl;注册中心URL，只保留消息消费者URL查询属性，也就是queryMap。</li>
+<li>private final String[] serviceMethods：引用服务提供者方法数组。</li>
+<li>private final boolean multiGroup：是否引用多个服务组。</li>
+<li>private Protocol protocol：协议。</li>
+<li>private Registry registry：注册中心实现者。</li>
+<li>private volatile List&lt; Configurator&gt; configurators;配置信息。</li>
+<li>private volatile Map&lt; String, Invoker&lt; T&gt;&gt; urlInvokerMap; 服务URL对应的Invoker(服务提供者调用器)。</li>
+<li>private volatile Map&lt; String, List&lt; Invoker&lt; T&gt;&gt;&gt; methodInvokerMap; methodName : List&lt; Invoker&lt; T &gt;&gt;，<pre><code>   dubbo:method 对应的Invoker缓存表。</code></pre>
+</li>
+<li>private volatile Set&lt; URL &gt; cachedInvokerUrls; 当前缓存的所有URL提供者URL。</li>
+</ul>
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/posts/7c2dea71.html#more" rel="contents">
               阅读全文 &raquo;
             </a>
           </div>
@@ -2430,7 +2337,7 @@
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/page/2/">上一页</a><a class="page-number" href="/">1</a><a class="page-number" href="/page/2/">2</a><span class="page-number current">3</span><a class="page-number" href="/page/4/">4</a><span class="space">&hellip;</span><a class="page-number" href="/page/9/">9</a><a class="extend next" rel="next" href="/page/4/">下一页</a>
+    <a class="extend prev" rel="prev" href="/page/2/">上一页</a><a class="page-number" href="/">1</a><a class="page-number" href="/page/2/">2</a><span class="page-number current">3</span><a class="page-number" href="/page/4/">4</a><span class="space">&hellip;</span><a class="page-number" href="/page/12/">12</a><a class="extend next" rel="next" href="/page/4/">下一页</a>
   </nav>
 
 
@@ -2476,7 +2383,7 @@
               
                 <a href="/archives/">
               
-                  <span class="site-state-item-count">90</span>
+                  <span class="site-state-item-count">115</span>
                   <span class="site-state-item-name">日志</span>
                 </a>
               </div>
@@ -2487,7 +2394,7 @@
               
               <div class="site-state-item site-state-categories">
                 <a href="/categories/index.html">
-                  <span class="site-state-item-count">12</span>
+                  <span class="site-state-item-count">13</span>
                   <span class="site-state-item-name">分类</span>
                 </a>
               </div>
@@ -2498,7 +2405,7 @@
               
               <div class="site-state-item site-state-tags">
                 <a href="/tags/index.html">
-                  <span class="site-state-item-count">144</span>
+                  <span class="site-state-item-count">183</span>
                   <span class="site-state-item-name">标签</span>
                 </a>
               </div>
@@ -2556,7 +2463,7 @@
     
       <span class="post-meta-item-text">Site words total count&#58;</span>
     
-    <span title="Site words total count">238.6k</span>
+    <span title="Site words total count">301.9k</span>
   
 </div>
 
