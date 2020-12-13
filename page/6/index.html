@@ -287,6 +287,225 @@
   
   
   <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://example.com/posts/f81e58bb.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="中间件兴趣圈">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/posts/f81e58bb.html" itemprop="url">源码分析 Kafka 消息发送流程(文末附流程图)</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-12-11T22:56:01+08:00">
+                2020-12-11
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/kafka/" itemprop="url" rel="index">
+                    <span itemprop="name">kafka</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/posts/f81e58bb.html#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count valine-comment-count" data-xid="/posts/f81e58bb.html" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+             <span id="/posts/f81e58bb.html" class="leancloud_visitors" data-flag-title="源码分析 Kafka 消息发送流程(文末附流程图)">
+               <span class="post-meta-divider">|</span>
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               
+                 <span class="post-meta-item-text">阅读次数&#58;</span>
+               
+                 <span class="leancloud-visitors-count"></span>
+             </span>
+          
+
+          
+
+          
+            <div class="post-wordcount">
+              
+                
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-file-word-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">字数统计&#58;</span>
+                
+                <span title="字数统计">
+                  3.5k 字
+                </span>
+              
+
+              
+                <span class="post-meta-divider">|</span>
+              
+
+              
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-clock-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">阅读时长 &asymp;</span>
+                
+                <span title="阅读时长">
+                  14 分钟
+                </span>
+              
+            </div>
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          <blockquote>
+<p>温馨提示：本文基于 Kafka 2.2.1 版本。本文主要是以源码的手段一步一步探究消息发送流程，如果对源码不感兴趣，可以直接跳到文末查看消息发送流程图与消息发送本地缓存存储结构。</p>
+</blockquote>
+<p>从上文 <a target="_blank" rel="noopener" href="https://blog.csdn.net/prestigeding/article/details/102881472">初识 Kafka Producer 生产者</a>，可以通过 KafkaProducer 的 send 方法发送消息，send 方法的声明如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="function">Future&lt;RecordMetadata&gt; <span class="title">send</span><span class="params">(ProducerRecord&lt;K, V&gt; record)</span></span></span><br><span class="line"><span class="function">Future&lt;RecordMetadata&gt; <span class="title">send</span><span class="params">(ProducerRecord&lt;K, V&gt; record, Callback callback)</span></span></span><br></pre></td></tr></table></figure>
+<p>从上面的 API 可以得知，用户在使用 KafkaProducer 发送消息时，首先需要将待发送的消息封装成 ProducerRecord，返回的是一个 Future 对象，典型的 Future 设计模式。在发送时也可以指定一个 Callable 接口用来执行消息发送的回调。</p>
+<p>我们在学习消息发送流程之前先来看一下用于封装一条消息的 ProducerRecord 的类图，先来认识一下 kafka 是如何对一条消息进行抽象的。</p>
+<h2 id="1、ProducerRecord-类图"><a href="#1、ProducerRecord-类图" class="headerlink" title="1、ProducerRecord 类图"></a>1、ProducerRecord 类图</h2><p><img src="https://img-blog.csdnimg.cn/201911100956254.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>我们首先来看一下 ProducerRecord 的核心属性，即构成 消息的6大核心要素：</p>
+<ul>
+<li>String topic<br>消息所属的主题。</li>
+<li>Integer partition<br>消息所在主题的队列数，可以人为指定，如果指定了 key 的话，会使用 key 的 hashCode 与队列总数进行取模来选择分区，如果前面两者都未指定，则会轮询主题下的所有分区。</li>
+<li>Headers headers<br>该消息的额外属性对，与消息体分开存储.</li>
+<li>K key<br>消息键，如果指定该值，则会使用该值的 hashcode 与 队列数进行取模来选择分区。</li>
+<li>V value<br>消息体。</li>
+<li>Long timestamp<br>消息时间戳，根据 topic 的配置信息 message.timestamp.type 的值来赋予不同的值。<ul>
+<li>CreateTime<br>发送客户端发送消息时的时间戳。</li>
+<li>LogAppendTime<br>消息在 broker 追加时的时间戳。</li>
+</ul>
+</li>
+</ul>
+<p>其中Headers是一系列的 key-value 键值对。</p>
+<p>在了解 ProducerRecord 后我们开始来探讨 Kafka 的消息发送流程。</p>
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/posts/f81e58bb.html#more" rel="contents">
+              阅读全文 &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
     <link itemprop="mainEntityOfPage" href="http://example.com/posts/eab70bff.html">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -2229,217 +2448,6 @@
 
 
     
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://example.com/posts/18c7756d.html">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="中间件兴趣圈">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/posts/18c7756d.html" itemprop="url">源码分析Mybatis MappedStatement的创建流程</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-12-09T22:51:35+08:00">
-                2020-12-09
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/mybatis/" itemprop="url" rel="index">
-                    <span itemprop="name">mybatis</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/posts/18c7756d.html#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count valine-comment-count" data-xid="/posts/18c7756d.html" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-             <span id="/posts/18c7756d.html" class="leancloud_visitors" data-flag-title="源码分析Mybatis MappedStatement的创建流程">
-               <span class="post-meta-divider">|</span>
-               <span class="post-meta-item-icon">
-                 <i class="fa fa-eye"></i>
-               </span>
-               
-                 <span class="post-meta-item-text">阅读次数&#58;</span>
-               
-                 <span class="leancloud-visitors-count"></span>
-             </span>
-          
-
-          
-
-          
-            <div class="post-wordcount">
-              
-                
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-file-word-o"></i>
-                </span>
-                
-                  <span class="post-meta-item-text">字数统计&#58;</span>
-                
-                <span title="字数统计">
-                  2.2k 字
-                </span>
-              
-
-              
-                <span class="post-meta-divider">|</span>
-              
-
-              
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-clock-o"></i>
-                </span>
-                
-                  <span class="post-meta-item-text">阅读时长 &asymp;</span>
-                
-                <span title="阅读时长">
-                  10 分钟
-                </span>
-              
-            </div>
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          <p>上文<a target="_blank" rel="noopener" href="https://blog.csdn.net/prestigeding/article/details/90415680">源码分析Mybatis MapperProxy创建流程</a>重点阐述MapperProxy的创建流程，但并没有介绍*.Mapper.java(UserMapper.java)是如何与*Mapper.xml文件中的SQL语句是如何建立关联的。本文将重点接开这个谜团。</p>
-<p>接下来重点从源码的角度分析Mybatis MappedStatement的创建流程。</p>
-<h2 id="1、上节回顾"><a href="#1、上节回顾" class="headerlink" title="1、上节回顾"></a>1、上节回顾</h2><p>我们注意到这里有两三个与Mapper相关的配置：</p>
-<ol>
-<li>SqlSessionFactory#mapperLocations，指定xml文件的配置路径。</li>
-<li>SqlSessionFactory#configLocation，指定mybaits的配置文件，该配置文件也可以配置mapper.xml的配置路径信息。</li>
-<li>MapperScannerConfigurer，扫描Mapper的java类(DAO)。</li>
-</ol>
-<p>我们已经详细介绍了Mybatis Mapper对象的扫描与构建，那接下来我们将重点介绍MaperProxy与mapper.xml文件是如何建立关联关系的。</p>
-<p>根据上面的罗列以及上文的讲述，Mapper.xml与Mapper建立联系主要的入口有三：<br>1）MapperScannerConfigurer扫描Bean流程中，在调用MapperReigistry#addMapper时如果Mapper对应的映射文件(Mapper.xml)未加载到内存，会触发加载。<br>2）实例化SqlSessionFactory时，如果配置了mapperLocations。<br>3）示例化SqlSessionFactory时，如果配置了configLocation。</p>
-<p>本节的行文思路：从SqlSessionFacotry的初始化开始讲起，因为mapperLocations、configLocation都是是SqlSessionFactory的属性。</p>
-<blockquote>
-<p>温馨提示：下面开始从源码的角度对其进行介绍，大家可以先跳到文末看看其调用序列图。</p>
-</blockquote>
-          <!--noindex-->
-          <div class="post-button text-center">
-            <a class="btn" href="/posts/18c7756d.html#more" rel="contents">
-              阅读全文 &raquo;
-            </a>
-          </div>
-          <!--/noindex-->
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
   </section>
 
   
@@ -2490,7 +2498,7 @@
               
                 <a href="/archives/">
               
-                  <span class="site-state-item-count">115</span>
+                  <span class="site-state-item-count">116</span>
                   <span class="site-state-item-name">日志</span>
                 </a>
               </div>
@@ -2512,7 +2520,7 @@
               
               <div class="site-state-item site-state-tags">
                 <a href="/tags/index.html">
-                  <span class="site-state-item-count">183</span>
+                  <span class="site-state-item-count">184</span>
                   <span class="site-state-item-name">标签</span>
                 </a>
               </div>
@@ -2570,7 +2578,7 @@
     
       <span class="post-meta-item-text">Site words total count&#58;</span>
     
-    <span title="Site words total count">301.9k</span>
+    <span title="Site words total count">305.1k</span>
   
 </div>
 

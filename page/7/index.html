@@ -287,6 +287,217 @@
   
   
   <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://example.com/posts/18c7756d.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="中间件兴趣圈">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/posts/18c7756d.html" itemprop="url">源码分析Mybatis MappedStatement的创建流程</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-12-09T22:51:35+08:00">
+                2020-12-09
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/mybatis/" itemprop="url" rel="index">
+                    <span itemprop="name">mybatis</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/posts/18c7756d.html#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count valine-comment-count" data-xid="/posts/18c7756d.html" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+             <span id="/posts/18c7756d.html" class="leancloud_visitors" data-flag-title="源码分析Mybatis MappedStatement的创建流程">
+               <span class="post-meta-divider">|</span>
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               
+                 <span class="post-meta-item-text">阅读次数&#58;</span>
+               
+                 <span class="leancloud-visitors-count"></span>
+             </span>
+          
+
+          
+
+          
+            <div class="post-wordcount">
+              
+                
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-file-word-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">字数统计&#58;</span>
+                
+                <span title="字数统计">
+                  2.2k 字
+                </span>
+              
+
+              
+                <span class="post-meta-divider">|</span>
+              
+
+              
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-clock-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">阅读时长 &asymp;</span>
+                
+                <span title="阅读时长">
+                  10 分钟
+                </span>
+              
+            </div>
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          <p>上文<a target="_blank" rel="noopener" href="https://blog.csdn.net/prestigeding/article/details/90415680">源码分析Mybatis MapperProxy创建流程</a>重点阐述MapperProxy的创建流程，但并没有介绍*.Mapper.java(UserMapper.java)是如何与*Mapper.xml文件中的SQL语句是如何建立关联的。本文将重点接开这个谜团。</p>
+<p>接下来重点从源码的角度分析Mybatis MappedStatement的创建流程。</p>
+<h2 id="1、上节回顾"><a href="#1、上节回顾" class="headerlink" title="1、上节回顾"></a>1、上节回顾</h2><p>我们注意到这里有两三个与Mapper相关的配置：</p>
+<ol>
+<li>SqlSessionFactory#mapperLocations，指定xml文件的配置路径。</li>
+<li>SqlSessionFactory#configLocation，指定mybaits的配置文件，该配置文件也可以配置mapper.xml的配置路径信息。</li>
+<li>MapperScannerConfigurer，扫描Mapper的java类(DAO)。</li>
+</ol>
+<p>我们已经详细介绍了Mybatis Mapper对象的扫描与构建，那接下来我们将重点介绍MaperProxy与mapper.xml文件是如何建立关联关系的。</p>
+<p>根据上面的罗列以及上文的讲述，Mapper.xml与Mapper建立联系主要的入口有三：<br>1）MapperScannerConfigurer扫描Bean流程中，在调用MapperReigistry#addMapper时如果Mapper对应的映射文件(Mapper.xml)未加载到内存，会触发加载。<br>2）实例化SqlSessionFactory时，如果配置了mapperLocations。<br>3）示例化SqlSessionFactory时，如果配置了configLocation。</p>
+<p>本节的行文思路：从SqlSessionFacotry的初始化开始讲起，因为mapperLocations、configLocation都是是SqlSessionFactory的属性。</p>
+<blockquote>
+<p>温馨提示：下面开始从源码的角度对其进行介绍，大家可以先跳到文末看看其调用序列图。</p>
+</blockquote>
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/posts/18c7756d.html#more" rel="contents">
+              阅读全文 &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
     <link itemprop="mainEntityOfPage" href="http://example.com/posts/47c4bb93.html">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -2094,276 +2305,6 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/posts/a815ae71.html" itemprop="url">Sentinel 集群限流设计原理</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-12-08T23:03:35+08:00">
-                2020-12-08
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/sentinel/" itemprop="url" rel="index">
-                    <span itemprop="name">sentinel</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/posts/a815ae71.html#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count valine-comment-count" data-xid="/posts/a815ae71.html" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-             <span id="/posts/a815ae71.html" class="leancloud_visitors" data-flag-title="Sentinel 集群限流设计原理">
-               <span class="post-meta-divider">|</span>
-               <span class="post-meta-item-icon">
-                 <i class="fa fa-eye"></i>
-               </span>
-               
-                 <span class="post-meta-item-text">阅读次数&#58;</span>
-               
-                 <span class="leancloud-visitors-count"></span>
-             </span>
-          
-
-          
-
-          
-            <div class="post-wordcount">
-              
-                
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-file-word-o"></i>
-                </span>
-                
-                  <span class="post-meta-item-text">字数统计&#58;</span>
-                
-                <span title="字数统计">
-                  2.6k 字
-                </span>
-              
-
-              
-                <span class="post-meta-divider">|</span>
-              
-
-              
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-clock-o"></i>
-                </span>
-                
-                  <span class="post-meta-item-text">阅读时长 &asymp;</span>
-                
-                <span title="阅读时长">
-                  9 分钟
-                </span>
-              
-            </div>
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <div id="vip-container"><h2 id="1、集群限流使用场景"><a href="#1、集群限流使用场景" class="headerlink" title="1、集群限流使用场景"></a>1、集群限流使用场景</h2><p>首先一个服务有三个服务提供者，但这三台集群的硬件配置不一样，如图所示：<br><img src="https://img-blog.csdnimg.cn/20200503232733111.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br>为了充分利用硬件的资源，诸如 Dubbo 都提供了基于权重的负载均衡机制，例如可以将8C16G的机器设置的权重是4C8G的两倍，这样充分利用硬件资源，假如现在需要引入 Sentinel 的限流机制，例如为一个 Dubbo 服务设置限流规则，这样由于三台集群分担的流量不均匀，会导致无法重复利用高配机器的资源。</p>
-<p>假设经过压测，机器配置为C48G最高能承受的TPS为 1500，而机器配置为8C16G能承受的TPS为2800，那如果采取单机限流，其阔值只能设置为1500，因为如果超过1500，会将4C8G的机器压垮。</p>
-<p>解决这种办法的方式就是针对整个集群进行限流，即为整个集群设置一个阔值，例如设置限流TPS为6000。</p>
-<h2 id="2、集群限流与单机限流的异同思考"><a href="#2、集群限流与单机限流的异同思考" class="headerlink" title="2、集群限流与单机限流的异同思考"></a>2、集群限流与单机限流的异同思考</h2><p>限流的一个基本作用就是按照限流规则生成访问许可(Token)，然后根据当前实时的调用信息进行判断是否可以获得许可而决定是否放行。</p>
-<p>集群与单机限流在实时调用信息收集方面应该差别不大，都可以基于滑动窗口进行统计信息的收集。</p>
-<p>集群与单机限流的最主要区别在与许可的生成，单机模式的许可直接在本地生成，但集群限流必须有一个统一的 Token 发放机制，以此来协调当前集群内多机调用，从而基于当前“调用总数”进行限流。</p>
-<h2 id="3、探究集群限流实现原理"><a href="#3、探究集群限流实现原理" class="headerlink" title="3、探究集群限流实现原理"></a>3、探究集群限流实现原理</h2><p>在探究集群限流实现原理之前先来回顾一下单机限流的执行流程图。<br><img src="https://img-blog.csdnimg.cn/20200503232832535.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br>结合流程我们可以看出集群限流的几个关键点 ClusterBuilderSlot、FlowSlot。</p>
-<h4 id="3-1-ClusterBuilderSlot-详解"><a href="#3-1-ClusterBuilderSlot-详解" class="headerlink" title="3.1 ClusterBuilderSlot 详解"></a>3.1 ClusterBuilderSlot 详解</h4><p>在对一个资源进行流控规则判断时，首先将进入到 NodeSelectorSlot，然后就会进入到 ClusterBuilderSlot，为了与单机限流模式，介绍 ClusterBuilderSlot 时与 NodeSelectorSlot 进行一个对比。</p>
-<p>NodeSelectorSlot 的核心实现截图如下所示：<br><img src="https://img-blog.csdnimg.cn/20200503232919521.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"></p>
-<blockquote>
-<p>温馨提示：从该系列之前的文章也能得知，一个 资源对应的一个 NodeSelectorSlot  实例，即多线程访问一个资源时，都会调用同一个 NodeSelectorSlot 实例。</p>
-</blockquote>
-<p>NodeSelectorSlot 的关键点如下：</p>
-<ul>
-<li>Map&lt;String, DefaultNode&gt; map<br>在 NodeSelectorSlot 中是以 context Id 为维度进行缓存的，例如官方给出的 Dubbo 适配方法，contexId 为 dubbo 服务的全路径名。即 Dubbo的入口节点对应的缓存 Key 为 context<br>id。</li>
-<li>fireEntry 的 node 参数<br>由于 NodeSelectorSlot 是第一个过滤器，故第一次调用 fireEntry 方法时的 node 参数就是上面创建的 Node，即与 context 相关链的 Node，即所谓的入口节点即 Entrance Node。</li>
-</ul>
-<p>接下来重点关注一下 ClusterBuilderSlot 的关键点：<br><img src="https://img-blog.csdnimg.cn/20200503233012141.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br>ClusterBuilderSlot 的关键点如下：</p>
-<ul>
-<li>Map&lt;ResourceWrapper, ClusterNode&gt; clusterNodeMap<br>持有的集群节点缓存表，其键为 Entrance Node 所对应的资源ID，即 Context 中关联的节点信息。</li>
-<li>Node originNode<br>所谓的 orginNode，即在调用 ContextUtil 中 enter(String name, String origin) 方法中的第二个参数，表示这条调用链的源头，在 Dubbo 中默认为 应用的 application。</li>
-</ul>
-<p>经过上面两个Slot，整个调用链就基本创建好了，接下来我们来看一下 FlowSlot 关于集群限流的相关处理逻辑。</p>
-<h4 id="3-2-集群限流模式实现原理"><a href="#3-2-集群限流模式实现原理" class="headerlink" title="3.2 集群限流模式实现原理"></a>3.2 集群限流模式实现原理</h4><p><img src="https://img-blog.csdnimg.cn/20200503233045696.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br>FlowSlow FlowSlot 的核心处理逻辑主要是调用 FlowRuleChecker 的 canPassCheck 方法，正如上面看到的一样，根据配置规则，如果是集群模式，则调用的是其 passClusterCheck 方法，接下来我们将重点探讨该方法。<br><img src="https://img-blog.csdnimg.cn/20200503233111258.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="FlowRuleChecker#passClusterCheck"><br>代码@1：获取一个 TokenService 服务类。这里实现关键点：</p>
-<ul>
-<li>如果当前节点的角色为 CLIENT，返回的 TokenService 为 DefaultClusterTokenClient。</li>
-<li>如果当前节点的角色为 SERVER，返回的 TokenService 为 ClusterTokenServer，这里使用了SPI极致，可以通过查看 META-INF/services 目录下的 com.alibaba.csp.sentinel.cluster.TokenService 文件，默认服务端返回 DefaultTokenService。</li>
-</ul>
-<p>代码@2：如果无法获取到集群限流Token服务，如果该限流规则配置了可以退化为单机限流模式，则退化为单机限流。</p>
-<p>代码@3：获取集群限流的流程ID，该 flowId 全局唯一。</p>
-<p>代码@4：通过 TokenService 去申请 token，这里是与单机限流模式最大的差别。</p>
-<p>接下来将分别从 DefaultClusterTokenClient、DefaultTokenService 分别探究集群限流相关的实现原理与细节，更好的指导我们如何使用集群限流功能。</p>
-<h5 id="3-2-1-DefaultClusterTokenClient-详解"><a href="#3-2-1-DefaultClusterTokenClient-详解" class="headerlink" title="3.2.1 DefaultClusterTokenClient 详解"></a>3.2.1 DefaultClusterTokenClient 详解</h5><p>从我们的经验也得知，TokenClient 的主要职责就是发送请求到 TokenService 端，主要是网络相关的细节将不在此篇文章中给出，如果有兴趣，大家可以关注我的 Netty 专栏。</p>
-<p>首先 Sentinel 提供了 SPI 机制，故允许用户自定义 TokenClient 的实现类，官方与 SPI 默认配置的文件如下：<br><img src="https://img-blog.csdnimg.cn/2020050323322512.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br>关于 TokenClient 主要关注其初始化代码，因为我们需要关注一个非常重要的点：<br>DefaultClusterTokenClient#initNewConnection<br><img src="https://img-blog.csdnimg.cn/20200503233259244.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br>在客户端启动的时候会创建与 TokenServer 之间的链接，即这边需要配置服务端的 IP 与端口号，那如何配置呢？其实配置方式完全由自己去实现对应的解析器，下面根据官方的 Demo 示例如下：<br><img src="https://img-blog.csdnimg.cn/20200503233319545.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br>这里需要说明的其配置项由 ClusterGroupEntity 来定义，其字段的定义如下：</p>
-<ul>
-<li>clientSet<br>客户端 Set 集合。</li>
-<li>ip<br>Token 服务端的 IP。</li>
-<li>machinedId<br>Token 服务端的机器ID。</li>
-<li>port<br>Token 服务端的机器端口。</li>
-</ul>
-<p>其配置示例如下：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">[&#123;&quot;clientSet&quot;:[&quot;112.12.88.66@8729&quot;,&quot;112.12.88.67@8727&quot;],&quot;ip&quot;:&quot;112.12.88.68&quot;,&quot;machineId&quot;:&quot;112.12.88.68@8728&quot;,&quot;port&quot;:11111&#125;]</span><br></pre></td></tr></table></figure>
-
-<p>Client 端接下来就是向服务端发送请求，与网络相关的不在本文的讨论范围内，接下来将重点探讨服务端是如何发放许可的。</p>
-<h5 id="3-2-2-DefaultTokenService-详解"><a href="#3-2-2-DefaultTokenService-详解" class="headerlink" title="3.2.2 DefaultTokenService 详解"></a>3.2.2 DefaultTokenService 详解</h5><p>Token Server 端收到客户的请求，其处理入口为 FlowRequestProcessor，其处理方法为：processRequest，最终会调用 DefaultTokenService 的 requestToken 方法。<br>DefaultTokenService#requestToken<br><img src="https://img-blog.csdnimg.cn/20200503233418165.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br>代码@1：根据 ruleId 获取指定的限流规则。</p>
-<p>代码@2：然后调用 ClusterFlowChecker 的 acquierClusterToken 方法，申请许可。</p>
-<p>许可的发放流程主要由 ClusterFlowChecker 的 acquierClusterToken 方法实现。<br><img src="https://img-blog.csdnimg.cn/20200503233520315.png#pic_center" alt="在这里插入图片描述"><br>Step1：首先判断是否允许本次许可申请，这是因为 TokenServe 支持嵌入式，即支持在应用节点中嵌入一个 TokenServer，为了保证许可申请的请求不对正常业务造成比较大的影响，故对申请许可这个动作进行了限流。</p>
-<p>一旦触发了限流，将向客户端返回 TOO_MANY_REQUEST 状态码，Sentinel 支持按 namespace 进行限流，具体由 GlobalRequestLimiter 实现，该类的内部同样基于滑动窗口进行收集，原理与 FlowSlot 相似，故这里不加以展开，默认的限流TPS为3W，有关于 Sentinel 相关的配置，将在后续文章专门梳理。<br><img src="https://img-blog.csdnimg.cn/20200503233607726.png#pic_center" alt="在这里插入图片描述"><br>Step2：根据流程ID获取指标采集器。<br><img src="https://img-blog.csdnimg.cn/20200503233630847.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br>Step3：计算 latestQps、globalThreashold、 nextRemaining 三个阔值，三个的含义分别如下：</p>
-<ul>
-<li>latestQps<br>获取当前正常访问的QPS。</li>
-<li>globalThreashold<br>根据限流配置规则得出其总许可数量，其主要根据阔值的方式其有所不同，其配置阔值有两种方式：<br>1）FLOW_THRESHOLD_GLOBAL<br>总数，即集群中的许可等于限流规则中配置的 count 值。<br>2）FLOW_THRESHOLD_AVG_LOCAL<br>单机分摊模式，此时限流规则中配置的值只是单机的 count 值，集群中的许可数等于 count * 集群中客户端的个数。<br>注意：这里还可以通过 exceedCount 设置来运行超过其最大阔值，默认为1表示不允许超过。</li>
-<li>nextRemainging<br>表示处理完本次请求后剩余的许可数量。<br><img src="https://img-blog.csdnimg.cn/20200503233707407.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述">Step4：如果剩余的许可数大于0，则本次申请成功，将当前的调用计入指标采集器中，然后返回给客户即可。</li>
-</ul>
-<p>接下来所有流程步骤都是基于没有剩余许可数的处理逻辑。<br><img src="https://img-blog.csdnimg.cn/20200503233730680.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br>Step5：当前许可数不足的情况，并且该请求为高优先级的处理逻辑：</p>
-<ul>
-<li>获取当前等待的TPS（即1s为维度，当前等待的请求数量）</li>
-<li>如果当前等待的TPS低于可借用未来窗口的许可阔值时，可通过，但设置其等待时间，可以通过 maxOccupyRatio 来设置借用的最大比值。<br><img src="https://img-blog.csdnimg.cn/20200503233758997.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述">Step6：如果当前许可不足，并且该请求为普通优先级的处理逻辑，增加阻塞相关指标的统计数，并返回 BLOCKED。</li>
-</ul>
-<p>TokenServer 返回申请许可之后，那 Token Client 如何处理呢？其处理代码在 FlowRuleChecker#applyTokenResult<br><img src="https://img-blog.csdnimg.cn/20200503233827875.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br>我们可以发现，如果服务端返回OK，则顺利通过，返回BLOCKED，则直接返回 false，会抛出 FlowException，如果是 token 限流，如果规则运行退化为单机限流模式，则进行单机限流。</p>
-<p>集群限流的基本实现原理就介绍到这里了。</p>
-<h2 id="4、总结"><a href="#4、总结" class="headerlink" title="4、总结"></a>4、总结</h2><p>集群限流的基本原理接介绍到这里了，与单机限流模式最大的区别就是集群限流模式的需要引入 TokenService，提供许可的发放服务，该服务可以嵌入应用节点，也可以独立于应用之外。这边借用官方文档上的两张图来简单介绍一下嵌入模式与独立模式的架构：<br><img src="https://img-blog.csdnimg.cn/20200503233858200.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br><img src="https://img-blog.csdnimg.cn/20200503233858165.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>集群模式使用注意，如果使用的是集群模式限流，则如下两个配置则失效：<br><img src="https://img-blog.csdnimg.cn/20200503233920874.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br><strong>最后抛出一个思考题：集群模式应该算是高大上，但我们项目中真的需要吗？集群限流模式有哪些缺点、哪些优点，欢迎大家留言探讨。</strong></p>
-</div>
-
-			<script src="https://my.openwrite.cn/js/readmore.js" type="text/javascript"></script>
-			<script>
-			var isMobile = navigator.userAgent.match(/(phone|pad|pod|iPhone|iPod|ios|iPad|Android|Mobile|BlackBerry|IEMobile|MQQBrowser|JUC|Fennec|wOSBrowser|BrowserNG|WebOS|Symbian|Windows Phone)/i);
-			if (!isMobile) {
-			    var btw = new BTWPlugin();
-			    btw.init({
-			        "id": "vip-container",
-			        "blogId": "18019-1573088808868-542",
-			        "name": "中间件兴趣圈",
-			        "qrcode": "https://img-blog.csdnimg.cn/20190314214003962.jpg",
-			        "keyword": "more"
-			    });
-			}
-			</script>
-		
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://example.com/posts/a815ae71.html">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="中间件兴趣圈">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
                 <a class="post-title-link" href="/posts/a815ae71.html" itemprop="url">Sentinel 系统自适应限流原理剖析与实战指导</a></h1>
         
 
@@ -2600,7 +2541,7 @@
               
                 <a href="/archives/">
               
-                  <span class="site-state-item-count">115</span>
+                  <span class="site-state-item-count">116</span>
                   <span class="site-state-item-name">日志</span>
                 </a>
               </div>
@@ -2622,7 +2563,7 @@
               
               <div class="site-state-item site-state-tags">
                 <a href="/tags/index.html">
-                  <span class="site-state-item-count">183</span>
+                  <span class="site-state-item-count">184</span>
                   <span class="site-state-item-name">标签</span>
                 </a>
               </div>
@@ -2680,7 +2621,7 @@
     
       <span class="post-meta-item-text">Site words total count&#58;</span>
     
-    <span title="Site words total count">301.9k</span>
+    <span title="Site words total count">305.1k</span>
   
 </div>
 
