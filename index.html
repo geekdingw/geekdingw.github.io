@@ -432,78 +432,12 @@
       
         
           <p>本节将详细分析Netty事件传播机制，即事件链的实现机制。</p>
-<p>Netty4的事件链核心类如图所示：<br><img src="https://img-blog.csdnimg.cn/20201213215532749.jpg?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br>接下先详细介绍上述核心类的核心方法。<br>1、ChannelPipeline<br>“Channel流水线”，即Channel管道（事件处理链），其主要核心方法包括如下三类。<br><strong>添加类操作</strong></p>
+<p>本文重点的行文思路：</p>
 <ul>
-<li>ChannelPipeline addFirst(String name, ChannelHandler handler)</li>
-<li>ChannelPipeline addFirst(EventExecutorGroup group, String name, ChannelHandler handler)</li>
-<li>ChannelPipeline addFirst(ChannelHandler… handlers)</li>
-<li>ChannelPipeline addFirst(EventExecutorGroup group, ChannelHandler… handlers)</li>
-<li>ChannelPipeline addLast(String name, ChannelHandler handler)</li>
-<li>ChannelPipeline addBefore(String baseName, String name, ChannelHandler handler)</li>
-<li>ChannelPipeline addAfter(String baseName, String name, ChannelHandler handler)</li>
+<li>详解事件的触发事件</li>
+<li>事件传播机制</li>
+<li>思考题：在NIO中是通道是一定需要注册写事件才能通过该通道写数据吗？</li>
 </ul>
-<p>其中省略了addLast、addBefore、addAfter的其他重载方法，模式为addFirst类似。在这里着重讲解一下各个参数的含义。</p>
-<ul>
-<li>EventExecutorGroup group<br>ChannelHandler执行的线程组EventLoop，如果为空，则ChannelHandler在Channel所注册的EventLoop。</li>
-<li>String name<br>ChannelHandler的名称，DefaultChannelPipeline会避免因重名而修改ChannelHandler的名称。</li>
-</ul>
-<p><strong>ChannelHandler的增删改查</strong></p>
-<ul>
-<li>ChannelPipeline remove(ChannelHandler handler)<br>ChannelHandler removeFirst()<br>省略其他API，此类API其实能反映出ChannelPipeline内部是一个双链表结构。</li>
-</ul>
-<p><strong>入端(inbound)事件传播</strong></p>
-<ul>
-<li>ChannelPipeline fireChannelRegistered()</li>
-<li>ChannelPipeline fireChannelUnregistered()</li>
-<li>ChannelPipeline fireChannelActive()</li>
-<li>ChannelPipeline fireChannelInactive()</li>
-<li>ChannelPipeline fireExceptionCaught(Throwable cause)</li>
-<li>ChannelPipeline fireUserEventTriggered(Object event)</li>
-<li>ChannelPipeline fireChannelRead(Object msg)</li>
-<li>ChannelPipeline fireChannelReadComplete()</li>
-<li>ChannelPipeline fireChannelWritabilityChanged()<br>不难看出，此类API方法名 fire + ChannelInboundHandler 中的方法。特别注意的是fireChannelRead(Object msg)的参数为通过网络SocketChannel#read一次读取的字节数组（ByteBuf），跟随着事件处理器一步一步的处理。</li>
-</ul>
-<p><strong>出端(outbound)事件传播</strong></p>
-<ul>
-<li>ChannelFuture bind(SocketAddress localAddress)</li>
-<li>ChannelFuture connect(SocketAddress remoteAddress)</li>
-<li>ChannelFuture connect(SocketAddress remoteAddress, SocketAddress localAddress)</li>
-<li>ChannelFuture disconnect()</li>
-<li>ChannelFuture close()</li>
-<li>ChannelFuture deregister()</li>
-<li>ChannelFuture bind(SocketAddress localAddress, ChannelPromise promise)</li>
-<li>ChannelFuture connect(SocketAddress remoteAddress, ChannelPromise promise)</li>
-<li>ChannelFuture connect(SocketAddress remoteAddress, SocketAddress localAddress, ChannelPromise promise)</li>
-<li>ChannelFuture disconnect(ChannelPromise promise)</li>
-<li>ChannelFuture close(ChannelPromise promise)</li>
-<li>ChannelFuture deregister(ChannelPromise promise)</li>
-<li>ChannelPipeline read()</li>
-<li>ChannelFuture write(Object msg)</li>
-<li>ChannelFuture write(Object msg, ChannelPromise promise)</li>
-<li>ChannelPipeline flush()</li>
-<li>ChannelFuture writeAndFlush(Object msg, ChannelPromise promise)</li>
-<li>ChannelFuture writeAndFlush(Object msg)<br>不难看出，上述方法为ChannelOutboundHandler的方法。</li>
-</ul>
-<h2 id="2、DefaultChannelPipeline"><a href="#2、DefaultChannelPipeline" class="headerlink" title="2、DefaultChannelPipeline"></a>2、DefaultChannelPipeline</h2><p>ChannelPipeline的简单类图如下：<br><img src="https://img-blog.csdnimg.cn/20201213215634424.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br>结合head、taill与下面的构造函数可知DefaultChannelPipeline的结构是其双链表，其中head、tail为双链表的首尾节点，并且其引用不能更改，其中节点（Node）实现为AbstractChannelHandlerContext，其内部必然定义两个属性prev与next，分别代表前一个节点与下一个节点。</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">final</span> AbstractChannelHandlerContext head</span><br><span class="line"><span class="keyword">final</span> AbstractChannelHandlerContext tail</span><br><span class="line"><span class="keyword">private</span> <span class="keyword">final</span> Channel channel </span><br><span class="line"><span class="function"><span class="keyword">protected</span> <span class="title">DefaultChannelPipeline</span><span class="params">(Channel channel)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">this</span>.channel = ObjectUtil.checkNotNull(channel, <span class="string">&quot;channel&quot;</span>);</span><br><span class="line">        tail = <span class="keyword">new</span> TailContext(<span class="keyword">this</span>);</span><br><span class="line">        head = <span class="keyword">new</span> HeadContext(<span class="keyword">this</span>);</span><br><span class="line">        head.next = tail;</span><br><span class="line">        tail.prev = head;</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
-<p>从这里看一个Channel对应一个ChannelPipeline。</p>
-<h3 id="2-1-事件链构建"><a href="#2-1-事件链构建" class="headerlink" title="2.1 事件链构建"></a>2.1 事件链构建</h3><p>本节将以addFirst方法为例展示ChannelPipeline事件链的维护实现。<br>DefaultChannelPipeline#addFirst</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">final</span> ChannelPipeline <span class="title">addFirst</span><span class="params">(String name, ChannelHandler handler)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> addFirst(<span class="keyword">null</span>, name, handler);</span><br><span class="line"> &#125;</span><br></pre></td></tr></table></figure>
-<p>内部调用其重载方法。接下来重点分析该方法</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">final</span> ChannelPipeline <span class="title">addFirst</span><span class="params">(EventExecutorGroup group, String name, ChannelHandler handler)</span> </span>&#123;     <span class="comment">// @1</span></span><br><span class="line">        <span class="keyword">final</span> AbstractChannelHandlerContext newCtx;</span><br><span class="line">        <span class="keyword">synchronized</span> (<span class="keyword">this</span>) &#123;</span><br><span class="line">            checkMultiplicity(handler);                                                                                                                        <span class="comment">// @2</span></span><br><span class="line">            name = filterName(name, handler);</span><br><span class="line">            newCtx = newContext(group, name, handler);                                                                                         <span class="comment">// @3</span></span><br><span class="line">            addFirst0(newCtx);                                                                                                                                   <span class="comment">// @4                                   </span></span><br><span class="line">            <span class="comment">// If the registered is false it means that the channel was not registered on an eventloop yet.</span></span><br><span class="line">            <span class="comment">// In this case we add the context to the pipeline and add a task that will call</span></span><br><span class="line">            <span class="comment">// ChannelHandler.handlerAdded(...) once the channel is registered.</span></span><br><span class="line">            <span class="keyword">if</span> (!registered) &#123;                                                                                                                                        <span class="comment">// @5</span></span><br><span class="line">                newCtx.setAddPending();</span><br><span class="line">                callHandlerCallbackLater(newCtx, <span class="keyword">true</span>);</span><br><span class="line">                <span class="keyword">return</span> <span class="keyword">this</span>;</span><br><span class="line">            &#125;</span><br><span class="line">            EventExecutor executor = newCtx.executor();</span><br><span class="line">            <span class="keyword">if</span> (!executor.inEventLoop()) &#123;                                                                                                                  <span class="comment">// @6</span></span><br><span class="line">                newCtx.setAddPending();</span><br><span class="line">                executor.execute(<span class="keyword">new</span> Runnable() &#123;</span><br><span class="line">                    <span class="meta">@Override</span></span><br><span class="line">                    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">run</span><span class="params">()</span> </span>&#123;</span><br><span class="line">                        callHandlerAdded0(newCtx);</span><br><span class="line">                    &#125;</span><br><span class="line">                &#125;);</span><br><span class="line">                <span class="keyword">return</span> <span class="keyword">this</span>;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        callHandlerAdded0(newCtx);                                                                                                                    <span class="comment">// @7</span></span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">this</span>;</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
-<p>代码@1：首先对参数简单说明一下：</p>
-<ul>
-<li>EventExecutorGroup group：指定ChannelHandler在哪个事件选择器中执行(EventLoopGroup)，如果为空，表示在Channel注册的事件轮询器中执行。</li>
-<li>String name：ChannelHandler名称。</li>
-<li>ChannelHandler channelHandler：待添加的事件处理器。</li>
-</ul>
-<p>代码@2：检查是否重复添加，声明为Shareable的ChannelHandler允许重复添加。</p>
-<p>代码@3：使用AbstractChannelHandlerContext类包装ChannelHandler，即双链表结构的Node类为AbstractChannelHandlerContext。</p>
-<p>代码@4：将AbstractChannelHandlerContext调用addFirst0添加到双链表的“第一条”，其实是添加到双链表头结点(HeaderContext)的next值执行该节点。</p>
-<p>代码@5-代码@7都是处理handerAdd事件，如果通道还未注册，handerAdd事件会“挂起”，也就是需要等待通道被注册后才执行，其实现思路也是构建PendingHandlerCallback链，DefaultChannelPipeline内部持有该链的头节点，待通道注册后，顺序触发handlerAdd事件的传播。</p>
-<p>接下来看一下addFirst0的执行：</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">addFirst0</span><span class="params">(AbstractChannelHandlerContext newCtx)</span> </span>&#123;</span><br><span class="line">        AbstractChannelHandlerContext nextCtx = head.next;    </span><br><span class="line">        newCtx.prev = head;                                                        </span><br><span class="line">        newCtx.next = nextCtx;                                                  </span><br><span class="line">        head.next = newCtx;                                                       </span><br><span class="line">        nextCtx.prev = newCtx;</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
-<p>这里就是典型的链表操作过程。<br>如果使用如下代码构建事件链，那事件是如何传播的呢？<br>p.addLast(“1”, new InboundHandlerA());<br>p.addLast(“2”, new InboundHandlerB());<br>p.addLast(“3”, new OutboundHandlerA());<br>p.addLast(“4”, new OutboundHandlerB());<br>p.addLast(“5”, new InboundOutboundHandlerX());<br>其构建的事件链最终如图所示：<br><img src="https://img-blog.csdnimg.cn/20201213215730318.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br>但ChannelInboundHandler中的事件是如何传播的呢？ChannelOutboundHandler的事件又是如何传播的呢？</p>
           <!--noindex-->
           <div class="post-button text-center">
             <a class="btn" href="/posts/be152999.html#more" rel="contents">

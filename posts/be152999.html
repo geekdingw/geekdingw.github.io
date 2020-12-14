@@ -81,12 +81,12 @@
 
 
 
-<meta name="description" content="本节将详细分析Netty事件传播机制，即事件链的实现机制。 Netty4的事件链核心类如图所示：接下先详细介绍上述核心类的核心方法。1、ChannelPipeline“Channel流水线”，即Channel管道（事件处理链），其主要核心方法包括如下三类。添加类操作  ChannelPipeline addFirst(String name, ChannelHandler handler) Cha">
+<meta name="description" content="本节将详细分析Netty事件传播机制，即事件链的实现机制。 本文重点的行文思路：  详解事件的触发事件 事件传播机制 思考题：在NIO中是通道是一定需要注册写事件才能通过该通道写数据吗？">
 <meta property="og:type" content="article">
 <meta property="og:title" content="Netty4 事件处理传播机制">
 <meta property="og:url" content="http://example.com/posts/be152999.html">
 <meta property="og:site_name" content="中间件兴趣圈">
-<meta property="og:description" content="本节将详细分析Netty事件传播机制，即事件链的实现机制。 Netty4的事件链核心类如图所示：接下先详细介绍上述核心类的核心方法。1、ChannelPipeline“Channel流水线”，即Channel管道（事件处理链），其主要核心方法包括如下三类。添加类操作  ChannelPipeline addFirst(String name, ChannelHandler handler) Cha">
+<meta property="og:description" content="本节将详细分析Netty事件传播机制，即事件链的实现机制。 本文重点的行文思路：  详解事件的触发事件 事件传播机制 思考题：在NIO中是通道是一定需要注册写事件才能通过该通道写数据吗？">
 <meta property="og:locale">
 <meta property="og:image" content="https://img-blog.csdnimg.cn/20201213215532749.jpg?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center">
 <meta property="og:image" content="https://img-blog.csdnimg.cn/20201213215634424.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center">
@@ -95,7 +95,7 @@
 <meta property="og:image" content="https://img-blog.csdnimg.cn/20201213215906969.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center">
 <meta property="og:image" content="https://img-blog.csdnimg.cn/20201213215946585.jpg?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center">
 <meta property="article:published_time" content="2020-12-13T14:11:01.000Z">
-<meta property="article:modified_time" content="2020-12-13T14:13:26.350Z">
+<meta property="article:modified_time" content="2020-12-14T15:12:09.699Z">
 <meta property="article:author" content="中间件兴趣圈">
 <meta property="article:tag" content="netty4">
 <meta property="article:tag" content="事件传播">
@@ -444,6 +444,14 @@
 
       
         <div id="vip-container"><p>本节将详细分析Netty事件传播机制，即事件链的实现机制。</p>
+<p>本文重点的行文思路：</p>
+<ul>
+<li>详解事件的触发事件</li>
+<li>事件传播机制</li>
+<li>思考题：在NIO中是通道是一定需要注册写事件才能通过该通道写数据吗？</li>
+</ul>
+<a id="more"></a>
+
 <p>Netty4的事件链核心类如图所示：<br><img src="https://img-blog.csdnimg.cn/20201213215532749.jpg?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br>接下先详细介绍上述核心类的核心方法。<br>1、ChannelPipeline<br>“Channel流水线”，即Channel管道（事件处理链），其主要核心方法包括如下三类。<br><strong>添加类操作</strong></p>
 <ul>
 <li>ChannelPipeline addFirst(String name, ChannelHandler handler)</li>
@@ -516,8 +524,6 @@
 <p>接下来看一下addFirst0的执行：</p>
 <figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">addFirst0</span><span class="params">(AbstractChannelHandlerContext newCtx)</span> </span>&#123;</span><br><span class="line">        AbstractChannelHandlerContext nextCtx = head.next;    </span><br><span class="line">        newCtx.prev = head;                                                        </span><br><span class="line">        newCtx.next = nextCtx;                                                  </span><br><span class="line">        head.next = newCtx;                                                       </span><br><span class="line">        nextCtx.prev = newCtx;</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
 <p>这里就是典型的链表操作过程。<br>如果使用如下代码构建事件链，那事件是如何传播的呢？<br>p.addLast(“1”, new InboundHandlerA());<br>p.addLast(“2”, new InboundHandlerB());<br>p.addLast(“3”, new OutboundHandlerA());<br>p.addLast(“4”, new OutboundHandlerB());<br>p.addLast(“5”, new InboundOutboundHandlerX());<br>其构建的事件链最终如图所示：<br><img src="https://img-blog.csdnimg.cn/20201213215730318.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br>但ChannelInboundHandler中的事件是如何传播的呢？ChannelOutboundHandler的事件又是如何传播的呢？</p>
-<a id="more"></a>
-
 <p>事件链中的节点对象为AbstractChannelHandlerContext，其类图如下：</p>
 <p><img src="https://img-blog.csdnimg.cn/2020121321581174.jpg?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"></p>
 <ul>

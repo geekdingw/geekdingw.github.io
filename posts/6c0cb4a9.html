@@ -92,7 +92,7 @@
 <meta property="og:image" content="https://img-blog.csdnimg.cn/20200329155338150.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center">
 <meta property="og:image" content="https://img-blog.csdnimg.cn/20200329155751536.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center">
 <meta property="article:published_time" content="2020-12-08T14:53:35.000Z">
-<meta property="article:modified_time" content="2020-12-11T14:28:59.961Z">
+<meta property="article:modified_time" content="2020-12-14T15:09:14.174Z">
 <meta property="article:author" content="中间件兴趣圈">
 <meta property="article:tag" content="sentinel">
 <meta property="article:tag" content="源码">
@@ -453,6 +453,8 @@
 <li>TimeUnit unit<br>warmupPeriod 的时间单位。</li>
 </ul>
 <p>代码@2：调用内部的重载方法创建 SmoothWarmingUp 。</p>
+<a id="more"></a>
+
 <p>RateLimiter#create</p>
 <figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> RateLimiter <span class="title">create</span><span class="params">( SleepingStopwatch stopwatch, <span class="keyword">double</span> permitsPerSecond, <span class="keyword">long</span> warmupPeriod, TimeUnit unit, <span class="keyword">double</span> coldFactor)</span> </span>&#123;</span><br><span class="line">    RateLimiter rateLimiter = <span class="keyword">new</span> SmoothWarmingUp(stopwatch, warmupPeriod, unit, coldFactor);  <span class="comment">// @1</span></span><br><span class="line">    rateLimiter.setRate(permitsPerSecond); <span class="comment">// @2</span></span><br><span class="line">    <span class="keyword">return</span> rateLimiter;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 <p>创建 SmoothWarmingUp 两个主要步骤分别是调用其构造方法首先创建 SmoothWarmingUp 实例，然后调用其 setRate 方法进行初始化速率。这里先突出 coldFactor，默认为 3.0，该属性的作用将在下文详细介绍。</p>
@@ -472,8 +474,6 @@
 <p>SmoothWarmingUp#coolDownIntervalMicros</p>
 <figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">double</span> <span class="title">coolDownIntervalMicros</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> warmupPeriodMicros / maxPermits;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 <p>这个方法的实现其实简单，用生成这些许可的总时间除以现在已经生成的许可数，即可得到当前时间点平均一个许可的生成时间。</p>
-<a id="more"></a>
-
 <ol>
 <li><p>接下来重点探讨 SmoothWarmingUp 的 doSetRate 方法。<br>为了方便理解 SmoothWarmingUp doSetRate 方法，我根据 SmoothWarmingUp 类的注释，结合代码，给出如下示例图：<br><img src="https://img-blog.csdnimg.cn/20200329155338150.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br>首先我们先来根据 SmoothWarmingUp 的相关注释来理解一下上述这张图的几个要点。</p>
 <ul>
