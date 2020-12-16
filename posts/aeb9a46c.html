@@ -68,7 +68,7 @@
 
 
 
-  <meta name="keywords" content="canal,数据异构,dump,binlog," />
+  <meta name="keywords" content="canal,数据异构,binlog,dump," />
 
 
 
@@ -84,7 +84,7 @@
 <meta name="description" content="Canal 的 dump 支持串行和并行模式两种模式，本篇重点梳理 dump 的核心流程，以便对 dump 过程有一个充分的了解，更好的理解 Canal 的实现原理与细节，下一篇中将重点关注Canal是如何引入并行模式来提高dump的性能，即并行编程相关的技巧。 从前面的文章我们得知 Canal binlog 日志解析的基本流程如下图所示：解析来重点梳理一下 dump 命令的发送逻辑，特别是日志的">
 <meta property="og:type" content="article">
 <meta property="og:title" content="Canal binlog 日志 Dump 流程分析">
-<meta property="og:url" content="http://example.com/posts/aeb9a46c.html">
+<meta property="og:url" content="https://albenw.github.io/posts/aeb9a46c.html">
 <meta property="og:site_name" content="中间件兴趣圈">
 <meta property="og:description" content="Canal 的 dump 支持串行和并行模式两种模式，本篇重点梳理 dump 的核心流程，以便对 dump 过程有一个充分的了解，更好的理解 Canal 的实现原理与细节，下一篇中将重点关注Canal是如何引入并行模式来提高dump的性能，即并行编程相关的技巧。 从前面的文章我们得知 Canal binlog 日志解析的基本流程如下图所示：解析来重点梳理一下 dump 命令的发送逻辑，特别是日志的">
 <meta property="og:locale">
@@ -113,8 +113,8 @@
 <meta property="article:author" content="中间件兴趣圈">
 <meta property="article:tag" content="canal">
 <meta property="article:tag" content="数据异构">
-<meta property="article:tag" content="dump">
 <meta property="article:tag" content="binlog">
+<meta property="article:tag" content="dump">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:image" content="https://img-blog.csdnimg.cn/20200809175601739.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center">
 
@@ -146,7 +146,7 @@
 
 
 
-  <link rel="canonical" href="http://example.com/posts/aeb9a46c.html"/>
+  <link rel="canonical" href="https://albenw.github.io/posts/aeb9a46c.html"/>
 
 
 
@@ -313,7 +313,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://example.com/posts/aeb9a46c.html">
+    <link itemprop="mainEntityOfPage" href="https://albenw.github.io/posts/aeb9a46c.html">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="">
@@ -568,9 +568,9 @@
           
             <a href="/tags/%E6%95%B0%E6%8D%AE%E5%BC%82%E6%9E%84/" rel="tag"># 数据异构</a>
           
-            <a href="/tags/dump/" rel="tag"># dump</a>
-          
             <a href="/tags/binlog/" rel="tag"># binlog</a>
+          
+            <a href="/tags/dump/" rel="tag"># dump</a>
           
         </div>
       
@@ -675,7 +675,7 @@
               
                 <a href="/archives/">
               
-                  <span class="site-state-item-count">116</span>
+                  <span class="site-state-item-count">117</span>
                   <span class="site-state-item-name">日志</span>
                 </a>
               </div>
@@ -771,7 +771,7 @@
     
       <span class="post-meta-item-text">Site words total count&#58;</span>
     
-    <span title="Site words total count">305.1k</span>
+    <span title="Site words total count">305.2k</span>
   
 </div>
 
