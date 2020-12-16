@@ -68,7 +68,7 @@
 
 
 
-  <meta name="keywords" content="rocketmq,主从同步,多副本,raft,源码阅读," />
+  <meta name="keywords" content="rocketmq,多副本,主从同步,raft,源码阅读," />
 
 
 
@@ -84,7 +84,7 @@
 <meta name="description" content="源码分析 RocketMQ DLedger 多副本系列已经进行到第 8 篇了，前面的章节主要是介绍了基于 raft  协议的选主与日志复制，从本篇开始将开始关注如何将 DLedger 应用到 RocketMQ中。 摘要：详细分析了RocketMQ DLedger 多副本(主从切换) 是如何整合到 RocketMQ中，本文的行文思路首先结合已掌握的DLedger 多副本相关的知识初步思考其实现思路，">
 <meta property="og:type" content="article">
 <meta property="og:title" content="RocketMQ 整合 DLedger(多副本)即主从切换实现平滑升级的设计技巧">
-<meta property="og:url" content="https://albenw.github.io/posts/ab1a7b9b.html">
+<meta property="og:url" content="https://geekdingw.github.io/posts/ab1a7b9b.html">
 <meta property="og:site_name" content="中间件兴趣圈">
 <meta property="og:description" content="源码分析 RocketMQ DLedger 多副本系列已经进行到第 8 篇了，前面的章节主要是介绍了基于 raft  协议的选主与日志复制，从本篇开始将开始关注如何将 DLedger 应用到 RocketMQ中。 摘要：详细分析了RocketMQ DLedger 多副本(主从切换) 是如何整合到 RocketMQ中，本文的行文思路首先结合已掌握的DLedger 多副本相关的知识初步思考其实现思路，">
 <meta property="og:locale">
@@ -98,8 +98,8 @@
 <meta property="article:modified_time" content="2020-12-11T04:38:09.534Z">
 <meta property="article:author" content="中间件兴趣圈">
 <meta property="article:tag" content="rocketmq">
-<meta property="article:tag" content="主从同步">
 <meta property="article:tag" content="多副本">
+<meta property="article:tag" content="主从同步">
 <meta property="article:tag" content="raft">
 <meta property="article:tag" content="源码阅读">
 <meta name="twitter:card" content="summary">
@@ -133,7 +133,7 @@
 
 
 
-  <link rel="canonical" href="https://albenw.github.io/posts/ab1a7b9b.html"/>
+  <link rel="canonical" href="https://geekdingw.github.io/posts/ab1a7b9b.html"/>
 
 
 
@@ -300,7 +300,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="https://albenw.github.io/posts/ab1a7b9b.html">
+    <link itemprop="mainEntityOfPage" href="https://geekdingw.github.io/posts/ab1a7b9b.html">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="">
@@ -595,9 +595,9 @@
           
             <a href="/tags/rocketmq/" rel="tag"># rocketmq</a>
           
-            <a href="/tags/%E4%B8%BB%E4%BB%8E%E5%90%8C%E6%AD%A5/" rel="tag"># 主从同步</a>
-          
             <a href="/tags/%E5%A4%9A%E5%89%AF%E6%9C%AC/" rel="tag"># 多副本</a>
+          
+            <a href="/tags/%E4%B8%BB%E4%BB%8E%E5%90%8C%E6%AD%A5/" rel="tag"># 主从同步</a>
           
             <a href="/tags/raft/" rel="tag"># raft</a>
           

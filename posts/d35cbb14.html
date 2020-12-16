@@ -84,7 +84,7 @@
 <meta name="description" content="根据 raft 协议可知，当整个集群完成 Leader 选主后，集群中的主节点就可以接受客户端的请求，而集群中的从节点只负责从主节点同步数据，而不会处理读写请求，与M-S结构的读写分离有着巨大的区别。 有了前篇文章的基础，本文将直接从 Leader 处理客户端请求入口开始，其入口为：DLedgerServer 的 handleAppend 方法开始讲起。 1、日志复制基本流程在正式分析 Rocke">
 <meta property="og:type" content="article">
 <meta property="og:title" content="源码分析 RocketMQ DLedger(多副本) 之日志追加流程">
-<meta property="og:url" content="https://albenw.github.io/posts/d35cbb14.html">
+<meta property="og:url" content="https://geekdingw.github.io/posts/d35cbb14.html">
 <meta property="og:site_name" content="中间件兴趣圈">
 <meta property="og:description" content="根据 raft 协议可知，当整个集群完成 Leader 选主后，集群中的主节点就可以接受客户端的请求，而集群中的从节点只负责从主节点同步数据，而不会处理读写请求，与M-S结构的读写分离有着巨大的区别。 有了前篇文章的基础，本文将直接从 Leader 处理客户端请求入口开始，其入口为：DLedgerServer 的 handleAppend 方法开始讲起。 1、日志复制基本流程在正式分析 Rocke">
 <meta property="og:locale">
@@ -127,7 +127,7 @@
 
 
 
-  <link rel="canonical" href="https://albenw.github.io/posts/d35cbb14.html"/>
+  <link rel="canonical" href="https://geekdingw.github.io/posts/d35cbb14.html"/>
 
 
 
@@ -294,7 +294,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="https://albenw.github.io/posts/d35cbb14.html">
+    <link itemprop="mainEntityOfPage" href="https://geekdingw.github.io/posts/d35cbb14.html">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="">

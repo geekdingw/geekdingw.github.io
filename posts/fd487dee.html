@@ -68,7 +68,7 @@
 
 
 
-  <meta name="keywords" content="dubbo,源码,invoker," />
+  <meta name="keywords" content="源码,dubbo,invoker," />
 
 
 
@@ -84,7 +84,7 @@
 <meta name="description" content="本文将重点剖析服务调用流程，也就是消费端通过网络发起RPC服务调用时，服务提供者是如何进行服务请求响应的。 1、源码分析Dubbo服务调用流程了解过Netty网络编程的童鞋们应该知道，netty的命令处理基于ChannelHandler（事件处理链），编码、网络传输、解码、处理等，下面是关于NettyServer的初始化过程，该部分在《源码分析Dubbo网络通信篇NettyServer、Heade">
 <meta property="og:type" content="article">
 <meta property="og:title" content="源码分析Dubbo服务调用-服务提供者如何处理请求命令与再谈Invoker">
-<meta property="og:url" content="https://albenw.github.io/posts/fd487dee.html">
+<meta property="og:url" content="https://geekdingw.github.io/posts/fd487dee.html">
 <meta property="og:site_name" content="中间件兴趣圈">
 <meta property="og:description" content="本文将重点剖析服务调用流程，也就是消费端通过网络发起RPC服务调用时，服务提供者是如何进行服务请求响应的。 1、源码分析Dubbo服务调用流程了解过Netty网络编程的童鞋们应该知道，netty的命令处理基于ChannelHandler（事件处理链），编码、网络传输、解码、处理等，下面是关于NettyServer的初始化过程，该部分在《源码分析Dubbo网络通信篇NettyServer、Heade">
 <meta property="og:locale">
@@ -93,8 +93,8 @@
 <meta property="article:published_time" content="2020-12-13T11:05:01.000Z">
 <meta property="article:modified_time" content="2020-12-13T13:50:25.638Z">
 <meta property="article:author" content="中间件兴趣圈">
-<meta property="article:tag" content="dubbo">
 <meta property="article:tag" content="源码">
+<meta property="article:tag" content="dubbo">
 <meta property="article:tag" content="invoker">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:image" content="https://img-blog.csdn.net/20180821120924239?watermark/2/text/aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70">
@@ -127,7 +127,7 @@
 
 
 
-  <link rel="canonical" href="https://albenw.github.io/posts/fd487dee.html"/>
+  <link rel="canonical" href="https://geekdingw.github.io/posts/fd487dee.html"/>
 
 
 
@@ -294,7 +294,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="https://albenw.github.io/posts/fd487dee.html">
+    <link itemprop="mainEntityOfPage" href="https://geekdingw.github.io/posts/fd487dee.html">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="">
@@ -509,9 +509,9 @@
       
         <div class="post-tags">
           
-            <a href="/tags/dubbo/" rel="tag"># dubbo</a>
-          
             <a href="/tags/%E6%BA%90%E7%A0%81/" rel="tag"># 源码</a>
+          
+            <a href="/tags/dubbo/" rel="tag"># dubbo</a>
           
             <a href="/tags/invoker/" rel="tag"># invoker</a>
           

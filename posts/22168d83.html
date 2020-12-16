@@ -84,7 +84,7 @@
 <meta name="description" content="本文将详细介绍 ReentrantLock 的实现原理。 在进入源码分析之前，我先提出如下观点：希望大家纠正与讨论：  如果一个节点的状态设置为Node.SIGNAL,则说明它有后继节点，并处于阻塞状态。 ReentantLock的head节点，如果不为空，在该节点代表的线程为锁的占有者。这是对CLH算法的改进之处。众所周知，CLH算法的head节点为假节点，不代表任何线程。 ReentantLo">
 <meta property="og:type" content="article">
 <meta property="og:title" content="java并发锁ReentrantLock源码分析一 可重入支持中断锁的实现原理">
-<meta property="og:url" content="https://albenw.github.io/posts/22168d83.html">
+<meta property="og:url" content="https://geekdingw.github.io/posts/22168d83.html">
 <meta property="og:site_name" content="中间件兴趣圈">
 <meta property="og:description" content="本文将详细介绍 ReentrantLock 的实现原理。 在进入源码分析之前，我先提出如下观点：希望大家纠正与讨论：  如果一个节点的状态设置为Node.SIGNAL,则说明它有后继节点，并处于阻塞状态。 ReentantLock的head节点，如果不为空，在该节点代表的线程为锁的占有者。这是对CLH算法的改进之处。众所周知，CLH算法的head节点为假节点，不代表任何线程。 ReentantLo">
 <meta property="og:locale">
@@ -132,7 +132,7 @@
 
 
 
-  <link rel="canonical" href="https://albenw.github.io/posts/22168d83.html"/>
+  <link rel="canonical" href="https://geekdingw.github.io/posts/22168d83.html"/>
 
 
 
@@ -299,7 +299,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="https://albenw.github.io/posts/22168d83.html">
+    <link itemprop="mainEntityOfPage" href="https://geekdingw.github.io/posts/22168d83.html">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="">

@@ -84,7 +84,7 @@
 <meta name="description" content="DLedger 基于 raft 协议，故天然支持主从切换，即主节点(Leader)发生故障，会重新触发选主，在集群内再选举出新的主节点。 RocketMQ 中主从同步，从节点不仅会从主节点同步数据，也会同步元数据，包含 topic 路由信息、消费进度、延迟队列处理队列、消费组订阅配置等信息。那主从切换后元数据如何同步呢？特别是主从切换过程中，对消息消费有多大的影响，会丢失消息吗？  温馨提示：本文">
 <meta property="og:type" content="article">
 <meta property="og:title" content="源码分析 RocketMQ DLedger 多副本即主从切换实现原理">
-<meta property="og:url" content="https://albenw.github.io/posts/433e34a1.html">
+<meta property="og:url" content="https://geekdingw.github.io/posts/433e34a1.html">
 <meta property="og:site_name" content="中间件兴趣圈">
 <meta property="og:description" content="DLedger 基于 raft 协议，故天然支持主从切换，即主节点(Leader)发生故障，会重新触发选主，在集群内再选举出新的主节点。 RocketMQ 中主从同步，从节点不仅会从主节点同步数据，也会同步元数据，包含 topic 路由信息、消费进度、延迟队列处理队列、消费组订阅配置等信息。那主从切换后元数据如何同步呢？特别是主从切换过程中，对消息消费有多大的影响，会丢失消息吗？  温馨提示：本文">
 <meta property="og:locale">
@@ -132,7 +132,7 @@
 
 
 
-  <link rel="canonical" href="https://albenw.github.io/posts/433e34a1.html"/>
+  <link rel="canonical" href="https://geekdingw.github.io/posts/433e34a1.html"/>
 
 
 
@@ -299,7 +299,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="https://albenw.github.io/posts/433e34a1.html">
+    <link itemprop="mainEntityOfPage" href="https://geekdingw.github.io/posts/433e34a1.html">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="">
