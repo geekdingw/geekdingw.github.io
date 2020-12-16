@@ -1439,96 +1439,6 @@
       </tags>
   </entry>
   <entry>
-    <title>RocketMQ 升级到主从切换(DLedger、多副本)实战</title>
-    <url>/posts/e0ec5d91.html</url>
-    <content><![CDATA[<div id="vip-container"><p>本文主要介绍如何将 RocketMQ 集群从原先的主从同步升级到主从切换。</p>
-<p>首先先介绍与 DLedger 多副本即 RocketMQ 主从切换相关的核心配置属性，然后尝试搭建一个主从同步集群，再从原先的 RocketMQ 集群平滑升级到 DLedger 集群的示例，并简单测试一下主从切换功能。</p>
-<h2 id="1、RocketMQ-DLedger-多副本即主从切换核心配置参数详解"><a href="#1、RocketMQ-DLedger-多副本即主从切换核心配置参数详解" class="headerlink" title="1、RocketMQ DLedger 多副本即主从切换核心配置参数详解"></a>1、RocketMQ DLedger 多副本即主从切换核心配置参数详解</h2><p>其主要的配置参数如下所示：</p>
-<ul>
-<li>enableDLegerCommitLog<br>是否启用 DLedger，即是否启用 RocketMQ 主从切换，默认值为 false。如果需要开启主从切换，则该值需要设置为 true 。</li>
-<li>dLegerGroup<br>节点所属的 raft 组，建议与 brokerName 保持一致，例如 broker-a。</li>
-<li>dLegerPeers<br>集群节点信息，示例配置如下：n0-127.0.0.1:40911;n1-127.0.0.1:40912;n2-127.0.0.1:40913，多个节点用英文冒号隔开，单个条目遵循   legerSlefId-ip:端口，这里的端口用作 dledger 内部通信。</li>
-<li>dLegerSelfId<br>当前节点id。取自 legerPeers 中条目的开头，即上述示例中的 n0，并且特别需要强调，只能第一个字符为英文，其他字符需要配置成数字。</li>
-<li>storePathRootDir<br>DLedger 日志文件的存储根目录，为了能够支持平滑升级，该值与 storePathCommitLog 设置为不同的目录。</li>
-</ul>
-<h2 id="2、搭建主从同步环境"><a href="#2、搭建主从同步环境" class="headerlink" title="2、搭建主从同步环境"></a>2、搭建主从同步环境</h2><p>首先先搭建一个传统意义上的主从同步架构，往集群中灌一定量的数据，然后升级到 DLedger 集群。</p>
-<p>在 Linux 服务器上搭建一个 rocketmq 主从同步集群我想不是一件很难的事情，故本文就不会详细介绍按照过程，只贴出相关配置。</p>
-<p>实验环境的部署结构采取 一主一次，其部署图如下：<br><img src="https://img-blog.csdnimg.cn/20191013142340811.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>下面我就重点贴一下 broker 的配置文件。<br>220 上的 broker 配置文件如下：</p>
-<figure class="highlight js"><table><tr><td class="code"><pre><span class="line">brokerClusterName = DefaultCluster</span><br><span class="line">brokerName = broker-a</span><br><span class="line">brokerId = <span class="number">0</span></span><br><span class="line">deleteWhen = <span class="number">04</span></span><br><span class="line">fileReservedTime = <span class="number">48</span></span><br><span class="line">brokerRole = ASYNC_MASTER</span><br><span class="line">flushDiskType = ASYNC_FLUSH</span><br><span class="line">brokerIP1=<span class="number">192.168</span><span class="number">.0</span><span class="number">.220</span></span><br><span class="line">brokerIP2=<span class="number">192.168</span><span class="number">.0</span><span class="number">.220</span></span><br><span class="line">namesrvAddr=<span class="number">192.168</span><span class="number">.0</span><span class="number">.221</span>:<span class="number">9876</span>;<span class="number">192.168</span><span class="number">.0</span><span class="number">.220</span>:<span class="number">9876</span></span><br><span class="line">storePathRootDir=<span class="regexp">/opt/</span>application/rocketmq-all-<span class="number">4.5</span><span class="number">.2</span>-bin-release/store</span><br><span class="line">storePathCommitLog=<span class="regexp">/opt/</span>application/rocketmq-all-<span class="number">4.5</span><span class="number">.2</span>-bin-release/store/commitlog</span><br><span class="line">autoCreateTopicEnable=<span class="literal">false</span></span><br><span class="line">autoCreateSubscriptionGroup=<span class="literal">false</span></span><br></pre></td></tr></table></figure>
-<p>221 上 broker 的配置文件如下：</p>
-<figure class="highlight js"><table><tr><td class="code"><pre><span class="line">brokerClusterName = DefaultCluster</span><br><span class="line">brokerName = broker-a</span><br><span class="line">brokerId = <span class="number">1</span></span><br><span class="line">deleteWhen = <span class="number">04</span></span><br><span class="line">fileReservedTime = <span class="number">48</span></span><br><span class="line">brokerRole = SLAVE</span><br><span class="line">flushDiskType = ASYNC_FLUSH</span><br><span class="line">brokerIP1=<span class="number">192.168</span><span class="number">.0</span><span class="number">.221</span></span><br><span class="line">brokerIP2=<span class="number">192.168</span><span class="number">.0</span><span class="number">.221</span></span><br><span class="line">namesrvAddr=<span class="number">192.168</span><span class="number">.0</span><span class="number">.221</span>:<span class="number">9876</span>;<span class="number">192.168</span><span class="number">.0</span><span class="number">.220</span>:<span class="number">9876</span></span><br><span class="line">storePathRootDir=<span class="regexp">/opt/</span>application/rocketmq-all-<span class="number">4.5</span><span class="number">.2</span>-bin-release/store</span><br><span class="line">storePathCommitLog=<span class="regexp">/opt/</span>application/rocketmq-all-<span class="number">4.5</span><span class="number">.2</span>-bin-release/store/commitlog</span><br><span class="line">autoCreateTopicEnable=<span class="literal">false</span></span><br><span class="line">autoCreateSubscriptionGroup=<span class="literal">false</span></span><br></pre></td></tr></table></figure>
-<p>相关的启动命令如下：</p>
-<figure class="highlight js"><table><tr><td class="code"><pre><span class="line">nohup bin/mqnamesrv  /dev/<span class="literal">null</span>  <span class="number">2</span>&gt;&amp;<span class="number">1</span> &amp;</span><br><span class="line">nohup bin/mqbroker -c conf/broker.conf  /dev/<span class="literal">null</span>  <span class="number">2</span>&gt;&amp;<span class="number">1</span> &amp;</span><br></pre></td></tr></table></figure>
-<p>安装后的集群信息如图所示：<br><img src="https://img-blog.csdnimg.cn/20191013142514649.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"></p>
-<h2 id="3、主从同步集群升级到DLedger"><a href="#3、主从同步集群升级到DLedger" class="headerlink" title="3、主从同步集群升级到DLedger"></a>3、主从同步集群升级到DLedger</h2><h3 id="3-1-部署架构"><a href="#3-1-部署架构" class="headerlink" title="3.1 部署架构"></a>3.1 部署架构</h3><p>DLedger 集群至少需要3台机器，故搭建 DLedger 还需要再引入一台机器，其部署结构图如下：</p>
-<a id="more"></a>
-
-<p><img src="https://img-blog.csdnimg.cn/20191013142635780.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>从主从同步集群升级到 DLedger 集群，用户最关心的还是升级后的集群是否能够兼容原先的数据，即原先存储在消息能否能被消息消费者消费端，甚至于能否查询到。<br>为了方便后续验证，首先我使用下述程序向 mq 集群中添加了一篇方便查询的消息（设置消息的key）。</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Producer</span> </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> MQClientException, InterruptedException </span>&#123;</span><br><span class="line">        DefaultMQProducer producer = <span class="keyword">new</span> DefaultMQProducer(<span class="string">&quot;producer_dw_test&quot;</span>);</span><br><span class="line">        producer.setNamesrvAddr(<span class="string">&quot;192.168.0.220:9876;192.168.0.221:9876&quot;</span>);</span><br><span class="line">        producer.start();</span><br><span class="line">        <span class="keyword">for</span>(<span class="keyword">int</span> i =<span class="number">600000</span>; i &lt; <span class="number">600100</span>; i ++) &#123;</span><br><span class="line">            <span class="keyword">try</span> &#123;</span><br><span class="line">                Message msg = <span class="keyword">new</span> Message(<span class="string">&quot;topic_dw_test_by_order_01&quot;</span>,<span class="keyword">null</span> , <span class="string">&quot;m&quot;</span> + i,(<span class="string">&quot;Hello RocketMQ&quot;</span> + i ).getBytes(RemotingHelper.DEFAULT_CHARSET));</span><br><span class="line">                SendResult sendResult = producer.send(msg);</span><br><span class="line">               <span class="comment">//System.out.printf(&quot;%s%n&quot;, sendResult);</span></span><br><span class="line">            &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">                e.printStackTrace();</span><br><span class="line">                Thread.sleep(<span class="number">1000</span>);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        producer.shutdown();</span><br><span class="line">        System.out.println(<span class="string">&quot;end&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>消息的查询结果示例如下：<br><img src="https://img-blog.csdnimg.cn/20191013142707763.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"></p>
-<h3 id="3-2-升级步骤"><a href="#3-2-升级步骤" class="headerlink" title="3.2 升级步骤"></a>3.2 升级步骤</h3><p>Step1：将 192.168.0.220 的 rocketmq 拷贝到 192.168.0.222，可以使用如下命令进行操作。在 192.168.0.220 上敲如下命令：</p>
-<figure class="highlight js"><table><tr><td class="code"><pre><span class="line">scp -r rocketmq-all-<span class="number">4.5</span><span class="number">.2</span>-bin-release/ root@<span class="number">192.168</span><span class="number">.0</span><span class="number">.222</span>:<span class="regexp">/opt/</span>application/rocketmq-all-<span class="number">4.5</span><span class="number">.2</span>-bin-release</span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>温馨提示：示例中由于版本是一样，实际过程中，版本需要升级，故需先下载最新的版本，然后将老集群中的 store 目录完整的拷贝到新集群的 store 目录。</p>
-</blockquote>
-<p>Step2：依次在三台服务器的 broker.conf 配置文件中添加与 dledger 相关的配置属性。</p>
-<p>192.168.0.220 broker配置文件如下：</p>
-<figure class="highlight js"><table><tr><td class="code"><pre><span class="line">brokerClusterName = DefaultCluster</span><br><span class="line">brokerId = <span class="number">0</span></span><br><span class="line">deleteWhen = <span class="number">04</span></span><br><span class="line">fileReservedTime = <span class="number">48</span></span><br><span class="line">brokerRole = ASYNC_MASTER</span><br><span class="line">flushDiskType = ASYNC_FLUSH</span><br><span class="line">brokerIP1=<span class="number">192.168</span><span class="number">.0</span><span class="number">.220</span></span><br><span class="line">brokerIP2=<span class="number">192.168</span><span class="number">.0</span><span class="number">.220</span></span><br><span class="line">namesrvAddr=<span class="number">192.168</span><span class="number">.0</span><span class="number">.221</span>:<span class="number">9876</span>;<span class="number">192.168</span><span class="number">.0</span><span class="number">.220</span>:<span class="number">9876</span></span><br><span class="line">storePathRootDir=<span class="regexp">/opt/</span>application/rocketmq-all-<span class="number">4.5</span><span class="number">.2</span>-bin-release/store</span><br><span class="line">storePathCommitLog=<span class="regexp">/opt/</span>application/rocketmq-all-<span class="number">4.5</span><span class="number">.2</span>-bin-release/store/commitlog</span><br><span class="line">autoCreateTopicEnable=<span class="literal">false</span></span><br><span class="line">autoCreateSubscriptionGroup=<span class="literal">false</span></span><br><span class="line"># 与 dledger 相关的属性</span><br><span class="line">enableDLegerCommitLog=<span class="literal">true</span></span><br><span class="line">storePathRootDir=<span class="regexp">/opt/</span>application/rocketmq-all-<span class="number">4.5</span><span class="number">.2</span>-bin-release/store/dledger_store</span><br><span class="line">dLegerGroup=broker-a</span><br><span class="line">dLegerPeers=n0-<span class="number">192.168</span><span class="number">.0</span><span class="number">.220</span>:<span class="number">40911</span>;n1-<span class="number">192.168</span><span class="number">.0</span><span class="number">.221</span>:<span class="number">40911</span>;n2-<span class="number">192.168</span><span class="number">.0</span><span class="number">.222</span>:<span class="number">40911</span></span><br><span class="line">dLegerSelfId=n0</span><br></pre></td></tr></table></figure>
-<p>192.168.0.221 broker配置文件如下：</p>
-<figure class="highlight js"><table><tr><td class="code"><pre><span class="line">brokerClusterName = DefaultCluster</span><br><span class="line">brokerName = broker-a</span><br><span class="line">brokerId = <span class="number">1</span></span><br><span class="line">deleteWhen = <span class="number">04</span></span><br><span class="line">fileReservedTime = <span class="number">48</span></span><br><span class="line">brokerRole = SLAVE</span><br><span class="line">flushDiskType = ASYNC_FLUSH</span><br><span class="line">brokerIP1=<span class="number">192.168</span><span class="number">.0</span><span class="number">.221</span></span><br><span class="line">brokerIP2=<span class="number">192.168</span><span class="number">.0</span><span class="number">.221</span></span><br><span class="line">namesrvAddr=<span class="number">192.168</span><span class="number">.0</span><span class="number">.221</span>:<span class="number">9876</span>;<span class="number">192.168</span><span class="number">.0</span><span class="number">.220</span>:<span class="number">9876</span></span><br><span class="line">storePathRootDir=<span class="regexp">/opt/</span>application/rocketmq-all-<span class="number">4.5</span><span class="number">.2</span>-bin-release/store</span><br><span class="line">storePathCommitLog=<span class="regexp">/opt/</span>application/rocketmq-all-<span class="number">4.5</span><span class="number">.2</span>-bin-release/store/commitlog</span><br><span class="line">autoCreateTopicEnable=<span class="literal">false</span></span><br><span class="line">autoCreateSubscriptionGroup=<span class="literal">false</span></span><br><span class="line"># 与dledger 相关的配置属性</span><br><span class="line">enableDLegerCommitLog=<span class="literal">true</span></span><br><span class="line">storePathRootDir=<span class="regexp">/opt/</span>application/rocketmq-all-<span class="number">4.5</span><span class="number">.2</span>-bin-release/store/dledger_store</span><br><span class="line">dLegerGroup=broker-a</span><br><span class="line">dLegerPeers=n0-<span class="number">192.168</span><span class="number">.0</span><span class="number">.220</span>:<span class="number">40911</span>;n1-<span class="number">192.168</span><span class="number">.0</span><span class="number">.221</span>:<span class="number">40911</span>;n2-<span class="number">192.168</span><span class="number">.0</span><span class="number">.222</span>:<span class="number">40911</span></span><br><span class="line">dLegerSelfId=n1</span><br></pre></td></tr></table></figure>
-<p>192.168.0.222 broker配置文件如下：</p>
-<figure class="highlight js"><table><tr><td class="code"><pre><span class="line">brokerClusterName = DefaultCluster</span><br><span class="line">brokerName = broker-a</span><br><span class="line">brokerId = <span class="number">0</span></span><br><span class="line">deleteWhen = <span class="number">04</span></span><br><span class="line">fileReservedTime = <span class="number">48</span></span><br><span class="line">brokerRole = ASYNC_MASTER</span><br><span class="line">flushDiskType = ASYNC_FLUSH</span><br><span class="line">brokerIP1=<span class="number">192.168</span><span class="number">.0</span><span class="number">.222</span></span><br><span class="line">brokerIP2=<span class="number">192.168</span><span class="number">.0</span><span class="number">.222</span></span><br><span class="line">namesrvAddr=<span class="number">192.168</span><span class="number">.0</span><span class="number">.221</span>:<span class="number">9876</span>;<span class="number">192.168</span><span class="number">.0</span><span class="number">.220</span>:<span class="number">9876</span></span><br><span class="line">storePathRootDir=<span class="regexp">/opt/</span>application/rocketmq-all-<span class="number">4.5</span><span class="number">.2</span>-bin-release/store</span><br><span class="line">storePathCommitLog=<span class="regexp">/opt/</span>application/rocketmq-all-<span class="number">4.5</span><span class="number">.2</span>-bin-release/store/commitlog</span><br><span class="line">autoCreateTopicEnable=<span class="literal">false</span></span><br><span class="line">autoCreateSubscriptionGroup=<span class="literal">false</span></span><br><span class="line"># 与 dledger 相关的配置</span><br><span class="line">enableDLegerCommitLog=<span class="literal">true</span></span><br><span class="line">storePathRootDir=<span class="regexp">/opt/</span>application/rocketmq-all-<span class="number">4.5</span><span class="number">.2</span>-bin-release/store/dledger_store</span><br><span class="line">dLegerGroup=broker-a</span><br><span class="line">dLegerPeers=n0-<span class="number">192.168</span><span class="number">.0</span><span class="number">.220</span>:<span class="number">40911</span>;n1-<span class="number">192.168</span><span class="number">.0</span><span class="number">.221</span>:<span class="number">40911</span>;n2-<span class="number">192.168</span><span class="number">.0</span><span class="number">.222</span>:<span class="number">40911</span></span><br><span class="line">dLegerSelfId=n2</span><br></pre></td></tr></table></figure>
-<blockquote>
-<p>温馨提示：legerSelfId 分别为 n0、n1、n2。在真实的生产环境中，broker配置文件中的 storePathRootDir、storePathCommitLog 尽量使用单独的根目录，这样判断其磁盘使用率时才不会相互影响。</p>
-</blockquote>
-<p>Step3：将 store/config 下的 所有文件拷贝到 dledger store 的 congfig 目录下。</p>
-<figure class="highlight js"><table><tr><td class="code"><pre><span class="line">cd /opt/application/rocketmq-all-<span class="number">4.5</span><span class="number">.2</span>-bin-release/store/</span><br><span class="line">cp config<span class="comment">/* dledger_store/config/</span></span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>温馨提示：该步骤按照各自按照时配置的目录进行复制即可。</p>
-</blockquote>
-<p>Step4：依次启动三台 broker。</p>
-<figure class="highlight js"><table><tr><td class="code"><pre><span class="line">nohup bin/mqbroker -c conf/broker.conf  /dev/<span class="literal">null</span>  <span class="number">2</span>&gt;&amp;<span class="number">1</span> &amp;</span><br></pre></td></tr></table></figure>
-<p>如果启动成功，则在 rocketmq-console 中看到的集群信息如下：<br><img src="https://img-blog.csdnimg.cn/20191013143013142.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"></p>
-<h3 id="3-3-验证消息发送与消息查找"><a href="#3-3-验证消息发送与消息查找" class="headerlink" title="3.3 验证消息发送与消息查找"></a>3.3 验证消息发送与消息查找</h3><p>首先我们先验证升级之前的消息是否能查询到，那我们还是查找key 为 m600000 的消息，查找结果如图所示：<br><img src="https://img-blog.csdnimg.cn/20191013143037500.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"></p>
-<p>然后我们来测试一下消息发送。测试代码如下：</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Producer</span> </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> MQClientException, InterruptedException </span>&#123;</span><br><span class="line">        DefaultMQProducer producer = <span class="keyword">new</span> DefaultMQProducer(<span class="string">&quot;producer_dw_test&quot;</span>);</span><br><span class="line">        producer.setNamesrvAddr(<span class="string">&quot;192.168.0.220:9876;192.168.0.221:9876&quot;</span>);</span><br><span class="line">        producer.start();</span><br><span class="line">        <span class="keyword">for</span>(<span class="keyword">int</span> i =<span class="number">600200</span>; i &lt; <span class="number">600300</span>; i ++) &#123;</span><br><span class="line">            <span class="keyword">try</span> &#123;</span><br><span class="line">                Message msg = <span class="keyword">new</span> Message(<span class="string">&quot;topic_dw_test_by_order_01&quot;</span>,<span class="keyword">null</span> , <span class="string">&quot;m&quot;</span> + i,(<span class="string">&quot;Hello RocketMQ&quot;</span> + i ).getBytes(RemotingHelper.DEFAULT_CHARSET));</span><br><span class="line">                SendResult sendResult = producer.send(msg);</span><br><span class="line">                System.out.printf(<span class="string">&quot;%s%n&quot;</span>, sendResult);</span><br><span class="line">            &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">                e.printStackTrace();</span><br><span class="line">                Thread.sleep(<span class="number">1000</span>);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        producer.shutdown();</span><br><span class="line">        System.out.println(<span class="string">&quot;end&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>执行结果如下：<br><img src="https://img-blog.csdnimg.cn/20191013143121381.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>再去控制台查询一下消息，其结果也表明新的消息也能查询到。<br><img src="https://img-blog.csdnimg.cn/20191013143149105.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>最后我们再来验证一下主节点宕机，消息发送是否会受影响。</p>
-<p>在消息发送的过程中，去关闭主节点，其截图如下：<br><img src="https://img-blog.csdnimg.cn/20191013143249857.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><img src="https://img-blog.csdnimg.cn/2019101314330055.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><img src="https://img-blog.csdnimg.cn/20191013143313982.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述">再来看一下集群的状态：<br><img src="https://img-blog.csdnimg.cn/20191013143344274.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"></p>
-<p>等待该复制组重新完成主服务器选举后，即可继续处理消息发送。</p>
-<blockquote>
-<p>温馨提示：由于本示例是一主一从，故在选举期间，消息不可用，但在真实的生产环境上，其部署架构是多主主从，即一个复制组在 leader 选举期间，其他复制组可以接替该复制组完成消息的发送，实现消息服务的高可用。</p>
-</blockquote>
-<p>与 DLedger 相关的日志，默认存储在 broker_default.log 文件中。</p>
-</div>
-
-			<script src="https://my.openwrite.cn/js/readmore.js" type="text/javascript"></script>
-			<script>
-			var isMobile = navigator.userAgent.match(/(phone|pad|pod|iPhone|iPod|ios|iPad|Android|Mobile|BlackBerry|IEMobile|MQQBrowser|JUC|Fennec|wOSBrowser|BrowserNG|WebOS|Symbian|Windows Phone)/i);
-			if (!isMobile) {
-			    var btw = new BTWPlugin();
-			    btw.init({
-			        "id": "vip-container",
-			        "blogId": "18019-1573088808868-542",
-			        "name": "中间件兴趣圈",
-			        "qrcode": "https://img-blog.csdnimg.cn/20190314214003962.jpg",
-			        "keyword": "more"
-			    });
-			}
-			</script>
-		]]></content>
-      <categories>
-        <category>rocketmq</category>
-      </categories>
-      <tags>
-        <tag>rocketmq</tag>
-        <tag>dledger</tag>
-        <tag>多副本</tag>
-        <tag>主从切换</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>RocketMQ HA机制(主从同步)</title>
     <url>/posts/12eccc4e.html</url>
     <content><![CDATA[<div id="vip-container"><blockquote>
@@ -1628,64 +1538,6 @@
       </tags>
   </entry>
   <entry>
-    <title>RocketMQ 主题扩分片后遇到的坑</title>
-    <url>/posts/c4065704.html</url>
-    <content><![CDATA[<div id="vip-container"><p>消息组接到某项目组反馈，topic 在扩容后出现部分队列无法被消费者，导致消息积压，影响线上业务？</p>
-<p>考虑到该问题是发送在真实的线上环境，为了避免泄密，本文先在笔者的虚拟机中来重现问题。</p>
-<h2 id="1、案情回顾"><a href="#1、案情回顾" class="headerlink" title="1、案情回顾"></a>1、案情回顾</h2><h3 id="1-1-集群现状"><a href="#1-1-集群现状" class="headerlink" title="1.1 集群现状"></a>1.1 集群现状</h3><p>集群信息如下：<br><img src="https://img-blog.csdnimg.cn/20190906232935331.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>例如业务主体名 topic_dw_test_by_order_01 的路由信息如图所示：<br><img src="https://img-blog.csdnimg.cn/20190906233008367.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>当前的消费者信息：<br><img src="https://img-blog.csdnimg.cn/20190906233034814.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>broker 的配置信息如下：</p>
-<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">brokerClusterName &#x3D; DefaultCluster</span><br><span class="line">brokerName &#x3D; broker-a</span><br><span class="line">brokerId &#x3D; 0</span><br><span class="line">deleteWhen &#x3D; 04</span><br><span class="line">fileReservedTime &#x3D; 48</span><br><span class="line">brokerRole &#x3D; ASYNC_MASTER</span><br><span class="line">flushDiskType &#x3D; ASYNC_FLUSH</span><br><span class="line">brokerIP1&#x3D;192.168.0.220</span><br><span class="line">brokerIP2-192.168.0.220</span><br><span class="line">namesrvAddr&#x3D;192.168.0.221:9876;192.168.0.220:9876</span><br><span class="line">storePathRootDir&#x3D;&#x2F;opt&#x2F;application&#x2F;rocketmq-all-4.5.2-bin-release&#x2F;store</span><br><span class="line">storePathCommitLog&#x3D;&#x2F;opt&#x2F;application&#x2F;rocketmq-all-4.5.2-bin-release&#x2F;store&#x2F;commitlog</span><br><span class="line">autoCreateTopicEnable&#x3D;false</span><br><span class="line">autoCreateSubscriptionGroup&#x3D;false</span><br></pre></td></tr></table></figure>
-<blockquote>
-<p>备注：公司对 topic、消费组进行了严格的管控，项目组需要使用时需要向运维人员申请，故 broker 集群不允许自动创建主题与自动创建消费组。</p>
-</blockquote>
-<p>由于该业务量稳步提升，项目组觉得该主题的队列数太少，不利于增加消费者来提高其消费能力，故向运维人员提出增加队列的需求。</p>
-<h3 id="1-2、RocketMQ-在线扩容队列"><a href="#1-2、RocketMQ-在线扩容队列" class="headerlink" title="1.2、RocketMQ 在线扩容队列"></a>1.2、RocketMQ 在线扩容队列</h3><p>运维通过公司自研的消息运维平台，直接以指定集群的方式为 topic 扩容，该运维平台底层其实使用了RocketMQ 提供的 updateTopic 命令，其命令说明如下：</p>
-<a id="more"></a>
-
-<p><img src="https://img-blog.csdnimg.cn/20190906233121258.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="图片来源于《》RocketMQ技术内幕》"><br>从上图可以得知可以通过 -c 命令来指定在集群中所有的 broker 上创建队列，在本例中，将队列数从 4 设置为 8，具体命令如下：</p>
-<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">sh .&#x2F;mqadmin upateTopic -n 192.168.0.220:9876 -c DefaultCluster -t topic_dw_test_by_order_01 -r 8 -w 8</span><br></pre></td></tr></table></figure>
-<p>执行效果如图所示，表示更新成功。<br><img src="https://img-blog.csdnimg.cn/20190906233249376.png" alt="在这里插入图片描述"><br>我们再来从 rocketmq-console 中来看命令执行后的效果：<br><img src="https://img-blog.csdnimg.cn/20190906233418121.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>从上图可以得知，主题的队列数已经扩容到了8个，并且在集群的两台broker上都创建了队列。</p>
-<h3 id="1-3-消息发送"><a href="#1-3-消息发送" class="headerlink" title="1.3 消息发送"></a>1.3 消息发送</h3><p>从 RocketMQ 系列可知，RocketMQ 是支持在线 topic 在线扩容机制的，故无需重启 消息发送者、消息消费者，随着时间的推移，我们可以查看topic的所有队列都参与到了消息的负载中，如图所示：<br><img src="https://img-blog.csdnimg.cn/20190906233500250.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>我们可以清晰的看到，所有的16个队列(每个 broker 8个队列)都参与到了消息发送的，运维小哥愉快的完成了topic的扩容。</p>
-<h2 id="2、问题暴露"><a href="#2、问题暴露" class="headerlink" title="2、问题暴露"></a>2、问题暴露</h2><p>该 topic 被 5个消费组所订阅，突然接到通知，其中有两个消费组反馈，部分队列的消息没有被消费，导致下游系统并没有及时处理。</p>
-<h2 id="3、问题分析"><a href="#3、问题分析" class="headerlink" title="3、问题分析"></a>3、问题分析</h2><p>当时到项目组提交到消息组时，我第一反应是先看消费者的队列，打开该主题的消费情况，如图所示：<br><img src="https://img-blog.csdnimg.cn/20190906233538617.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>发现队列数并没有积压，备注（由于生产是4主4从，每一个 broker上8个队列，故总共32个队列），当时由于比较急，并没有第一时间发现这个界面，竟然只包含一个消费者，觉得并没有消息积压，又由于同一个集群，其他消费组没有问题，只有两个消费组有问题，怀疑是应用的问题，就采取了重启，打印线程栈等方法。</p>
-<p>事后诸葛亮：其实这完成是错误的，为什么这样说呢？因为项目组（业务方）已经告知一部分业务未处理，说明肯定有队列的消息积压，当根据自己的知识，结合看到的监控页面做出的判断与业务方反馈的出现冲突时，一定是自己的判断出了问题。</p>
-<p>正在我们“如火如荼”的认定是项目有问题时，团队的另一成员提出了自己的观点，原来在得到业务方反馈时，他得知同一个主题，被5个消费组订阅，只有其中两个有问题，那他通过rocketmq-console来找两者的区别，找到区别，找到规律，就离解决问题的路近了。</p>
-<p>他通过对比发现，出问题的消费组只有两个客户端在消费（通常生产环境是4节点消费），而没有出现问题的发现有4个进程都在处理，即发现现象：出错的消费组，并没有全员参与到消费。正如上面的图所示：只有其中一个进程在处理8个队列，另外8个队列并没有在消费。</p>
-<p>那现在就是要分析为啥topic共有16个队列，但这里只有1个消费者队列在消费，另外一个消费者不作为？</p>
-<p>首先根据RocketMQ 消息队列负载机制，2个消费者，只有1个消费者在消费，并且一个有一个明显的特点是，只有broker-a上的队列在消费，broker-b上的队列一个也没消费。</p>
-<p>正在思考为啥会出现这种现象时，他又在思考是不是集群是不是broker-b(对应我们生产环境是broker-c、broker-d上的队列都未消费)是新扩容的机器？扩容的时候是不是没有把订阅关系在新的集群上创建？提出了疑问，接下来肖工就开始验证猜想，通过查阅broker-c、broker-d在我们系统中创建的时间是2018-4月的时候，就基本得出结论，扩容时并没有在新集群上创建订阅消息，故无法消费消息。</p>
-<p>于是运维小哥使用运维工具创建订阅组，创建方法如图所示：<br><img src="https://img-blog.csdnimg.cn/20190906233645848.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>创建好消费组后，再去查看topic的消费情况时，另外一个消费组也开始处理消息了，如下图所示：<br><img src="https://img-blog.csdnimg.cn/20190906233708415.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"></p>
-<h2 id="4、问题复盘"><a href="#4、问题复盘" class="headerlink" title="4、问题复盘"></a>4、问题复盘</h2><p>潜在原因：DefaultCluster 集群进行过一次集群扩容，从原来的一台消息服务器( broker-a )额外增加一台broker服务器( broker-b )，但扩容的时候并没有把原先的存在于 broker-a 上的主题、消费组扩容到 broker-b 服务器。</p>
-<p>触发原因：接到项目组的扩容需求，将集群队列数从4个扩容到8个，这样该topic就在集群的a、b都会存在8个队列，但Broker不允许自动创建消费组（订阅关系），消费者无法从broker-b上队列上拉取消息，导致在broker-b队列上的消息堆积，无法被消费。</p>
-<p>解决办法：运维通过命令，在broker-b上创建对应的订阅消息，问题解决。 </p>
-<p>经验教训：集群扩容时，需要同步在集群上的topic.json、subscriptionGroup.json文件。</p>
-<p>RocketMQ 理论基础，消费者向 Broker 发起消息拉取请求时，如果broker上并没有存在该消费组的订阅消息时，如果不允许自动创建(autoCreateSubscriptionGroup 设置为 false)，默认为true，则不会返回消息给客户端，其代码如下：<br><img src="https://img-blog.csdnimg.cn/20190906234625364.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>问题解决后，我们团队的成员也分享了一下他在本次排查问题的处理方法：<strong>寻找出现问题的规律、推断问题、 然后验证问题。规律可以是问题本身的规律  也可以是和正常对比的差。</strong></p>
-</div>
-
-			<script src="https://my.openwrite.cn/js/readmore.js" type="text/javascript"></script>
-			<script>
-			var isMobile = navigator.userAgent.match(/(phone|pad|pod|iPhone|iPod|ios|iPad|Android|Mobile|BlackBerry|IEMobile|MQQBrowser|JUC|Fennec|wOSBrowser|BrowserNG|WebOS|Symbian|Windows Phone)/i);
-			if (!isMobile) {
-			    var btw = new BTWPlugin();
-			    btw.init({
-			        "id": "vip-container",
-			        "blogId": "18019-1573088808868-542",
-			        "name": "中间件兴趣圈",
-			        "qrcode": "https://img-blog.csdnimg.cn/20190314214003962.jpg",
-			        "keyword": "more"
-			    });
-			}
-			</script>
-		]]></content>
-      <categories>
-        <category>rocketmq</category>
-      </categories>
-      <tags>
-        <tag>rocketmq</tag>
-        <tag>主题扩容</tag>
-        <tag>实战</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>RocketMQ msgId与offsetMsgId释疑(实战篇)</title>
     <url>/posts/e0111576.html</url>
     <content><![CDATA[<div id="vip-container"><p>本篇详细介绍消息发送、消息消费、RocketMQ queryMsgById 命令以及 rocketmq-console 等使用场景中究竟是用的哪一个ID。</p>
@@ -1760,6 +1612,64 @@
       </tags>
   </entry>
   <entry>
+    <title>RocketMQ 主题扩分片后遇到的坑</title>
+    <url>/posts/c4065704.html</url>
+    <content><![CDATA[<div id="vip-container"><p>消息组接到某项目组反馈，topic 在扩容后出现部分队列无法被消费者，导致消息积压，影响线上业务？</p>
+<p>考虑到该问题是发送在真实的线上环境，为了避免泄密，本文先在笔者的虚拟机中来重现问题。</p>
+<h2 id="1、案情回顾"><a href="#1、案情回顾" class="headerlink" title="1、案情回顾"></a>1、案情回顾</h2><h3 id="1-1-集群现状"><a href="#1-1-集群现状" class="headerlink" title="1.1 集群现状"></a>1.1 集群现状</h3><p>集群信息如下：<br><img src="https://img-blog.csdnimg.cn/20190906232935331.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>例如业务主体名 topic_dw_test_by_order_01 的路由信息如图所示：<br><img src="https://img-blog.csdnimg.cn/20190906233008367.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>当前的消费者信息：<br><img src="https://img-blog.csdnimg.cn/20190906233034814.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>broker 的配置信息如下：</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">brokerClusterName &#x3D; DefaultCluster</span><br><span class="line">brokerName &#x3D; broker-a</span><br><span class="line">brokerId &#x3D; 0</span><br><span class="line">deleteWhen &#x3D; 04</span><br><span class="line">fileReservedTime &#x3D; 48</span><br><span class="line">brokerRole &#x3D; ASYNC_MASTER</span><br><span class="line">flushDiskType &#x3D; ASYNC_FLUSH</span><br><span class="line">brokerIP1&#x3D;192.168.0.220</span><br><span class="line">brokerIP2-192.168.0.220</span><br><span class="line">namesrvAddr&#x3D;192.168.0.221:9876;192.168.0.220:9876</span><br><span class="line">storePathRootDir&#x3D;&#x2F;opt&#x2F;application&#x2F;rocketmq-all-4.5.2-bin-release&#x2F;store</span><br><span class="line">storePathCommitLog&#x3D;&#x2F;opt&#x2F;application&#x2F;rocketmq-all-4.5.2-bin-release&#x2F;store&#x2F;commitlog</span><br><span class="line">autoCreateTopicEnable&#x3D;false</span><br><span class="line">autoCreateSubscriptionGroup&#x3D;false</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>备注：公司对 topic、消费组进行了严格的管控，项目组需要使用时需要向运维人员申请，故 broker 集群不允许自动创建主题与自动创建消费组。</p>
+</blockquote>
+<p>由于该业务量稳步提升，项目组觉得该主题的队列数太少，不利于增加消费者来提高其消费能力，故向运维人员提出增加队列的需求。</p>
+<h3 id="1-2、RocketMQ-在线扩容队列"><a href="#1-2、RocketMQ-在线扩容队列" class="headerlink" title="1.2、RocketMQ 在线扩容队列"></a>1.2、RocketMQ 在线扩容队列</h3><p>运维通过公司自研的消息运维平台，直接以指定集群的方式为 topic 扩容，该运维平台底层其实使用了RocketMQ 提供的 updateTopic 命令，其命令说明如下：</p>
+<a id="more"></a>
+
+<p><img src="https://img-blog.csdnimg.cn/20190906233121258.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="图片来源于《》RocketMQ技术内幕》"><br>从上图可以得知可以通过 -c 命令来指定在集群中所有的 broker 上创建队列，在本例中，将队列数从 4 设置为 8，具体命令如下：</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">sh .&#x2F;mqadmin upateTopic -n 192.168.0.220:9876 -c DefaultCluster -t topic_dw_test_by_order_01 -r 8 -w 8</span><br></pre></td></tr></table></figure>
+<p>执行效果如图所示，表示更新成功。<br><img src="https://img-blog.csdnimg.cn/20190906233249376.png" alt="在这里插入图片描述"><br>我们再来从 rocketmq-console 中来看命令执行后的效果：<br><img src="https://img-blog.csdnimg.cn/20190906233418121.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>从上图可以得知，主题的队列数已经扩容到了8个，并且在集群的两台broker上都创建了队列。</p>
+<h3 id="1-3-消息发送"><a href="#1-3-消息发送" class="headerlink" title="1.3 消息发送"></a>1.3 消息发送</h3><p>从 RocketMQ 系列可知，RocketMQ 是支持在线 topic 在线扩容机制的，故无需重启 消息发送者、消息消费者，随着时间的推移，我们可以查看topic的所有队列都参与到了消息的负载中，如图所示：<br><img src="https://img-blog.csdnimg.cn/20190906233500250.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>我们可以清晰的看到，所有的16个队列(每个 broker 8个队列)都参与到了消息发送的，运维小哥愉快的完成了topic的扩容。</p>
+<h2 id="2、问题暴露"><a href="#2、问题暴露" class="headerlink" title="2、问题暴露"></a>2、问题暴露</h2><p>该 topic 被 5个消费组所订阅，突然接到通知，其中有两个消费组反馈，部分队列的消息没有被消费，导致下游系统并没有及时处理。</p>
+<h2 id="3、问题分析"><a href="#3、问题分析" class="headerlink" title="3、问题分析"></a>3、问题分析</h2><p>当时到项目组提交到消息组时，我第一反应是先看消费者的队列，打开该主题的消费情况，如图所示：<br><img src="https://img-blog.csdnimg.cn/20190906233538617.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>发现队列数并没有积压，备注（由于生产是4主4从，每一个 broker上8个队列，故总共32个队列），当时由于比较急，并没有第一时间发现这个界面，竟然只包含一个消费者，觉得并没有消息积压，又由于同一个集群，其他消费组没有问题，只有两个消费组有问题，怀疑是应用的问题，就采取了重启，打印线程栈等方法。</p>
+<p>事后诸葛亮：其实这完成是错误的，为什么这样说呢？因为项目组（业务方）已经告知一部分业务未处理，说明肯定有队列的消息积压，当根据自己的知识，结合看到的监控页面做出的判断与业务方反馈的出现冲突时，一定是自己的判断出了问题。</p>
+<p>正在我们“如火如荼”的认定是项目有问题时，团队的另一成员提出了自己的观点，原来在得到业务方反馈时，他得知同一个主题，被5个消费组订阅，只有其中两个有问题，那他通过rocketmq-console来找两者的区别，找到区别，找到规律，就离解决问题的路近了。</p>
+<p>他通过对比发现，出问题的消费组只有两个客户端在消费（通常生产环境是4节点消费），而没有出现问题的发现有4个进程都在处理，即发现现象：出错的消费组，并没有全员参与到消费。正如上面的图所示：只有其中一个进程在处理8个队列，另外8个队列并没有在消费。</p>
+<p>那现在就是要分析为啥topic共有16个队列，但这里只有1个消费者队列在消费，另外一个消费者不作为？</p>
+<p>首先根据RocketMQ 消息队列负载机制，2个消费者，只有1个消费者在消费，并且一个有一个明显的特点是，只有broker-a上的队列在消费，broker-b上的队列一个也没消费。</p>
+<p>正在思考为啥会出现这种现象时，他又在思考是不是集群是不是broker-b(对应我们生产环境是broker-c、broker-d上的队列都未消费)是新扩容的机器？扩容的时候是不是没有把订阅关系在新的集群上创建？提出了疑问，接下来肖工就开始验证猜想，通过查阅broker-c、broker-d在我们系统中创建的时间是2018-4月的时候，就基本得出结论，扩容时并没有在新集群上创建订阅消息，故无法消费消息。</p>
+<p>于是运维小哥使用运维工具创建订阅组，创建方法如图所示：<br><img src="https://img-blog.csdnimg.cn/20190906233645848.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>创建好消费组后，再去查看topic的消费情况时，另外一个消费组也开始处理消息了，如下图所示：<br><img src="https://img-blog.csdnimg.cn/20190906233708415.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"></p>
+<h2 id="4、问题复盘"><a href="#4、问题复盘" class="headerlink" title="4、问题复盘"></a>4、问题复盘</h2><p>潜在原因：DefaultCluster 集群进行过一次集群扩容，从原来的一台消息服务器( broker-a )额外增加一台broker服务器( broker-b )，但扩容的时候并没有把原先的存在于 broker-a 上的主题、消费组扩容到 broker-b 服务器。</p>
+<p>触发原因：接到项目组的扩容需求，将集群队列数从4个扩容到8个，这样该topic就在集群的a、b都会存在8个队列，但Broker不允许自动创建消费组（订阅关系），消费者无法从broker-b上队列上拉取消息，导致在broker-b队列上的消息堆积，无法被消费。</p>
+<p>解决办法：运维通过命令，在broker-b上创建对应的订阅消息，问题解决。 </p>
+<p>经验教训：集群扩容时，需要同步在集群上的topic.json、subscriptionGroup.json文件。</p>
+<p>RocketMQ 理论基础，消费者向 Broker 发起消息拉取请求时，如果broker上并没有存在该消费组的订阅消息时，如果不允许自动创建(autoCreateSubscriptionGroup 设置为 false)，默认为true，则不会返回消息给客户端，其代码如下：<br><img src="https://img-blog.csdnimg.cn/20190906234625364.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>问题解决后，我们团队的成员也分享了一下他在本次排查问题的处理方法：<strong>寻找出现问题的规律、推断问题、 然后验证问题。规律可以是问题本身的规律  也可以是和正常对比的差。</strong></p>
+</div>
+
+			<script src="https://my.openwrite.cn/js/readmore.js" type="text/javascript"></script>
+			<script>
+			var isMobile = navigator.userAgent.match(/(phone|pad|pod|iPhone|iPod|ios|iPad|Android|Mobile|BlackBerry|IEMobile|MQQBrowser|JUC|Fennec|wOSBrowser|BrowserNG|WebOS|Symbian|Windows Phone)/i);
+			if (!isMobile) {
+			    var btw = new BTWPlugin();
+			    btw.init({
+			        "id": "vip-container",
+			        "blogId": "18019-1573088808868-542",
+			        "name": "中间件兴趣圈",
+			        "qrcode": "https://img-blog.csdnimg.cn/20190314214003962.jpg",
+			        "keyword": "more"
+			    });
+			}
+			</script>
+		]]></content>
+      <categories>
+        <category>rocketmq</category>
+      </categories>
+      <tags>
+        <tag>rocketmq</tag>
+        <tag>主题扩容</tag>
+        <tag>实战</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>RocketMQ 多副本前置篇：初探raft协议</title>
     <url>/posts/d198d6eb.html</url>
     <content><![CDATA[<div id="vip-container"><p>Raft协议是分布式领域解决一致性的又一著名协议，主要包含Leader选举、日志复制两个部分。</p>
@@ -1821,9 +1731,99 @@
       </categories>
       <tags>
         <tag>rocketmq</tag>
-        <tag>多副本</tag>
         <tag>主从同步</tag>
+        <tag>多副本</tag>
         <tag>raft</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>RocketMQ 升级到主从切换(DLedger、多副本)实战</title>
+    <url>/posts/e0ec5d91.html</url>
+    <content><![CDATA[<div id="vip-container"><p>本文主要介绍如何将 RocketMQ 集群从原先的主从同步升级到主从切换。</p>
+<p>首先先介绍与 DLedger 多副本即 RocketMQ 主从切换相关的核心配置属性，然后尝试搭建一个主从同步集群，再从原先的 RocketMQ 集群平滑升级到 DLedger 集群的示例，并简单测试一下主从切换功能。</p>
+<h2 id="1、RocketMQ-DLedger-多副本即主从切换核心配置参数详解"><a href="#1、RocketMQ-DLedger-多副本即主从切换核心配置参数详解" class="headerlink" title="1、RocketMQ DLedger 多副本即主从切换核心配置参数详解"></a>1、RocketMQ DLedger 多副本即主从切换核心配置参数详解</h2><p>其主要的配置参数如下所示：</p>
+<ul>
+<li>enableDLegerCommitLog<br>是否启用 DLedger，即是否启用 RocketMQ 主从切换，默认值为 false。如果需要开启主从切换，则该值需要设置为 true 。</li>
+<li>dLegerGroup<br>节点所属的 raft 组，建议与 brokerName 保持一致，例如 broker-a。</li>
+<li>dLegerPeers<br>集群节点信息，示例配置如下：n0-127.0.0.1:40911;n1-127.0.0.1:40912;n2-127.0.0.1:40913，多个节点用英文冒号隔开，单个条目遵循   legerSlefId-ip:端口，这里的端口用作 dledger 内部通信。</li>
+<li>dLegerSelfId<br>当前节点id。取自 legerPeers 中条目的开头，即上述示例中的 n0，并且特别需要强调，只能第一个字符为英文，其他字符需要配置成数字。</li>
+<li>storePathRootDir<br>DLedger 日志文件的存储根目录，为了能够支持平滑升级，该值与 storePathCommitLog 设置为不同的目录。</li>
+</ul>
+<h2 id="2、搭建主从同步环境"><a href="#2、搭建主从同步环境" class="headerlink" title="2、搭建主从同步环境"></a>2、搭建主从同步环境</h2><p>首先先搭建一个传统意义上的主从同步架构，往集群中灌一定量的数据，然后升级到 DLedger 集群。</p>
+<p>在 Linux 服务器上搭建一个 rocketmq 主从同步集群我想不是一件很难的事情，故本文就不会详细介绍按照过程，只贴出相关配置。</p>
+<p>实验环境的部署结构采取 一主一次，其部署图如下：<br><img src="https://img-blog.csdnimg.cn/20191013142340811.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>下面我就重点贴一下 broker 的配置文件。<br>220 上的 broker 配置文件如下：</p>
+<figure class="highlight js"><table><tr><td class="code"><pre><span class="line">brokerClusterName = DefaultCluster</span><br><span class="line">brokerName = broker-a</span><br><span class="line">brokerId = <span class="number">0</span></span><br><span class="line">deleteWhen = <span class="number">04</span></span><br><span class="line">fileReservedTime = <span class="number">48</span></span><br><span class="line">brokerRole = ASYNC_MASTER</span><br><span class="line">flushDiskType = ASYNC_FLUSH</span><br><span class="line">brokerIP1=<span class="number">192.168</span><span class="number">.0</span><span class="number">.220</span></span><br><span class="line">brokerIP2=<span class="number">192.168</span><span class="number">.0</span><span class="number">.220</span></span><br><span class="line">namesrvAddr=<span class="number">192.168</span><span class="number">.0</span><span class="number">.221</span>:<span class="number">9876</span>;<span class="number">192.168</span><span class="number">.0</span><span class="number">.220</span>:<span class="number">9876</span></span><br><span class="line">storePathRootDir=<span class="regexp">/opt/</span>application/rocketmq-all-<span class="number">4.5</span><span class="number">.2</span>-bin-release/store</span><br><span class="line">storePathCommitLog=<span class="regexp">/opt/</span>application/rocketmq-all-<span class="number">4.5</span><span class="number">.2</span>-bin-release/store/commitlog</span><br><span class="line">autoCreateTopicEnable=<span class="literal">false</span></span><br><span class="line">autoCreateSubscriptionGroup=<span class="literal">false</span></span><br></pre></td></tr></table></figure>
+<p>221 上 broker 的配置文件如下：</p>
+<figure class="highlight js"><table><tr><td class="code"><pre><span class="line">brokerClusterName = DefaultCluster</span><br><span class="line">brokerName = broker-a</span><br><span class="line">brokerId = <span class="number">1</span></span><br><span class="line">deleteWhen = <span class="number">04</span></span><br><span class="line">fileReservedTime = <span class="number">48</span></span><br><span class="line">brokerRole = SLAVE</span><br><span class="line">flushDiskType = ASYNC_FLUSH</span><br><span class="line">brokerIP1=<span class="number">192.168</span><span class="number">.0</span><span class="number">.221</span></span><br><span class="line">brokerIP2=<span class="number">192.168</span><span class="number">.0</span><span class="number">.221</span></span><br><span class="line">namesrvAddr=<span class="number">192.168</span><span class="number">.0</span><span class="number">.221</span>:<span class="number">9876</span>;<span class="number">192.168</span><span class="number">.0</span><span class="number">.220</span>:<span class="number">9876</span></span><br><span class="line">storePathRootDir=<span class="regexp">/opt/</span>application/rocketmq-all-<span class="number">4.5</span><span class="number">.2</span>-bin-release/store</span><br><span class="line">storePathCommitLog=<span class="regexp">/opt/</span>application/rocketmq-all-<span class="number">4.5</span><span class="number">.2</span>-bin-release/store/commitlog</span><br><span class="line">autoCreateTopicEnable=<span class="literal">false</span></span><br><span class="line">autoCreateSubscriptionGroup=<span class="literal">false</span></span><br></pre></td></tr></table></figure>
+<p>相关的启动命令如下：</p>
+<figure class="highlight js"><table><tr><td class="code"><pre><span class="line">nohup bin/mqnamesrv  /dev/<span class="literal">null</span>  <span class="number">2</span>&gt;&amp;<span class="number">1</span> &amp;</span><br><span class="line">nohup bin/mqbroker -c conf/broker.conf  /dev/<span class="literal">null</span>  <span class="number">2</span>&gt;&amp;<span class="number">1</span> &amp;</span><br></pre></td></tr></table></figure>
+<p>安装后的集群信息如图所示：<br><img src="https://img-blog.csdnimg.cn/20191013142514649.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"></p>
+<h2 id="3、主从同步集群升级到DLedger"><a href="#3、主从同步集群升级到DLedger" class="headerlink" title="3、主从同步集群升级到DLedger"></a>3、主从同步集群升级到DLedger</h2><h3 id="3-1-部署架构"><a href="#3-1-部署架构" class="headerlink" title="3.1 部署架构"></a>3.1 部署架构</h3><p>DLedger 集群至少需要3台机器，故搭建 DLedger 还需要再引入一台机器，其部署结构图如下：</p>
+<a id="more"></a>
+
+<p><img src="https://img-blog.csdnimg.cn/20191013142635780.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>从主从同步集群升级到 DLedger 集群，用户最关心的还是升级后的集群是否能够兼容原先的数据，即原先存储在消息能否能被消息消费者消费端，甚至于能否查询到。<br>为了方便后续验证，首先我使用下述程序向 mq 集群中添加了一篇方便查询的消息（设置消息的key）。</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Producer</span> </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> MQClientException, InterruptedException </span>&#123;</span><br><span class="line">        DefaultMQProducer producer = <span class="keyword">new</span> DefaultMQProducer(<span class="string">&quot;producer_dw_test&quot;</span>);</span><br><span class="line">        producer.setNamesrvAddr(<span class="string">&quot;192.168.0.220:9876;192.168.0.221:9876&quot;</span>);</span><br><span class="line">        producer.start();</span><br><span class="line">        <span class="keyword">for</span>(<span class="keyword">int</span> i =<span class="number">600000</span>; i &lt; <span class="number">600100</span>; i ++) &#123;</span><br><span class="line">            <span class="keyword">try</span> &#123;</span><br><span class="line">                Message msg = <span class="keyword">new</span> Message(<span class="string">&quot;topic_dw_test_by_order_01&quot;</span>,<span class="keyword">null</span> , <span class="string">&quot;m&quot;</span> + i,(<span class="string">&quot;Hello RocketMQ&quot;</span> + i ).getBytes(RemotingHelper.DEFAULT_CHARSET));</span><br><span class="line">                SendResult sendResult = producer.send(msg);</span><br><span class="line">               <span class="comment">//System.out.printf(&quot;%s%n&quot;, sendResult);</span></span><br><span class="line">            &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">                e.printStackTrace();</span><br><span class="line">                Thread.sleep(<span class="number">1000</span>);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        producer.shutdown();</span><br><span class="line">        System.out.println(<span class="string">&quot;end&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>消息的查询结果示例如下：<br><img src="https://img-blog.csdnimg.cn/20191013142707763.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"></p>
+<h3 id="3-2-升级步骤"><a href="#3-2-升级步骤" class="headerlink" title="3.2 升级步骤"></a>3.2 升级步骤</h3><p>Step1：将 192.168.0.220 的 rocketmq 拷贝到 192.168.0.222，可以使用如下命令进行操作。在 192.168.0.220 上敲如下命令：</p>
+<figure class="highlight js"><table><tr><td class="code"><pre><span class="line">scp -r rocketmq-all-<span class="number">4.5</span><span class="number">.2</span>-bin-release/ root@<span class="number">192.168</span><span class="number">.0</span><span class="number">.222</span>:<span class="regexp">/opt/</span>application/rocketmq-all-<span class="number">4.5</span><span class="number">.2</span>-bin-release</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>温馨提示：示例中由于版本是一样，实际过程中，版本需要升级，故需先下载最新的版本，然后将老集群中的 store 目录完整的拷贝到新集群的 store 目录。</p>
+</blockquote>
+<p>Step2：依次在三台服务器的 broker.conf 配置文件中添加与 dledger 相关的配置属性。</p>
+<p>192.168.0.220 broker配置文件如下：</p>
+<figure class="highlight js"><table><tr><td class="code"><pre><span class="line">brokerClusterName = DefaultCluster</span><br><span class="line">brokerId = <span class="number">0</span></span><br><span class="line">deleteWhen = <span class="number">04</span></span><br><span class="line">fileReservedTime = <span class="number">48</span></span><br><span class="line">brokerRole = ASYNC_MASTER</span><br><span class="line">flushDiskType = ASYNC_FLUSH</span><br><span class="line">brokerIP1=<span class="number">192.168</span><span class="number">.0</span><span class="number">.220</span></span><br><span class="line">brokerIP2=<span class="number">192.168</span><span class="number">.0</span><span class="number">.220</span></span><br><span class="line">namesrvAddr=<span class="number">192.168</span><span class="number">.0</span><span class="number">.221</span>:<span class="number">9876</span>;<span class="number">192.168</span><span class="number">.0</span><span class="number">.220</span>:<span class="number">9876</span></span><br><span class="line">storePathRootDir=<span class="regexp">/opt/</span>application/rocketmq-all-<span class="number">4.5</span><span class="number">.2</span>-bin-release/store</span><br><span class="line">storePathCommitLog=<span class="regexp">/opt/</span>application/rocketmq-all-<span class="number">4.5</span><span class="number">.2</span>-bin-release/store/commitlog</span><br><span class="line">autoCreateTopicEnable=<span class="literal">false</span></span><br><span class="line">autoCreateSubscriptionGroup=<span class="literal">false</span></span><br><span class="line"># 与 dledger 相关的属性</span><br><span class="line">enableDLegerCommitLog=<span class="literal">true</span></span><br><span class="line">storePathRootDir=<span class="regexp">/opt/</span>application/rocketmq-all-<span class="number">4.5</span><span class="number">.2</span>-bin-release/store/dledger_store</span><br><span class="line">dLegerGroup=broker-a</span><br><span class="line">dLegerPeers=n0-<span class="number">192.168</span><span class="number">.0</span><span class="number">.220</span>:<span class="number">40911</span>;n1-<span class="number">192.168</span><span class="number">.0</span><span class="number">.221</span>:<span class="number">40911</span>;n2-<span class="number">192.168</span><span class="number">.0</span><span class="number">.222</span>:<span class="number">40911</span></span><br><span class="line">dLegerSelfId=n0</span><br></pre></td></tr></table></figure>
+<p>192.168.0.221 broker配置文件如下：</p>
+<figure class="highlight js"><table><tr><td class="code"><pre><span class="line">brokerClusterName = DefaultCluster</span><br><span class="line">brokerName = broker-a</span><br><span class="line">brokerId = <span class="number">1</span></span><br><span class="line">deleteWhen = <span class="number">04</span></span><br><span class="line">fileReservedTime = <span class="number">48</span></span><br><span class="line">brokerRole = SLAVE</span><br><span class="line">flushDiskType = ASYNC_FLUSH</span><br><span class="line">brokerIP1=<span class="number">192.168</span><span class="number">.0</span><span class="number">.221</span></span><br><span class="line">brokerIP2=<span class="number">192.168</span><span class="number">.0</span><span class="number">.221</span></span><br><span class="line">namesrvAddr=<span class="number">192.168</span><span class="number">.0</span><span class="number">.221</span>:<span class="number">9876</span>;<span class="number">192.168</span><span class="number">.0</span><span class="number">.220</span>:<span class="number">9876</span></span><br><span class="line">storePathRootDir=<span class="regexp">/opt/</span>application/rocketmq-all-<span class="number">4.5</span><span class="number">.2</span>-bin-release/store</span><br><span class="line">storePathCommitLog=<span class="regexp">/opt/</span>application/rocketmq-all-<span class="number">4.5</span><span class="number">.2</span>-bin-release/store/commitlog</span><br><span class="line">autoCreateTopicEnable=<span class="literal">false</span></span><br><span class="line">autoCreateSubscriptionGroup=<span class="literal">false</span></span><br><span class="line"># 与dledger 相关的配置属性</span><br><span class="line">enableDLegerCommitLog=<span class="literal">true</span></span><br><span class="line">storePathRootDir=<span class="regexp">/opt/</span>application/rocketmq-all-<span class="number">4.5</span><span class="number">.2</span>-bin-release/store/dledger_store</span><br><span class="line">dLegerGroup=broker-a</span><br><span class="line">dLegerPeers=n0-<span class="number">192.168</span><span class="number">.0</span><span class="number">.220</span>:<span class="number">40911</span>;n1-<span class="number">192.168</span><span class="number">.0</span><span class="number">.221</span>:<span class="number">40911</span>;n2-<span class="number">192.168</span><span class="number">.0</span><span class="number">.222</span>:<span class="number">40911</span></span><br><span class="line">dLegerSelfId=n1</span><br></pre></td></tr></table></figure>
+<p>192.168.0.222 broker配置文件如下：</p>
+<figure class="highlight js"><table><tr><td class="code"><pre><span class="line">brokerClusterName = DefaultCluster</span><br><span class="line">brokerName = broker-a</span><br><span class="line">brokerId = <span class="number">0</span></span><br><span class="line">deleteWhen = <span class="number">04</span></span><br><span class="line">fileReservedTime = <span class="number">48</span></span><br><span class="line">brokerRole = ASYNC_MASTER</span><br><span class="line">flushDiskType = ASYNC_FLUSH</span><br><span class="line">brokerIP1=<span class="number">192.168</span><span class="number">.0</span><span class="number">.222</span></span><br><span class="line">brokerIP2=<span class="number">192.168</span><span class="number">.0</span><span class="number">.222</span></span><br><span class="line">namesrvAddr=<span class="number">192.168</span><span class="number">.0</span><span class="number">.221</span>:<span class="number">9876</span>;<span class="number">192.168</span><span class="number">.0</span><span class="number">.220</span>:<span class="number">9876</span></span><br><span class="line">storePathRootDir=<span class="regexp">/opt/</span>application/rocketmq-all-<span class="number">4.5</span><span class="number">.2</span>-bin-release/store</span><br><span class="line">storePathCommitLog=<span class="regexp">/opt/</span>application/rocketmq-all-<span class="number">4.5</span><span class="number">.2</span>-bin-release/store/commitlog</span><br><span class="line">autoCreateTopicEnable=<span class="literal">false</span></span><br><span class="line">autoCreateSubscriptionGroup=<span class="literal">false</span></span><br><span class="line"># 与 dledger 相关的配置</span><br><span class="line">enableDLegerCommitLog=<span class="literal">true</span></span><br><span class="line">storePathRootDir=<span class="regexp">/opt/</span>application/rocketmq-all-<span class="number">4.5</span><span class="number">.2</span>-bin-release/store/dledger_store</span><br><span class="line">dLegerGroup=broker-a</span><br><span class="line">dLegerPeers=n0-<span class="number">192.168</span><span class="number">.0</span><span class="number">.220</span>:<span class="number">40911</span>;n1-<span class="number">192.168</span><span class="number">.0</span><span class="number">.221</span>:<span class="number">40911</span>;n2-<span class="number">192.168</span><span class="number">.0</span><span class="number">.222</span>:<span class="number">40911</span></span><br><span class="line">dLegerSelfId=n2</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>温馨提示：legerSelfId 分别为 n0、n1、n2。在真实的生产环境中，broker配置文件中的 storePathRootDir、storePathCommitLog 尽量使用单独的根目录，这样判断其磁盘使用率时才不会相互影响。</p>
+</blockquote>
+<p>Step3：将 store/config 下的 所有文件拷贝到 dledger store 的 congfig 目录下。</p>
+<figure class="highlight js"><table><tr><td class="code"><pre><span class="line">cd /opt/application/rocketmq-all-<span class="number">4.5</span><span class="number">.2</span>-bin-release/store/</span><br><span class="line">cp config<span class="comment">/* dledger_store/config/</span></span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>温馨提示：该步骤按照各自按照时配置的目录进行复制即可。</p>
+</blockquote>
+<p>Step4：依次启动三台 broker。</p>
+<figure class="highlight js"><table><tr><td class="code"><pre><span class="line">nohup bin/mqbroker -c conf/broker.conf  /dev/<span class="literal">null</span>  <span class="number">2</span>&gt;&amp;<span class="number">1</span> &amp;</span><br></pre></td></tr></table></figure>
+<p>如果启动成功，则在 rocketmq-console 中看到的集群信息如下：<br><img src="https://img-blog.csdnimg.cn/20191013143013142.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"></p>
+<h3 id="3-3-验证消息发送与消息查找"><a href="#3-3-验证消息发送与消息查找" class="headerlink" title="3.3 验证消息发送与消息查找"></a>3.3 验证消息发送与消息查找</h3><p>首先我们先验证升级之前的消息是否能查询到，那我们还是查找key 为 m600000 的消息，查找结果如图所示：<br><img src="https://img-blog.csdnimg.cn/20191013143037500.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"></p>
+<p>然后我们来测试一下消息发送。测试代码如下：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Producer</span> </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> MQClientException, InterruptedException </span>&#123;</span><br><span class="line">        DefaultMQProducer producer = <span class="keyword">new</span> DefaultMQProducer(<span class="string">&quot;producer_dw_test&quot;</span>);</span><br><span class="line">        producer.setNamesrvAddr(<span class="string">&quot;192.168.0.220:9876;192.168.0.221:9876&quot;</span>);</span><br><span class="line">        producer.start();</span><br><span class="line">        <span class="keyword">for</span>(<span class="keyword">int</span> i =<span class="number">600200</span>; i &lt; <span class="number">600300</span>; i ++) &#123;</span><br><span class="line">            <span class="keyword">try</span> &#123;</span><br><span class="line">                Message msg = <span class="keyword">new</span> Message(<span class="string">&quot;topic_dw_test_by_order_01&quot;</span>,<span class="keyword">null</span> , <span class="string">&quot;m&quot;</span> + i,(<span class="string">&quot;Hello RocketMQ&quot;</span> + i ).getBytes(RemotingHelper.DEFAULT_CHARSET));</span><br><span class="line">                SendResult sendResult = producer.send(msg);</span><br><span class="line">                System.out.printf(<span class="string">&quot;%s%n&quot;</span>, sendResult);</span><br><span class="line">            &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">                e.printStackTrace();</span><br><span class="line">                Thread.sleep(<span class="number">1000</span>);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        producer.shutdown();</span><br><span class="line">        System.out.println(<span class="string">&quot;end&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>执行结果如下：<br><img src="https://img-blog.csdnimg.cn/20191013143121381.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>再去控制台查询一下消息，其结果也表明新的消息也能查询到。<br><img src="https://img-blog.csdnimg.cn/20191013143149105.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>最后我们再来验证一下主节点宕机，消息发送是否会受影响。</p>
+<p>在消息发送的过程中，去关闭主节点，其截图如下：<br><img src="https://img-blog.csdnimg.cn/20191013143249857.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><img src="https://img-blog.csdnimg.cn/2019101314330055.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><img src="https://img-blog.csdnimg.cn/20191013143313982.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述">再来看一下集群的状态：<br><img src="https://img-blog.csdnimg.cn/20191013143344274.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"></p>
+<p>等待该复制组重新完成主服务器选举后，即可继续处理消息发送。</p>
+<blockquote>
+<p>温馨提示：由于本示例是一主一从，故在选举期间，消息不可用，但在真实的生产环境上，其部署架构是多主主从，即一个复制组在 leader 选举期间，其他复制组可以接替该复制组完成消息的发送，实现消息服务的高可用。</p>
+</blockquote>
+<p>与 DLedger 相关的日志，默认存储在 broker_default.log 文件中。</p>
+</div>
+
+			<script src="https://my.openwrite.cn/js/readmore.js" type="text/javascript"></script>
+			<script>
+			var isMobile = navigator.userAgent.match(/(phone|pad|pod|iPhone|iPod|ios|iPad|Android|Mobile|BlackBerry|IEMobile|MQQBrowser|JUC|Fennec|wOSBrowser|BrowserNG|WebOS|Symbian|Windows Phone)/i);
+			if (!isMobile) {
+			    var btw = new BTWPlugin();
+			    btw.init({
+			        "id": "vip-container",
+			        "blogId": "18019-1573088808868-542",
+			        "name": "中间件兴趣圈",
+			        "qrcode": "https://img-blog.csdnimg.cn/20190314214003962.jpg",
+			        "keyword": "more"
+			    });
+			}
+			</script>
+		]]></content>
+      <categories>
+        <category>rocketmq</category>
+      </categories>
+      <tags>
+        <tag>rocketmq</tag>
+        <tag>多副本</tag>
+        <tag>dledger</tag>
+        <tag>主从切换</tag>
       </tags>
   </entry>
   <entry>
@@ -1879,50 +1879,6 @@
         <tag>rocketmq</tag>
         <tag>CONSUME_FROM_TIMESTAMP</tag>
         <tag>waitTimeMillsInSendQueue</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>RocketMQ事务消息实战</title>
-    <url>/posts/56026c9f.html</url>
-    <content><![CDATA[<div id="vip-container"><p>我们以一个订单流转流程来举例，例如订单子系统创建订单，需要将订单数据下发到其他子系统（与第三方系统对接）这个场景，我们通常会将两个系统进行解耦，不直接使用服务调用的方式进行交互。其业务实现步骤通常为：</p>
-<ol>
-<li>A系统创建订单并入库</li>
-<li>发送消息到MQ</li>
-<li>MQ消费者消费消息，发送远程RPC服务调用，完成订单数据的同步。</li>
-</ol>
-<h2 id="1、方案一"><a href="#1、方案一" class="headerlink" title="1、方案一"></a>1、方案一</h2><ol>
-<li><img src="https://img-blog.csdn.net/20180731191040691?watermark/2/text/aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70" alt="这里写图片描述"><br>&ensp; &ensp;方案弊端：<br>&ensp; &ensp;1、如果消息发送成功，在提交事务的时候JVM突然挂掉，事务没有成功提交，导致两个系统之间数据不一致。<br>&ensp; &ensp;2、由于消息是在事务提交之前提交，发送的消息内容是订单实体的内容，会造成在消费端进行消费时如果需要去验证订单是否存在时可能出现订单不存在。<br>&ensp; &ensp;3、消息发送可以考虑异步发送。</li>
-</ol>
-<a id="more"></a>
-
-<h2 id="2、方案二："><a href="#2、方案二：" class="headerlink" title="2、方案二："></a>2、方案二：</h2><p>&ensp; &ensp;由于存在上述问题，在MQ不支持事务消息的前提条件下，可以采用下面的方式进行优化。<br><img src="https://img-blog.csdn.net/20180802105157536?watermark/2/text/aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70" alt="这里写图片描述"><br>&ensp; &ensp;然后在控制器层，使用异步发送，将消息发送，并在消息发送成功后，更新待发送状态为已发送。<br>&ensp; &ensp;然后通过定时任务，扫描待发送，结合创建时间的记录（小于当前时间5分钟的消息待发送记录），进行消息发送。<br>&ensp; &ensp;方案弊端：<br>&ensp; &ensp;1、消息有可能重复发送，但在消费端可以通过唯一业务编号来进行去重设计。<br>&ensp; &ensp;2、实现过于复杂，为了避免 极端情况下的消息丢失，需要使用定时任务。</p>
-<h2 id="3、方案三：基于RocketMQ4-3版本事务消息"><a href="#3、方案三：基于RocketMQ4-3版本事务消息" class="headerlink" title="3、方案三：基于RocketMQ4.3版本事务消息"></a>3、方案三：基于RocketMQ4.3版本事务消息</h2><p><img src="https://img-blog.csdn.net/201807311912029?watermark/2/text/aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70" alt="这里写图片描述"><br>&ensp; &ensp;额外需要实现事务会查监听器：TransactionListener，其实例代码：</p>
-<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">import org.apache.rocketmq.client.producer.LocalTransactionState;</span><br><span class="line">import org.apache.rocketmq.client.producer.TransactionListener;</span><br><span class="line">import org.apache.rocketmq.common.message.Message;</span><br><span class="line">import org.apache.rocketmq.common.message.MessageExt;</span><br><span class="line"></span><br><span class="line">import java.util.concurrent.ConcurrentHashMap;</span><br><span class="line"></span><br><span class="line">@SuppressWarnings(&quot;unused&quot;)</span><br><span class="line">public class OrderTransactionListenerImpl implements TransactionListener &#123;</span><br><span class="line">	</span><br><span class="line">	private ConcurrentHashMap&lt;String, Integer&gt; countHashMap &#x3D; new ConcurrentHashMap&lt;&gt;();</span><br><span class="line">	</span><br><span class="line">	private final static int MAX_COUNT &#x3D; 5;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">	@Override</span><br><span class="line">    public LocalTransactionState executeLocalTransaction(Message msg, Object arg) &#123;</span><br><span class="line">        &#x2F;&#x2F; </span><br><span class="line">    	String bizUniNo &#x3D; msg.getUserProperty(&quot;bizUniNo&quot;); &#x2F;&#x2F; 从消息中获取业务唯一ID。</span><br><span class="line">    	&#x2F;&#x2F; 将bizUniNo入库，表名：t_message_transaction,表结构  bizUniNo(主键),业务类型。</span><br><span class="line">        return LocalTransactionState.UNKNOW;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    @Override</span><br><span class="line">    public LocalTransactionState checkLocalTransaction(MessageExt msg) &#123;</span><br><span class="line">        Integer status &#x3D; 0;</span><br><span class="line">        &#x2F;&#x2F; 从数据库查查询t_message_transaction表，如果该表中存在记录，则提交，</span><br><span class="line">        String bizUniNo &#x3D; msg.getUserProperty(&quot;bizUniNo&quot;); &#x2F;&#x2F; 从消息中获取业务唯一ID。</span><br><span class="line">        &#x2F;&#x2F; 然后t_message_transaction 表，是否存在bizUniNo，如果存在，则返回COMMIT_MESSAGE，</span><br><span class="line">        &#x2F;&#x2F; 不存在，则记录查询次数，未超过次数，返回UNKNOW，超过次数，返回ROLLBACK_MESSAGE</span><br><span class="line">        </span><br><span class="line">        if(query(bizUniNo) &gt; 0 ) &#123;</span><br><span class="line">        	return LocalTransactionState.COMMIT_MESSAGE;</span><br><span class="line">        &#125;</span><br><span class="line">        </span><br><span class="line">        return rollBackOrUnown(bizUniNo);</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    public int query(String bizUniNo) &#123;</span><br><span class="line">    	return 1; &#x2F;&#x2F;select count(1) from t_message_transaction a where a.biz_uni_no&#x3D;#&#123;bizUniNo&#125;</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    public LocalTransactionState rollBackOrUnown(String bizUniNo) &#123;</span><br><span class="line">    	Integer num &#x3D; countHashMap.get(bizUniNo);</span><br><span class="line">    	</span><br><span class="line">    	if(num !&#x3D; null &amp;&amp;  ++num &gt; MAX_COUNT) &#123;</span><br><span class="line">    		countHashMap.remove(bizUniNo);</span><br><span class="line">    		return LocalTransactionState.ROLLBACK_MESSAGE;</span><br><span class="line">    	&#125;</span><br><span class="line">    	</span><br><span class="line">    	if(num &#x3D;&#x3D; null) &#123;</span><br><span class="line">    		num &#x3D; new Integer(1);</span><br><span class="line">    	&#125;</span><br><span class="line">    	</span><br><span class="line">    	countHashMap.put(bizUniNo, num);</span><br><span class="line">    	return LocalTransactionState.UNKNOW;</span><br><span class="line">    	</span><br><span class="line">    &#125;</span><br><span class="line">  </span><br><span class="line">&#125; </span><br></pre></td></tr></table></figure>
-<p>&ensp; &ensp;TransactionListener 实现要点：<br>&ensp; &ensp;executeLocalTransaction：<br>&ensp; &ensp;该方法，主要是设置本地事务状态，该方法与业务方代码在一个事务中，例如OrderServer#createMap中，只要本地事务提交成功，该方法也会提交成功。<br>&ensp; &ensp;故在这里，主要是t_message_transaction添加一条记录，在事务会查时，如果存在记录，就认为是该消息需要提交。<br>&ensp; &ensp;checkLocalTransaction：<br>&ensp; &ensp;该方法主要是告知RocketMQ消息是否需要提交还是回滚，如果本地事务表（t_message_transaction）存在记录，则认为提交，如果不存在，可以设置会查次数，如果指定次数内还是未查到消息，则回滚，否则返回未知，rocketmq会按一定的频率回查事务，当然回查次数也有限制，默认为5次，可配置。</p>
-</div>
-
-			<script src="https://my.openwrite.cn/js/readmore.js" type="text/javascript"></script>
-			<script>
-			var isMobile = navigator.userAgent.match(/(phone|pad|pod|iPhone|iPod|ios|iPad|Android|Mobile|BlackBerry|IEMobile|MQQBrowser|JUC|Fennec|wOSBrowser|BrowserNG|WebOS|Symbian|Windows Phone)/i);
-			if (!isMobile) {
-			    var btw = new BTWPlugin();
-			    btw.init({
-			        "id": "vip-container",
-			        "blogId": "18019-1573088808868-542",
-			        "name": "中间件兴趣圈",
-			        "qrcode": "https://img-blog.csdnimg.cn/20190314214003962.jpg",
-			        "keyword": "more"
-			    });
-			}
-			</script>
-		]]></content>
-      <categories>
-        <category>rocketmq</category>
-      </categories>
-      <tags>
-        <tag>rocketmq</tag>
-        <tag>实战</tag>
-        <tag>事务消息</tag>
       </tags>
   </entry>
   <entry>
@@ -2028,6 +1984,50 @@
       <tags>
         <tag>rocketmq</tag>
         <tag>RocketMQ安装</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>RocketMQ事务消息实战</title>
+    <url>/posts/56026c9f.html</url>
+    <content><![CDATA[<div id="vip-container"><p>我们以一个订单流转流程来举例，例如订单子系统创建订单，需要将订单数据下发到其他子系统（与第三方系统对接）这个场景，我们通常会将两个系统进行解耦，不直接使用服务调用的方式进行交互。其业务实现步骤通常为：</p>
+<ol>
+<li>A系统创建订单并入库</li>
+<li>发送消息到MQ</li>
+<li>MQ消费者消费消息，发送远程RPC服务调用，完成订单数据的同步。</li>
+</ol>
+<h2 id="1、方案一"><a href="#1、方案一" class="headerlink" title="1、方案一"></a>1、方案一</h2><ol>
+<li><img src="https://img-blog.csdn.net/20180731191040691?watermark/2/text/aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70" alt="这里写图片描述"><br>&ensp; &ensp;方案弊端：<br>&ensp; &ensp;1、如果消息发送成功，在提交事务的时候JVM突然挂掉，事务没有成功提交，导致两个系统之间数据不一致。<br>&ensp; &ensp;2、由于消息是在事务提交之前提交，发送的消息内容是订单实体的内容，会造成在消费端进行消费时如果需要去验证订单是否存在时可能出现订单不存在。<br>&ensp; &ensp;3、消息发送可以考虑异步发送。</li>
+</ol>
+<a id="more"></a>
+
+<h2 id="2、方案二："><a href="#2、方案二：" class="headerlink" title="2、方案二："></a>2、方案二：</h2><p>&ensp; &ensp;由于存在上述问题，在MQ不支持事务消息的前提条件下，可以采用下面的方式进行优化。<br><img src="https://img-blog.csdn.net/20180802105157536?watermark/2/text/aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70" alt="这里写图片描述"><br>&ensp; &ensp;然后在控制器层，使用异步发送，将消息发送，并在消息发送成功后，更新待发送状态为已发送。<br>&ensp; &ensp;然后通过定时任务，扫描待发送，结合创建时间的记录（小于当前时间5分钟的消息待发送记录），进行消息发送。<br>&ensp; &ensp;方案弊端：<br>&ensp; &ensp;1、消息有可能重复发送，但在消费端可以通过唯一业务编号来进行去重设计。<br>&ensp; &ensp;2、实现过于复杂，为了避免 极端情况下的消息丢失，需要使用定时任务。</p>
+<h2 id="3、方案三：基于RocketMQ4-3版本事务消息"><a href="#3、方案三：基于RocketMQ4-3版本事务消息" class="headerlink" title="3、方案三：基于RocketMQ4.3版本事务消息"></a>3、方案三：基于RocketMQ4.3版本事务消息</h2><p><img src="https://img-blog.csdn.net/201807311912029?watermark/2/text/aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70" alt="这里写图片描述"><br>&ensp; &ensp;额外需要实现事务会查监听器：TransactionListener，其实例代码：</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">import org.apache.rocketmq.client.producer.LocalTransactionState;</span><br><span class="line">import org.apache.rocketmq.client.producer.TransactionListener;</span><br><span class="line">import org.apache.rocketmq.common.message.Message;</span><br><span class="line">import org.apache.rocketmq.common.message.MessageExt;</span><br><span class="line"></span><br><span class="line">import java.util.concurrent.ConcurrentHashMap;</span><br><span class="line"></span><br><span class="line">@SuppressWarnings(&quot;unused&quot;)</span><br><span class="line">public class OrderTransactionListenerImpl implements TransactionListener &#123;</span><br><span class="line">	</span><br><span class="line">	private ConcurrentHashMap&lt;String, Integer&gt; countHashMap &#x3D; new ConcurrentHashMap&lt;&gt;();</span><br><span class="line">	</span><br><span class="line">	private final static int MAX_COUNT &#x3D; 5;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">	@Override</span><br><span class="line">    public LocalTransactionState executeLocalTransaction(Message msg, Object arg) &#123;</span><br><span class="line">        &#x2F;&#x2F; </span><br><span class="line">    	String bizUniNo &#x3D; msg.getUserProperty(&quot;bizUniNo&quot;); &#x2F;&#x2F; 从消息中获取业务唯一ID。</span><br><span class="line">    	&#x2F;&#x2F; 将bizUniNo入库，表名：t_message_transaction,表结构  bizUniNo(主键),业务类型。</span><br><span class="line">        return LocalTransactionState.UNKNOW;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    @Override</span><br><span class="line">    public LocalTransactionState checkLocalTransaction(MessageExt msg) &#123;</span><br><span class="line">        Integer status &#x3D; 0;</span><br><span class="line">        &#x2F;&#x2F; 从数据库查查询t_message_transaction表，如果该表中存在记录，则提交，</span><br><span class="line">        String bizUniNo &#x3D; msg.getUserProperty(&quot;bizUniNo&quot;); &#x2F;&#x2F; 从消息中获取业务唯一ID。</span><br><span class="line">        &#x2F;&#x2F; 然后t_message_transaction 表，是否存在bizUniNo，如果存在，则返回COMMIT_MESSAGE，</span><br><span class="line">        &#x2F;&#x2F; 不存在，则记录查询次数，未超过次数，返回UNKNOW，超过次数，返回ROLLBACK_MESSAGE</span><br><span class="line">        </span><br><span class="line">        if(query(bizUniNo) &gt; 0 ) &#123;</span><br><span class="line">        	return LocalTransactionState.COMMIT_MESSAGE;</span><br><span class="line">        &#125;</span><br><span class="line">        </span><br><span class="line">        return rollBackOrUnown(bizUniNo);</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    public int query(String bizUniNo) &#123;</span><br><span class="line">    	return 1; &#x2F;&#x2F;select count(1) from t_message_transaction a where a.biz_uni_no&#x3D;#&#123;bizUniNo&#125;</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    public LocalTransactionState rollBackOrUnown(String bizUniNo) &#123;</span><br><span class="line">    	Integer num &#x3D; countHashMap.get(bizUniNo);</span><br><span class="line">    	</span><br><span class="line">    	if(num !&#x3D; null &amp;&amp;  ++num &gt; MAX_COUNT) &#123;</span><br><span class="line">    		countHashMap.remove(bizUniNo);</span><br><span class="line">    		return LocalTransactionState.ROLLBACK_MESSAGE;</span><br><span class="line">    	&#125;</span><br><span class="line">    	</span><br><span class="line">    	if(num &#x3D;&#x3D; null) &#123;</span><br><span class="line">    		num &#x3D; new Integer(1);</span><br><span class="line">    	&#125;</span><br><span class="line">    	</span><br><span class="line">    	countHashMap.put(bizUniNo, num);</span><br><span class="line">    	return LocalTransactionState.UNKNOW;</span><br><span class="line">    	</span><br><span class="line">    &#125;</span><br><span class="line">  </span><br><span class="line">&#125; </span><br></pre></td></tr></table></figure>
+<p>&ensp; &ensp;TransactionListener 实现要点：<br>&ensp; &ensp;executeLocalTransaction：<br>&ensp; &ensp;该方法，主要是设置本地事务状态，该方法与业务方代码在一个事务中，例如OrderServer#createMap中，只要本地事务提交成功，该方法也会提交成功。<br>&ensp; &ensp;故在这里，主要是t_message_transaction添加一条记录，在事务会查时，如果存在记录，就认为是该消息需要提交。<br>&ensp; &ensp;checkLocalTransaction：<br>&ensp; &ensp;该方法主要是告知RocketMQ消息是否需要提交还是回滚，如果本地事务表（t_message_transaction）存在记录，则认为提交，如果不存在，可以设置会查次数，如果指定次数内还是未查到消息，则回滚，否则返回未知，rocketmq会按一定的频率回查事务，当然回查次数也有限制，默认为5次，可配置。</p>
+</div>
+
+			<script src="https://my.openwrite.cn/js/readmore.js" type="text/javascript"></script>
+			<script>
+			var isMobile = navigator.userAgent.match(/(phone|pad|pod|iPhone|iPod|ios|iPad|Android|Mobile|BlackBerry|IEMobile|MQQBrowser|JUC|Fennec|wOSBrowser|BrowserNG|WebOS|Symbian|Windows Phone)/i);
+			if (!isMobile) {
+			    var btw = new BTWPlugin();
+			    btw.init({
+			        "id": "vip-container",
+			        "blogId": "18019-1573088808868-542",
+			        "name": "中间件兴趣圈",
+			        "qrcode": "https://img-blog.csdnimg.cn/20190314214003962.jpg",
+			        "keyword": "more"
+			    });
+			}
+			</script>
+		]]></content>
+      <categories>
+        <category>rocketmq</category>
+      </categories>
+      <tags>
+        <tag>rocketmq</tag>
+        <tag>实战</tag>
+        <tag>事务消息</tag>
       </tags>
   </entry>
   <entry>
@@ -3000,6 +3000,53 @@
       </tags>
   </entry>
   <entry>
+    <title>TreeMap之NavigableMap API 学习</title>
+    <url>/posts/4757c2d8.html</url>
+    <content><![CDATA[<div id="vip-container"><p>本文主要学习TreeMap的核心API，下面是测试数据：</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">TreeMap&lt; Long, Long&gt; treeMap &#x3D; new TreeMap&lt;&gt;();</span><br><span class="line">for(int i &#x3D; 2; i &lt;&#x3D; 20; i &#x3D; i + 2) &#123;</span><br><span class="line">   treeMap.put(new Long(i), new Long(i));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>1、K lowerKey(K key) | Map.Entry&lt; K,V&gt; lowerEntry(K key)   </p>
+<p>1）英文注释<br>Returns a key-value mapping associated with the greatest keystrictly less than the given key, or {@code null} if there is no such key.<br>2）测试结果<br><img src="https://img-blog.csdn.net/20180626214930370?watermark/2/text/aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70" alt="这里写图片描述"><br>   输出结果：<br>   4<br>   4<br>   null<br>3）中文解释<br>  返回第一个小于该key的键或Entry，不包含指定key。指定key不存在不影响结果，例如测试用例中的不存在键为5的键值对，但还是能返回Key:4，如果没有扎到小于key的键，则返回null。</p>
+<a id="more"></a>
+
+<p>2、K floorKey(K key) | Map.Entry&lt; K,V&gt; floorEntry(K key)</p>
+<p>1）英文注释<br>Returns a key-value mapping associated with the greatest key less than or equal to the given key, or {@code null} if there is no such key。<br>2）测试结果<br><img src="https://img-blog.csdn.net/20180626215016389?watermark/2/text/aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70" alt="这里写图片描述"><br>输出结果：<br>   6<br>   4<br>   null<br>3）中文解释<br>   返回小于等于指定key的键值，与lowerKey的区别是floorKey方法，如果TreeMap中包含指定的key，则返回指定key，否则返回第一个小于指定key的键。</p>
+<p>3、K ceilingKey(K key) | Map.Entry&lt; K,V&gt; ceilingEntry(K key)</p>
+<p>1）英文注释<br>Returns a key-value mapping associated with the least key greater than or equal to the given key, or {@code null} if there is no such key。<br>2）测试结果<br><img src="https://img-blog.csdn.net/20180626215110522?watermark/2/text/aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70" alt="这里写图片描述"><br>输出结果：<br>   6<br>   6<br>   null<br>3）中文解释<br>   ceiling : 天花板，查找指定key的天花板，也就是说，查找第一个大于等于指定key的可以。</p>
+<p>4、K higherKey(K key) | Map.Entry&lt; K,V&gt; higherEntry(K key)</p>
+<p>1）英文注释<br>Returns a key-value mapping associated with the least key strictly greater than the given key, or {@code null} if there  is no such key。<br>2）测试结果<br><img src="https://img-blog.csdn.net/20180626215144375?watermark/2/text/aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70" alt="这里写图片描述"><br>输出结果：<br>   8<br>   6<br>   null<br>3）中文解释<br>   返回第一个大于指定key的键，不包含指定key。而ceilingKey包含指定key。</p>
+<p>5、Map.Entry&lt; K,V&gt; firstEntry()、Map.Entry&lt; K,V&gt; lastEntry()、Map.Entry&lt; K,V&gt; pollFirstEntry()、Map.Entry&lt; K,V&gt; pollLastEntry()<br>这四个方法很好理解，这里不做详细讲解。</p>
+<p>6、NavigableMap&lt; K,V&gt; descendingMap()、 NavigableSet&lt; K&gt; descendingKeySet()<br>这两个方法，返回逆序。</p>
+<p>7、NavigableMap&lt; K,V&gt; subMap(K fromKey, boolean fromInclusive,  K toKey,   boolean toInclusive)<br>1）英文注释<br><img src="https://img-blog.csdn.net/20180626215248417?watermark/2/text/aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70" alt="这里写图片描述"><br>2）测试结果<br><img src="https://img-blog.csdn.net/20180626215316903?watermark/2/text/aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70" alt="这里写图片描述"><br>  输出结果：<br>{4=4, 6=6, 8=8}<br>返回子集合(TreeMap),从fromKey,到toKey，boolean fromInclusive表示是否包含fromKey,boolean toInclusive是否包含toKey。<br>TreeMap#subMap</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">public SortedMap&lt;K,V&gt; subMap(K fromKey, K toKey) &#123;</span><br><span class="line">        return subMap(fromKey, true, toKey, false);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>8、NavigableMap&lt; K,V&gt; headMap(K toKey, boolean inclusive)<br>1）英文注释<br><img src="https://img-blog.csdn.net/20180626215421299?watermark/2/text/aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70" alt="这里写图片描述"><br>2）中文说明<br>   测试结果省略（推理后，也验证过），根据上面的学习过程，可以推导出，该方法相当于 subMap(firstKey, true, toKey, inclusive)。<br>TreeMap#headMap(Key toKey)</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">public SortedMap&lt;K,V&gt; headMap(K toKey) &#123;</span><br><span class="line">        return headMap(toKey, false);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>9、NavigableMap&lt; K,V&gt; tailMap(K fromKey, boolean inclusive)<br>1）英文描述<br><img src="https://img-blog.csdn.net/20180626215518663?watermark/2/text/aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70" alt="这里写图片描述"><br>2）中文解释<br>返回从fromKey到lastKey的子集合，相当于subMap(fromKey,inclusive,lastKey,true)。<br>TreeMap#tailMap(K fromKey) </p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">public SortedMap&lt;K,V&gt; tailMap(K fromKey) &#123;</span><br><span class="line">        return tailMap(fromKey, true);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></div>
+
+			<script src="https://my.openwrite.cn/js/readmore.js" type="text/javascript"></script>
+			<script>
+			var isMobile = navigator.userAgent.match(/(phone|pad|pod|iPhone|iPod|ios|iPad|Android|Mobile|BlackBerry|IEMobile|MQQBrowser|JUC|Fennec|wOSBrowser|BrowserNG|WebOS|Symbian|Windows Phone)/i);
+			if (!isMobile) {
+			    var btw = new BTWPlugin();
+			    btw.init({
+			        "id": "vip-container",
+			        "blogId": "18019-1573088808868-542",
+			        "name": "中间件兴趣圈",
+			        "qrcode": "https://img-blog.csdnimg.cn/20190314214003962.jpg",
+			        "keyword": "more"
+			    });
+			}
+			</script>
+		]]></content>
+      <categories>
+        <category>java</category>
+      </categories>
+      <tags>
+        <tag>java</tag>
+        <tag>TreepMap</tag>
+      </tags>
+  </entry>
+  <entry>
     <title></title>
     <url>/posts/0.html</url>
     <content><![CDATA[<div id="vip-container">google-site-verification: googlecc251cbecd6aae7e.html</div>
@@ -3164,53 +3211,6 @@
       </tags>
   </entry>
   <entry>
-    <title>TreeMap之NavigableMap API 学习</title>
-    <url>/posts/4757c2d8.html</url>
-    <content><![CDATA[<div id="vip-container"><p>本文主要学习TreeMap的核心API，下面是测试数据：</p>
-<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">TreeMap&lt; Long, Long&gt; treeMap &#x3D; new TreeMap&lt;&gt;();</span><br><span class="line">for(int i &#x3D; 2; i &lt;&#x3D; 20; i &#x3D; i + 2) &#123;</span><br><span class="line">   treeMap.put(new Long(i), new Long(i));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>1、K lowerKey(K key) | Map.Entry&lt; K,V&gt; lowerEntry(K key)   </p>
-<p>1）英文注释<br>Returns a key-value mapping associated with the greatest keystrictly less than the given key, or {@code null} if there is no such key.<br>2）测试结果<br><img src="https://img-blog.csdn.net/20180626214930370?watermark/2/text/aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70" alt="这里写图片描述"><br>   输出结果：<br>   4<br>   4<br>   null<br>3）中文解释<br>  返回第一个小于该key的键或Entry，不包含指定key。指定key不存在不影响结果，例如测试用例中的不存在键为5的键值对，但还是能返回Key:4，如果没有扎到小于key的键，则返回null。</p>
-<a id="more"></a>
-
-<p>2、K floorKey(K key) | Map.Entry&lt; K,V&gt; floorEntry(K key)</p>
-<p>1）英文注释<br>Returns a key-value mapping associated with the greatest key less than or equal to the given key, or {@code null} if there is no such key。<br>2）测试结果<br><img src="https://img-blog.csdn.net/20180626215016389?watermark/2/text/aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70" alt="这里写图片描述"><br>输出结果：<br>   6<br>   4<br>   null<br>3）中文解释<br>   返回小于等于指定key的键值，与lowerKey的区别是floorKey方法，如果TreeMap中包含指定的key，则返回指定key，否则返回第一个小于指定key的键。</p>
-<p>3、K ceilingKey(K key) | Map.Entry&lt; K,V&gt; ceilingEntry(K key)</p>
-<p>1）英文注释<br>Returns a key-value mapping associated with the least key greater than or equal to the given key, or {@code null} if there is no such key。<br>2）测试结果<br><img src="https://img-blog.csdn.net/20180626215110522?watermark/2/text/aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70" alt="这里写图片描述"><br>输出结果：<br>   6<br>   6<br>   null<br>3）中文解释<br>   ceiling : 天花板，查找指定key的天花板，也就是说，查找第一个大于等于指定key的可以。</p>
-<p>4、K higherKey(K key) | Map.Entry&lt; K,V&gt; higherEntry(K key)</p>
-<p>1）英文注释<br>Returns a key-value mapping associated with the least key strictly greater than the given key, or {@code null} if there  is no such key。<br>2）测试结果<br><img src="https://img-blog.csdn.net/20180626215144375?watermark/2/text/aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70" alt="这里写图片描述"><br>输出结果：<br>   8<br>   6<br>   null<br>3）中文解释<br>   返回第一个大于指定key的键，不包含指定key。而ceilingKey包含指定key。</p>
-<p>5、Map.Entry&lt; K,V&gt; firstEntry()、Map.Entry&lt; K,V&gt; lastEntry()、Map.Entry&lt; K,V&gt; pollFirstEntry()、Map.Entry&lt; K,V&gt; pollLastEntry()<br>这四个方法很好理解，这里不做详细讲解。</p>
-<p>6、NavigableMap&lt; K,V&gt; descendingMap()、 NavigableSet&lt; K&gt; descendingKeySet()<br>这两个方法，返回逆序。</p>
-<p>7、NavigableMap&lt; K,V&gt; subMap(K fromKey, boolean fromInclusive,  K toKey,   boolean toInclusive)<br>1）英文注释<br><img src="https://img-blog.csdn.net/20180626215248417?watermark/2/text/aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70" alt="这里写图片描述"><br>2）测试结果<br><img src="https://img-blog.csdn.net/20180626215316903?watermark/2/text/aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70" alt="这里写图片描述"><br>  输出结果：<br>{4=4, 6=6, 8=8}<br>返回子集合(TreeMap),从fromKey,到toKey，boolean fromInclusive表示是否包含fromKey,boolean toInclusive是否包含toKey。<br>TreeMap#subMap</p>
-<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">public SortedMap&lt;K,V&gt; subMap(K fromKey, K toKey) &#123;</span><br><span class="line">        return subMap(fromKey, true, toKey, false);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>8、NavigableMap&lt; K,V&gt; headMap(K toKey, boolean inclusive)<br>1）英文注释<br><img src="https://img-blog.csdn.net/20180626215421299?watermark/2/text/aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70" alt="这里写图片描述"><br>2）中文说明<br>   测试结果省略（推理后，也验证过），根据上面的学习过程，可以推导出，该方法相当于 subMap(firstKey, true, toKey, inclusive)。<br>TreeMap#headMap(Key toKey)</p>
-<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">public SortedMap&lt;K,V&gt; headMap(K toKey) &#123;</span><br><span class="line">        return headMap(toKey, false);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>9、NavigableMap&lt; K,V&gt; tailMap(K fromKey, boolean inclusive)<br>1）英文描述<br><img src="https://img-blog.csdn.net/20180626215518663?watermark/2/text/aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70" alt="这里写图片描述"><br>2）中文解释<br>返回从fromKey到lastKey的子集合，相当于subMap(fromKey,inclusive,lastKey,true)。<br>TreeMap#tailMap(K fromKey) </p>
-<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">public SortedMap&lt;K,V&gt; tailMap(K fromKey) &#123;</span><br><span class="line">        return tailMap(fromKey, true);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></div>
-
-			<script src="https://my.openwrite.cn/js/readmore.js" type="text/javascript"></script>
-			<script>
-			var isMobile = navigator.userAgent.match(/(phone|pad|pod|iPhone|iPod|ios|iPad|Android|Mobile|BlackBerry|IEMobile|MQQBrowser|JUC|Fennec|wOSBrowser|BrowserNG|WebOS|Symbian|Windows Phone)/i);
-			if (!isMobile) {
-			    var btw = new BTWPlugin();
-			    btw.init({
-			        "id": "vip-container",
-			        "blogId": "18019-1573088808868-542",
-			        "name": "中间件兴趣圈",
-			        "qrcode": "https://img-blog.csdnimg.cn/20190314214003962.jpg",
-			        "keyword": "more"
-			    });
-			}
-			</script>
-		]]></content>
-      <categories>
-        <category>java</category>
-      </categories>
-      <tags>
-        <tag>java</tag>
-        <tag>TreepMap</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>java并发锁机制-ReentrantLock Condtion准备篇</title>
     <url>/posts/aa807b75.html</url>
     <content><![CDATA[<div id="vip-container"><p>根据网上的说法，jdk并发包中的 Condition await 与 signal 实现了 Object.wait notify 语义。以下总结，是基于Condition await,singal方法的实现原理总结出来的：</p>
@@ -3318,64 +3318,6 @@
         <tag>canal</tag>
         <tag>数据异构</tag>
         <tag>CanalInstance</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>一次 RocketMQ 进程自动退出排查经验分享（实战篇）</title>
-    <url>/posts/fc4470e5.html</url>
-    <content><![CDATA[<div id="vip-container"><h2 id="1、背景"><a href="#1、背景" class="headerlink" title="1、背景"></a>1、背景</h2><p>公司一个 RocketMQ 集群由4主4从组成，突然其中3台服务器“竟然”在同一时间下线，其监控显示如下：<br><img src="https://img-blog.csdnimg.cn/20191026211319978.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>依次查看三台机器的监控图形，时间戳几乎完美“吻合”，不可思议吧。</p>
-<h2 id="2、故障分析"><a href="#2、故障分析" class="headerlink" title="2、故障分析"></a>2、故障分析</h2><p>出现问题，先二话不说，马上重启各服务器，尽快恢复集群，降低对业务的影响，接下来开始对日志进行分析。</p>
-<p>Java 进程自动退出(rocketmq 本身就是一个java进程)，一种最常见的问题是由于内存溢出或由于内存泄漏导致进程发送Crash等。由于我们的启动参数中未配置-XX:+HeapDumpOnOutOfMemoryError<br>-XX:HeapDumpPath=/opt/jvmdump 这两个参数，不能直接根据 是否生成 dump 文件，那退而求其次去查看其GC日志，将GC日志下载到本地，然后可以使用一个在线gc日志分析工具：<a href="https://gceasy.io/">https://gceasy.io/</a> ，将 gc 日志上传后会给出图形化的展示，其图如下：<br><img src="https://img-blog.csdnimg.cn/20191026211454570.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br><img src="https://img-blog.csdnimg.cn/20191026211519396.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>发现垃圾回收很正常。</p>
-<p>既然 Java 进程不是由于内存溢出等问题导致的退出，那又会是什么原因呢？那我们来看一下那个点的broker的日志，其关键日志截图如下：<br><img src="https://img-blog.csdnimg.cn/20191026211607400.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>发现 broker 日志中有打印出 shutdownHook，表示在进程退出之前执行了启动时注册时的退出钩子函数，说明 broker 是正常停止的，并且也不可能是 kill -9 命令，肯定是显示的执行了 shutodown 或 kill 命令，于是立马使用 history 命令 查看历史命令，都未在指定时间执行过该命令，并且切换到 root 命令后，同样使用 history 命令，并未发现端倪。</p>
-<p>但我始终相信，肯定是执行了手动执行了 kill 命令导致进程退出的，经过网上查找查，得知可以通过查阅系统日志/var/log/messages 来查看系统命令的调用，于是乎把日志文件下载到本地，开始搜索 kill 关键字，发现如下日志：<br><img src="https://img-blog.csdnimg.cn/20191026211722459.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>发现最近一次 kill 命令是在25号的凌晨1点多，停止 rocketmq 集群，并使用 bin/mqbroker -c conf/broker-b.conf &amp; 进行了重新启动。</p>
-<p>这个命令是有问题的，没有使用 nohup ，如果会话失效，该进程就会被退出，为了验证，我们再查一下进程退出时的日志：</p>
-<a id="more"></a>
-
-<p><img src="https://img-blog.csdnimg.cn/20191026211818275.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>发现在故障发生点确实有 Removed 相关的日志。</p>
-<p>故障原因基本分析到位了，运维在启动的时候没有使用 nohup 来启动，故马上排查刚启动的集群的方式，重新重启刚启动的 Broker。</p>
-<p>RocketMQ优雅重启小建议：</p>
-<ol>
-<li><p>首先将 broker 的写权限关闭，命令如下：</p>
-<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">bin&#x2F;mqadmin updateBrokerConfig -b 192.168.x.x:10911 -n 192.168.x.x:9876 -k brokerPermission -v 4</span><br></pre></td></tr></table></figure>
-</li>
-<li><p>通过 rocketmq-console 查看该broker的写入TPS，当写入TPS降为0后，再使用 kill pid 关闭 rocketmq 进程。温馨提示：将broker的写权限关闭后，非顺序消息不会立马拒绝，而是需要等客户端路由信息更新后，不会在往该broker上发送消息，故这个过程需要等待。</p>
-</li>
-<li><p>启动 rocketmq</p>
-<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">nohup bin&#x2F;mqbroker -c conf&#x2F;broker-a.conf  &#x2F;dev&#x2F;null  2&gt;&amp;1 &amp;</span><br></pre></td></tr></table></figure>
-<blockquote>
-<p>注意：nohup。</p>
-</blockquote>
-</li>
-<li><p>恢复该节点的写权限</p>
-<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">bin&#x2F;mqadmin updateBrokerConfig -b 192.168.x.x:10911 -n 192.168.x.x:9876 -k brokerPermission -v 6</span><br></pre></td></tr></table></figure>
-
-</li>
-</ol>
-<p>本文的故障分析与处理就介绍到这里，本文重点讲解了故障的分析过程以及 RocketMQ Broker 优雅停机的方案。</p>
-</div>
-
-			<script src="https://my.openwrite.cn/js/readmore.js" type="text/javascript"></script>
-			<script>
-			var isMobile = navigator.userAgent.match(/(phone|pad|pod|iPhone|iPod|ios|iPad|Android|Mobile|BlackBerry|IEMobile|MQQBrowser|JUC|Fennec|wOSBrowser|BrowserNG|WebOS|Symbian|Windows Phone)/i);
-			if (!isMobile) {
-			    var btw = new BTWPlugin();
-			    btw.init({
-			        "id": "vip-container",
-			        "blogId": "18019-1573088808868-542",
-			        "name": "中间件兴趣圈",
-			        "qrcode": "https://img-blog.csdnimg.cn/20190314214003962.jpg",
-			        "keyword": "more"
-			    });
-			}
-			</script>
-		]]></content>
-      <categories>
-        <category>rocketmq</category>
-      </categories>
-      <tags>
-        <tag>rocketmq</tag>
-        <tag>实战</tag>
-        <tag>自动退出</tag>
       </tags>
   </entry>
   <entry>
@@ -3497,28 +3439,37 @@
       </tags>
   </entry>
   <entry>
-    <title>再谈 RocketMQ broker busy(实战篇)</title>
-    <url>/posts/cf8acd90.html</url>
-    <content><![CDATA[<div id="vip-container"><p>本文将在 <a href="https://blog.csdn.net/prestigeding/article/details/92800672">RocketMQ 消息发送system busy、broker busy原因分析与解决方案</a> 的基础上，结合生产上的日志尝试再次理解 broker busy 以及探讨解决方案。</p>
-<p>首先，broker busy 相关的日志关键字如下：</p>
-<ul>
-<li>[REJECTREQUEST]system busy</li>
-<li>too many requests and system thread pool busy</li>
-<li>[PC_SYNCHRONIZED]broker busy</li>
-<li>[PCBUSY_CLEAN_QUEUE]broker busy</li>
-<li>[TIMEOUT_CLEAN_QUEUE]broker busy</li>
-</ul>
-<p>上述前面4个关键字在上篇文章中已详细介绍，本文先对出现上述错误进行一个总结，具体的分析过程请查阅上篇文章。</p>
-<p>本文先给出一张流程图，展示上述5种 broker busy 分别会在消息发送的哪个阶段抛出，以便大家能够清晰的了解其发生的原因。<br><img src="https://img-blog.csdnimg.cn/20191024084015845.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br><strong>针对前4种 broker busy 出现的问题已经在上篇文章中详细介绍，主要是由于 Broker 在追加消息时持有的锁时间超过了设置的1s，Broker 为了自我保护，会抛出错误，客户端会选择其他 broker 服务器进行重试。如果对不是金融级服务，建议将 transientStorePoolEnable = true，可以有效避免前面 4 种 broker ，因为开启这个参数，消息首先会存储在堆外内存中，并且 RocketMQ 提供了内存锁定的功能，其追加性能能得到一定的保障，这样可以做到在内存使用层面的读写分离，即写消息是直接写入堆外内存，消费消息直接从 pagecache中读，然后定时将堆外内存的消息写入 pagecache。但这种方案随之带来的就是可能存在消息丢失，如果对消息非常严谨的话，建议扩容集群，或迁移topic到新的集群。</strong></p>
+    <title>一次 RocketMQ 进程自动退出排查经验分享（实战篇）</title>
+    <url>/posts/fc4470e5.html</url>
+    <content><![CDATA[<div id="vip-container"><h2 id="1、背景"><a href="#1、背景" class="headerlink" title="1、背景"></a>1、背景</h2><p>公司一个 RocketMQ 集群由4主4从组成，突然其中3台服务器“竟然”在同一时间下线，其监控显示如下：<br><img src="https://img-blog.csdnimg.cn/20191026211319978.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>依次查看三台机器的监控图形，时间戳几乎完美“吻合”，不可思议吧。</p>
+<h2 id="2、故障分析"><a href="#2、故障分析" class="headerlink" title="2、故障分析"></a>2、故障分析</h2><p>出现问题，先二话不说，马上重启各服务器，尽快恢复集群，降低对业务的影响，接下来开始对日志进行分析。</p>
+<p>Java 进程自动退出(rocketmq 本身就是一个java进程)，一种最常见的问题是由于内存溢出或由于内存泄漏导致进程发送Crash等。由于我们的启动参数中未配置-XX:+HeapDumpOnOutOfMemoryError<br>-XX:HeapDumpPath=/opt/jvmdump 这两个参数，不能直接根据 是否生成 dump 文件，那退而求其次去查看其GC日志，将GC日志下载到本地，然后可以使用一个在线gc日志分析工具：<a href="https://gceasy.io/">https://gceasy.io/</a> ，将 gc 日志上传后会给出图形化的展示，其图如下：<br><img src="https://img-blog.csdnimg.cn/20191026211454570.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br><img src="https://img-blog.csdnimg.cn/20191026211519396.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>发现垃圾回收很正常。</p>
+<p>既然 Java 进程不是由于内存溢出等问题导致的退出，那又会是什么原因呢？那我们来看一下那个点的broker的日志，其关键日志截图如下：<br><img src="https://img-blog.csdnimg.cn/20191026211607400.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>发现 broker 日志中有打印出 shutdownHook，表示在进程退出之前执行了启动时注册时的退出钩子函数，说明 broker 是正常停止的，并且也不可能是 kill -9 命令，肯定是显示的执行了 shutodown 或 kill 命令，于是立马使用 history 命令 查看历史命令，都未在指定时间执行过该命令，并且切换到 root 命令后，同样使用 history 命令，并未发现端倪。</p>
+<p>但我始终相信，肯定是执行了手动执行了 kill 命令导致进程退出的，经过网上查找查，得知可以通过查阅系统日志/var/log/messages 来查看系统命令的调用，于是乎把日志文件下载到本地，开始搜索 kill 关键字，发现如下日志：<br><img src="https://img-blog.csdnimg.cn/20191026211722459.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>发现最近一次 kill 命令是在25号的凌晨1点多，停止 rocketmq 集群，并使用 bin/mqbroker -c conf/broker-b.conf &amp; 进行了重新启动。</p>
+<p>这个命令是有问题的，没有使用 nohup ，如果会话失效，该进程就会被退出，为了验证，我们再查一下进程退出时的日志：</p>
 <a id="more"></a>
 
-<p>同时在做 Broker 服务器巡检的时候，可以通过去通过如下命令去查看 broker 一次消息追加是否会超过 500 ms。<br><img src="https://img-blog.csdnimg.cn/20191024084128742.png" alt="在这里插入图片描述"><br>在这个图中我们看到在设置了 transientStorePoolEnable 为 true 的情况下，虽然一天只有一条超过500ms的消息，但也值得警惕了，由于对系统内核参数掌握程度不够，这种情况，估计只能走集群扩容的路子了。但如果一天消息量巨大而且出现频率不高的情况，由于有重试机制，倒不会带来太大的问题。如果出现太多的错误，<strong>建议集群扩容</strong>。</p>
-<p>本文接下来想重点探讨一下 [TIMEOUT_CLEAN_QUEUE]broker busy 这种情况。</p>
-<p>BrokerFastFailure#cleanExpiredRequest</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">while</span> (<span class="keyword">true</span>) &#123;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        <span class="keyword">if</span> (!<span class="keyword">this</span>.brokerController.getSendThreadPoolQueue().isEmpty()) &#123;</span><br><span class="line">            <span class="keyword">final</span> Runnable runnable = <span class="keyword">this</span>.brokerController.getSendThreadPoolQueue().peek();</span><br><span class="line">            <span class="keyword">if</span> (<span class="keyword">null</span> == runnable) &#123;</span><br><span class="line">                <span class="keyword">break</span>;</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">final</span> RequestTask rt = castRunnable(runnable);</span><br><span class="line">            <span class="keyword">if</span> (rt == <span class="keyword">null</span> || rt.isStopRun()) &#123;</span><br><span class="line">                <span class="keyword">break</span>;</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            <span class="keyword">final</span> <span class="keyword">long</span> behind = System.currentTimeMillis() - rt.getCreateTimestamp();</span><br><span class="line">            <span class="keyword">if</span> (behind &gt;= <span class="keyword">this</span>.brokerController.getBrokerConfig().getWaitTimeMillsInSendQueue()) &#123;</span><br><span class="line">                <span class="keyword">if</span> (<span class="keyword">this</span>.brokerController.getSendThreadPoolQueue().remove(runnable)) &#123;</span><br><span class="line">                    rt.setStopRun(<span class="keyword">true</span>);</span><br><span class="line">                    rt.returnResponse(RemotingSysResponseCode.SYSTEM_BUSY, String.format(<span class="string">&quot;[TIMEOUT_CLEAN_QUEUE]broker busy, start flow control for a while, period in queue: %sms, size of queue: %d&quot;</span>, behind, <span class="keyword">this</span>.brokerController.getSendThreadPoolQueue().size()));</span><br><span class="line">                &#125;</span><br><span class="line">            &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                <span class="keyword">break</span>;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125; <span class="keyword">catch</span> (Throwable ignored) &#123;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>可以看出来，抛出这种错误，在 broker 还没有发送“严重”的 pagecache 繁忙，即消息追加到内存中的最大时延没有超过 1s，通常追加是很快的，绝大部分都会低于1ms，但可能会由于出现一个超过200ms的追加时间，导致排队中的任务等待时间超过了200ms，则此时会触发broker 端的快速失败，让请求快速失败，便于客户端快速重试。但是这种请求并不是实时的，而是每隔10s 检查一遍。</p>
-<p>值得注意的是，一旦出现 TIMEOUT_CLEAN_QUEUE，可能在一个点会有多个这样的错误信息，具体多少与当前积压在待发送队列中的个数有关。</p>
-<p><strong>关于 [TIMEOUT_CLEAN_QUEUE]broker busy 我们也可以适当调整 waitTimeMillsInSendQueue，默认值为200ms，可以适当调整到400ms。</strong></p>
+<p><img src="https://img-blog.csdnimg.cn/20191026211818275.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>发现在故障发生点确实有 Removed 相关的日志。</p>
+<p>故障原因基本分析到位了，运维在启动的时候没有使用 nohup 来启动，故马上排查刚启动的集群的方式，重新重启刚启动的 Broker。</p>
+<p>RocketMQ优雅重启小建议：</p>
+<ol>
+<li><p>首先将 broker 的写权限关闭，命令如下：</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">bin&#x2F;mqadmin updateBrokerConfig -b 192.168.x.x:10911 -n 192.168.x.x:9876 -k brokerPermission -v 4</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>通过 rocketmq-console 查看该broker的写入TPS，当写入TPS降为0后，再使用 kill pid 关闭 rocketmq 进程。温馨提示：将broker的写权限关闭后，非顺序消息不会立马拒绝，而是需要等客户端路由信息更新后，不会在往该broker上发送消息，故这个过程需要等待。</p>
+</li>
+<li><p>启动 rocketmq</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">nohup bin&#x2F;mqbroker -c conf&#x2F;broker-a.conf  &#x2F;dev&#x2F;null  2&gt;&amp;1 &amp;</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>注意：nohup。</p>
+</blockquote>
+</li>
+<li><p>恢复该节点的写权限</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">bin&#x2F;mqadmin updateBrokerConfig -b 192.168.x.x:10911 -n 192.168.x.x:9876 -k brokerPermission -v 6</span><br></pre></td></tr></table></figure>
+
+</li>
+</ol>
+<p>本文的故障分析与处理就介绍到这里，本文重点讲解了故障的分析过程以及 RocketMQ Broker 优雅停机的方案。</p>
 </div>
 
 			<script src="https://my.openwrite.cn/js/readmore.js" type="text/javascript"></script>
@@ -3541,9 +3492,8 @@
       </categories>
       <tags>
         <tag>rocketmq</tag>
-        <tag>broker busy</tag>
-        <tag>TIMEOUT_CLEAN_QUEUE</tag>
-        <tag>PCBUSY_CLEAN_QUEUE</tag>
+        <tag>实战</tag>
+        <tag>自动退出</tag>
       </tags>
   </entry>
   <entry>
@@ -3658,6 +3608,56 @@
         <tag>源码</tag>
         <tag>kafka</tag>
         <tag>KafkaConsumer</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>再谈 RocketMQ broker busy(实战篇)</title>
+    <url>/posts/cf8acd90.html</url>
+    <content><![CDATA[<div id="vip-container"><p>本文将在 <a href="https://blog.csdn.net/prestigeding/article/details/92800672">RocketMQ 消息发送system busy、broker busy原因分析与解决方案</a> 的基础上，结合生产上的日志尝试再次理解 broker busy 以及探讨解决方案。</p>
+<p>首先，broker busy 相关的日志关键字如下：</p>
+<ul>
+<li>[REJECTREQUEST]system busy</li>
+<li>too many requests and system thread pool busy</li>
+<li>[PC_SYNCHRONIZED]broker busy</li>
+<li>[PCBUSY_CLEAN_QUEUE]broker busy</li>
+<li>[TIMEOUT_CLEAN_QUEUE]broker busy</li>
+</ul>
+<p>上述前面4个关键字在上篇文章中已详细介绍，本文先对出现上述错误进行一个总结，具体的分析过程请查阅上篇文章。</p>
+<p>本文先给出一张流程图，展示上述5种 broker busy 分别会在消息发送的哪个阶段抛出，以便大家能够清晰的了解其发生的原因。<br><img src="https://img-blog.csdnimg.cn/20191024084015845.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br><strong>针对前4种 broker busy 出现的问题已经在上篇文章中详细介绍，主要是由于 Broker 在追加消息时持有的锁时间超过了设置的1s，Broker 为了自我保护，会抛出错误，客户端会选择其他 broker 服务器进行重试。如果对不是金融级服务，建议将 transientStorePoolEnable = true，可以有效避免前面 4 种 broker ，因为开启这个参数，消息首先会存储在堆外内存中，并且 RocketMQ 提供了内存锁定的功能，其追加性能能得到一定的保障，这样可以做到在内存使用层面的读写分离，即写消息是直接写入堆外内存，消费消息直接从 pagecache中读，然后定时将堆外内存的消息写入 pagecache。但这种方案随之带来的就是可能存在消息丢失，如果对消息非常严谨的话，建议扩容集群，或迁移topic到新的集群。</strong></p>
+<a id="more"></a>
+
+<p>同时在做 Broker 服务器巡检的时候，可以通过去通过如下命令去查看 broker 一次消息追加是否会超过 500 ms。<br><img src="https://img-blog.csdnimg.cn/20191024084128742.png" alt="在这里插入图片描述"><br>在这个图中我们看到在设置了 transientStorePoolEnable 为 true 的情况下，虽然一天只有一条超过500ms的消息，但也值得警惕了，由于对系统内核参数掌握程度不够，这种情况，估计只能走集群扩容的路子了。但如果一天消息量巨大而且出现频率不高的情况，由于有重试机制，倒不会带来太大的问题。如果出现太多的错误，<strong>建议集群扩容</strong>。</p>
+<p>本文接下来想重点探讨一下 [TIMEOUT_CLEAN_QUEUE]broker busy 这种情况。</p>
+<p>BrokerFastFailure#cleanExpiredRequest</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">while</span> (<span class="keyword">true</span>) &#123;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        <span class="keyword">if</span> (!<span class="keyword">this</span>.brokerController.getSendThreadPoolQueue().isEmpty()) &#123;</span><br><span class="line">            <span class="keyword">final</span> Runnable runnable = <span class="keyword">this</span>.brokerController.getSendThreadPoolQueue().peek();</span><br><span class="line">            <span class="keyword">if</span> (<span class="keyword">null</span> == runnable) &#123;</span><br><span class="line">                <span class="keyword">break</span>;</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">final</span> RequestTask rt = castRunnable(runnable);</span><br><span class="line">            <span class="keyword">if</span> (rt == <span class="keyword">null</span> || rt.isStopRun()) &#123;</span><br><span class="line">                <span class="keyword">break</span>;</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            <span class="keyword">final</span> <span class="keyword">long</span> behind = System.currentTimeMillis() - rt.getCreateTimestamp();</span><br><span class="line">            <span class="keyword">if</span> (behind &gt;= <span class="keyword">this</span>.brokerController.getBrokerConfig().getWaitTimeMillsInSendQueue()) &#123;</span><br><span class="line">                <span class="keyword">if</span> (<span class="keyword">this</span>.brokerController.getSendThreadPoolQueue().remove(runnable)) &#123;</span><br><span class="line">                    rt.setStopRun(<span class="keyword">true</span>);</span><br><span class="line">                    rt.returnResponse(RemotingSysResponseCode.SYSTEM_BUSY, String.format(<span class="string">&quot;[TIMEOUT_CLEAN_QUEUE]broker busy, start flow control for a while, period in queue: %sms, size of queue: %d&quot;</span>, behind, <span class="keyword">this</span>.brokerController.getSendThreadPoolQueue().size()));</span><br><span class="line">                &#125;</span><br><span class="line">            &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                <span class="keyword">break</span>;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125; <span class="keyword">catch</span> (Throwable ignored) &#123;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>可以看出来，抛出这种错误，在 broker 还没有发送“严重”的 pagecache 繁忙，即消息追加到内存中的最大时延没有超过 1s，通常追加是很快的，绝大部分都会低于1ms，但可能会由于出现一个超过200ms的追加时间，导致排队中的任务等待时间超过了200ms，则此时会触发broker 端的快速失败，让请求快速失败，便于客户端快速重试。但是这种请求并不是实时的，而是每隔10s 检查一遍。</p>
+<p>值得注意的是，一旦出现 TIMEOUT_CLEAN_QUEUE，可能在一个点会有多个这样的错误信息，具体多少与当前积压在待发送队列中的个数有关。</p>
+<p><strong>关于 [TIMEOUT_CLEAN_QUEUE]broker busy 我们也可以适当调整 waitTimeMillsInSendQueue，默认值为200ms，可以适当调整到400ms。</strong></p>
+</div>
+
+			<script src="https://my.openwrite.cn/js/readmore.js" type="text/javascript"></script>
+			<script>
+			var isMobile = navigator.userAgent.match(/(phone|pad|pod|iPhone|iPod|ios|iPad|Android|Mobile|BlackBerry|IEMobile|MQQBrowser|JUC|Fennec|wOSBrowser|BrowserNG|WebOS|Symbian|Windows Phone)/i);
+			if (!isMobile) {
+			    var btw = new BTWPlugin();
+			    btw.init({
+			        "id": "vip-container",
+			        "blogId": "18019-1573088808868-542",
+			        "name": "中间件兴趣圈",
+			        "qrcode": "https://img-blog.csdnimg.cn/20190314214003962.jpg",
+			        "keyword": "more"
+			    });
+			}
+			</script>
+		]]></content>
+      <categories>
+        <category>rocketmq</category>
+      </categories>
+      <tags>
+        <tag>rocketmq</tag>
+        <tag>broker busy</tag>
+        <tag>TIMEOUT_CLEAN_QUEUE</tag>
+        <tag>PCBUSY_CLEAN_QUEUE</tag>
       </tags>
   </entry>
   <entry>
@@ -3903,66 +3903,9 @@
       <tags>
         <tag>rocketmq</tag>
         <tag>多副本</tag>
-        <tag>主从切换</tag>
         <tag>raft</tag>
+        <tag>主从切换</tag>
         <tag>DLedger</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>复合Lambda表达式</title>
-    <url>/posts/4c12373d.html</url>
-    <content><![CDATA[<div id="vip-container"><h2 id="1、比较器复合"><a href="#1、比较器复合" class="headerlink" title="1、比较器复合"></a>1、比较器复合</h2><p><img src="https://img-blog.csdnimg.cn/20190515201329740.png" alt="在这里插入图片描述"><br>上面是JDK8中java.util.Comparator接口，相比jdk1.7增加了好多方法，也许你会觉得奇怪，为什么接口中还能定义方法，原因是JDK8中，可以为接口添加默认实现，使用default关键字定义。</p>
-<p>例如，我们可以这样定义一个比较器：<br>Comparator&lt; Apple&gt;  c = Comparator.comparing(Apple::getWeight());<br>其等价为：<br>Comparator&lt; Apple&gt;  c = Comparator.comparing(  (a) -&gt; a.getWeight()  );</p>
-<p>为什么可以这样写呢？因为Comparator定义了如下静态方法：<br><img src="https://img-blog.csdnimg.cn/20190515202531959.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"></p>
-<h4 id="1-1-逆序"><a href="#1-1-逆序" class="headerlink" title="1.1 逆序"></a>1.1 逆序</h4><p>Comparator定义了一个静态方法，reversed，故我们不需要重新再定义一个比较器，我们可以这样就能实现逆序排序：<br>List&lt; Apple&gt; apples = new ArrayList&lt;&gt;();<br>apples.sort(  Comparator.comparing(Apple::getWeight()).reversed()  );</p>
-<h4 id="1-2-比较器链"><a href="#1-2-比较器链" class="headerlink" title="1.2 比较器链"></a>1.2 比较器链</h4><p>如果要支持多重排序呢？例如先根据苹果的重量，如果重量相同就按照颜色排序，那如何来实现呢？<br>apples.sort(  Comparator.comparing(Apple::getWeight()).thenComparing(  Apple::getColor()  ) );<br>之所以可以使用上述表达式，是因为Comparator定义了如下方法：</p>
-<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">default &lt;U extends Comparable&lt;? super U&gt;&gt; Comparator&lt;T&gt; thenComparing( Function&lt;? super T, ? extends U&gt; keyExtractor)</span><br><span class="line">&#123;</span><br><span class="line">    return thenComparing(comparing(keyExtractor));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<blockquote>
-<p>温馨提示：Comparator中定义很多thenComparing重载方法,在具体使用过程中，可以先看看其函数声明。</p>
-</blockquote>
-<a id="more"></a>
-
-<h4 id="2、谓词复合"><a href="#2、谓词复合" class="headerlink" title="2、谓词复合"></a>2、谓词复合</h4><p>提到谓词复合，我们就不得不提Predicate&lt; T &gt;函数式编程接口，其类图如下所示：<br><img src="https://img-blog.csdnimg.cn/20190515203712938.png" alt="在这里插入图片描述"></p>
-<ul>
-<li>and：与</li>
-<li>negate：非</li>
-<li>or：或</li>
-</ul>
-<blockquote>
-<p>温馨提示：and 和 or 方法是按照在表达式链中的位置，从左向右确定优先级的。因此， a.or(b).and(c) 可以看作 (a || b) &amp;&amp; c 。</p>
-</blockquote>
-<p>使用示例：从苹果列表中找出所有红色的，并且重量超过150的苹果：</p>
-<p>apples.filter(   (a -&gt; “red”.equals(a.getColor()) ).and(  a -&gt; a.getWeight() &gt; 150  )   );</p>
-<p>a -&gt; “red”.equals(a.getColor())  是 (Apple a ) -&gt; “red”.equals(a.getColor())的简写。</p>
-<h2 id="3、函数复合"><a href="#3、函数复合" class="headerlink" title="3、函数复合"></a>3、函数复合</h2><p>函数复合，其对应的函数式编程接口为Function&lt;T,R&gt;，其类图如下：<br><img src="https://img-blog.csdnimg.cn/20190515204237920.png" alt="在这里插入图片描述"></p>
-<ul>
-<li>addThen<br>andThen 方法会返回一个函数，它先对输入应用一个给定函数，再对输出应用另一个函数。<br>例如：<br>Function&lt;Integer, Integer&gt; f = x -&gt; x + 1;<br>Function&lt;Integer, Integer&gt; g = x -&gt; x * 2;<br>Function&lt;Integer, Integer&gt; h = f.andThen(g);<br>int result = h.apply(1);  // 其结果返回4，类似与数学公式  f(g(x))。</li>
-<li>compose<br>先把给定的函数用作 compose 的参数里面给的那个函数，然后再把函数本身用于结果。与addThen的函数应用方向相反，同样举例说明如下：<br>Function&lt;Integer, Integer&gt; f = x -&gt; x + 1;<br>Function&lt;Integer, Integer&gt; g = x -&gt; x * 2;<br>Function&lt;Integer, Integer&gt; h = f.compose(g);<br>int result = h.apply(1);  // 其结果返回3，类似与数学公式  g(f(x))。</li>
-</ul>
-</div>
-
-			<script src="https://my.openwrite.cn/js/readmore.js" type="text/javascript"></script>
-			<script>
-			var isMobile = navigator.userAgent.match(/(phone|pad|pod|iPhone|iPod|ios|iPad|Android|Mobile|BlackBerry|IEMobile|MQQBrowser|JUC|Fennec|wOSBrowser|BrowserNG|WebOS|Symbian|Windows Phone)/i);
-			if (!isMobile) {
-			    var btw = new BTWPlugin();
-			    btw.init({
-			        "id": "vip-container",
-			        "blogId": "18019-1573088808868-542",
-			        "name": "中间件兴趣圈",
-			        "qrcode": "https://img-blog.csdnimg.cn/20190314214003962.jpg",
-			        "keyword": "more"
-			    });
-			}
-			</script>
-		]]></content>
-      <categories>
-        <category>java8</category>
-      </categories>
-      <tags>
-        <tag>java8</tag>
-        <tag>Lambda</tag>
-        <tag>函数式编程</tag>
       </tags>
   </entry>
   <entry>
@@ -4055,6 +3998,63 @@
       </categories>
       <tags>
         <tag>sentinel</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>复合Lambda表达式</title>
+    <url>/posts/4c12373d.html</url>
+    <content><![CDATA[<div id="vip-container"><h2 id="1、比较器复合"><a href="#1、比较器复合" class="headerlink" title="1、比较器复合"></a>1、比较器复合</h2><p><img src="https://img-blog.csdnimg.cn/20190515201329740.png" alt="在这里插入图片描述"><br>上面是JDK8中java.util.Comparator接口，相比jdk1.7增加了好多方法，也许你会觉得奇怪，为什么接口中还能定义方法，原因是JDK8中，可以为接口添加默认实现，使用default关键字定义。</p>
+<p>例如，我们可以这样定义一个比较器：<br>Comparator&lt; Apple&gt;  c = Comparator.comparing(Apple::getWeight());<br>其等价为：<br>Comparator&lt; Apple&gt;  c = Comparator.comparing(  (a) -&gt; a.getWeight()  );</p>
+<p>为什么可以这样写呢？因为Comparator定义了如下静态方法：<br><img src="https://img-blog.csdnimg.cn/20190515202531959.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"></p>
+<h4 id="1-1-逆序"><a href="#1-1-逆序" class="headerlink" title="1.1 逆序"></a>1.1 逆序</h4><p>Comparator定义了一个静态方法，reversed，故我们不需要重新再定义一个比较器，我们可以这样就能实现逆序排序：<br>List&lt; Apple&gt; apples = new ArrayList&lt;&gt;();<br>apples.sort(  Comparator.comparing(Apple::getWeight()).reversed()  );</p>
+<h4 id="1-2-比较器链"><a href="#1-2-比较器链" class="headerlink" title="1.2 比较器链"></a>1.2 比较器链</h4><p>如果要支持多重排序呢？例如先根据苹果的重量，如果重量相同就按照颜色排序，那如何来实现呢？<br>apples.sort(  Comparator.comparing(Apple::getWeight()).thenComparing(  Apple::getColor()  ) );<br>之所以可以使用上述表达式，是因为Comparator定义了如下方法：</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">default &lt;U extends Comparable&lt;? super U&gt;&gt; Comparator&lt;T&gt; thenComparing( Function&lt;? super T, ? extends U&gt; keyExtractor)</span><br><span class="line">&#123;</span><br><span class="line">    return thenComparing(comparing(keyExtractor));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>温馨提示：Comparator中定义很多thenComparing重载方法,在具体使用过程中，可以先看看其函数声明。</p>
+</blockquote>
+<a id="more"></a>
+
+<h4 id="2、谓词复合"><a href="#2、谓词复合" class="headerlink" title="2、谓词复合"></a>2、谓词复合</h4><p>提到谓词复合，我们就不得不提Predicate&lt; T &gt;函数式编程接口，其类图如下所示：<br><img src="https://img-blog.csdnimg.cn/20190515203712938.png" alt="在这里插入图片描述"></p>
+<ul>
+<li>and：与</li>
+<li>negate：非</li>
+<li>or：或</li>
+</ul>
+<blockquote>
+<p>温馨提示：and 和 or 方法是按照在表达式链中的位置，从左向右确定优先级的。因此， a.or(b).and(c) 可以看作 (a || b) &amp;&amp; c 。</p>
+</blockquote>
+<p>使用示例：从苹果列表中找出所有红色的，并且重量超过150的苹果：</p>
+<p>apples.filter(   (a -&gt; “red”.equals(a.getColor()) ).and(  a -&gt; a.getWeight() &gt; 150  )   );</p>
+<p>a -&gt; “red”.equals(a.getColor())  是 (Apple a ) -&gt; “red”.equals(a.getColor())的简写。</p>
+<h2 id="3、函数复合"><a href="#3、函数复合" class="headerlink" title="3、函数复合"></a>3、函数复合</h2><p>函数复合，其对应的函数式编程接口为Function&lt;T,R&gt;，其类图如下：<br><img src="https://img-blog.csdnimg.cn/20190515204237920.png" alt="在这里插入图片描述"></p>
+<ul>
+<li>addThen<br>andThen 方法会返回一个函数，它先对输入应用一个给定函数，再对输出应用另一个函数。<br>例如：<br>Function&lt;Integer, Integer&gt; f = x -&gt; x + 1;<br>Function&lt;Integer, Integer&gt; g = x -&gt; x * 2;<br>Function&lt;Integer, Integer&gt; h = f.andThen(g);<br>int result = h.apply(1);  // 其结果返回4，类似与数学公式  f(g(x))。</li>
+<li>compose<br>先把给定的函数用作 compose 的参数里面给的那个函数，然后再把函数本身用于结果。与addThen的函数应用方向相反，同样举例说明如下：<br>Function&lt;Integer, Integer&gt; f = x -&gt; x + 1;<br>Function&lt;Integer, Integer&gt; g = x -&gt; x * 2;<br>Function&lt;Integer, Integer&gt; h = f.compose(g);<br>int result = h.apply(1);  // 其结果返回3，类似与数学公式  g(f(x))。</li>
+</ul>
+</div>
+
+			<script src="https://my.openwrite.cn/js/readmore.js" type="text/javascript"></script>
+			<script>
+			var isMobile = navigator.userAgent.match(/(phone|pad|pod|iPhone|iPod|ios|iPad|Android|Mobile|BlackBerry|IEMobile|MQQBrowser|JUC|Fennec|wOSBrowser|BrowserNG|WebOS|Symbian|Windows Phone)/i);
+			if (!isMobile) {
+			    var btw = new BTWPlugin();
+			    btw.init({
+			        "id": "vip-container",
+			        "blogId": "18019-1573088808868-542",
+			        "name": "中间件兴趣圈",
+			        "qrcode": "https://img-blog.csdnimg.cn/20190314214003962.jpg",
+			        "keyword": "more"
+			    });
+			}
+			</script>
+		]]></content>
+      <categories>
+        <category>java8</category>
+      </categories>
+      <tags>
+        <tag>java8</tag>
+        <tag>Lambda</tag>
+        <tag>函数式编程</tag>
       </tags>
   </entry>
   <entry>
@@ -7277,8 +7277,8 @@
       </categories>
       <tags>
         <tag>rocketmq</tag>
-        <tag>多副本</tag>
         <tag>主从同步</tag>
+        <tag>多副本</tag>
         <tag>raft</tag>
         <tag>源码阅读</tag>
       </tags>
