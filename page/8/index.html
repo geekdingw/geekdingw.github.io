@@ -287,6 +287,238 @@
   
   
   <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="https://geekdingw.github.io/posts/b9d8cad7.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="中间件兴趣圈">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/posts/b9d8cad7.html" itemprop="url">结合 Sentinel 专栏谈谈我的源码阅读技巧</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-12-08T23:05:35+08:00">
+                2020-12-08
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/sentinel/" itemprop="url" rel="index">
+                    <span itemprop="name">sentinel</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/posts/b9d8cad7.html#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count valine-comment-count" data-xid="/posts/b9d8cad7.html" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+             <span id="/posts/b9d8cad7.html" class="leancloud_visitors" data-flag-title="结合 Sentinel 专栏谈谈我的源码阅读技巧">
+               <span class="post-meta-divider">|</span>
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               
+                 <span class="post-meta-item-text">阅读次数&#58;</span>
+               
+                 <span class="leancloud-visitors-count"></span>
+             </span>
+          
+
+          
+
+          
+            <div class="post-wordcount">
+              
+                
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-file-word-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">字数统计&#58;</span>
+                
+                <span title="字数统计">
+                  2.7k 字
+                </span>
+              
+
+              
+                <span class="post-meta-divider">|</span>
+              
+
+              
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-clock-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">阅读时长 &asymp;</span>
+                
+                <span title="阅读时长">
+                  9 分钟
+                </span>
+              
+            </div>
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          <blockquote>
+<p>本文行文思路：先抛出源码阅读方法，然后结合Sentinel创作过程谈谈具体是如何运用这些技巧，最后解答几个源码阅读的误区。</p>
+</blockquote>
+<p>Sentinel 系列共包含15篇文章，主要以源码分析为手段，图文并茂的方式对 Sentinel 的架构设计理念、核心实现要点进行了一一剖析，并加以实战分析与思考。</p>
+<p><strong>很多朋友都在询我是如何阅读源码的。对此可归纳为如下几个要点，然后结合 Sentienl 源码分析专栏对各个要点进行拆解，对源码阅读方法进行一次“实战”。</strong></p>
+<ul>
+<li>阅读官方文档，从全局了解待学习框架能解决什么样的问题，整体架构设计与思想是什么，主要包含哪些要点。</li>
+<li>从官方提供的 Demo 程序开始，学习基本的使用方法，进一步加深其理解，并伺机寻找入口（突破口）。</li>
+<li>寻找突破口，逐一突破，先主干再旁支，适度分解，各个击破。</li>
+</ul>
+<p>接下来将展示我是如何使用这套方法论来学习 Sentinel 的。</p>
+<p>在准备深入学习 Sentinel 之前，首先认真看了一遍 Sentinel 的官方文档，从而形成了对 Sentinel 的基本认识，我们可以从官方文档了解到 Sentinel 主要涉及的核心内容，正如下图所示：<br><img src="https://img-blog.csdnimg.cn/2020053015083815.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述">这些内容可以简单的当成一个学习的提纲，可以从里面挑选自己感兴趣的进行重点学习。</p>
+<p>在看完官方文档后，我就踏上创作 Sentinel 系列的征途。</p>
+<blockquote>
+<p>本文不会再详细介绍每一个知识点的细节，有关各个知识点的具体讲解，大家可以点击感兴趣的链接中进行深入研究，本文主要是点到为止，重在介绍笔者是如何学习源码的。</p>
+</blockquote>
+<p>1、<a target="_blank" rel="noopener" href="https://blog.csdn.net/prestigeding/article/details/103544443">Alibaba Sentinel 限流与熔断初探</a><br>该文章主要从如下几个点进行展开：</p>
+<ul>
+<li>Sentinel 是什么 ？主要能解决什么问题？</li>
+<li>限流与熔断的使用场景</li>
+<li>Sentinel 源码结构</li>
+<li>在 IntelliJ IDEA 中运行 Sentine Demo</li>
+</ul>
+<p>其实第三点并不是特别必须，不过要得出这些结论也并不难，因为对 Sentinel 有了全局的认识后并根据各个模块的命名很容易能得出该模块的作用。这里第四点非常关键，通常一个优秀的开源框架都会提供完备的演示 Demo，大家可以看到 Sentinel 的演示 demo 非常丰富，在本文中我特意选择了 Dubbo 来做示例，主要是我们公司大量使用 dubbo 来实现公司的微服务，这样会更加贴近实战，更有利于寻找突破口。</p>
+<p>通过跑通 Demo 的主要目的有三个：</p>
+<ul>
+<li>通过运行 Demo，了解框架的基本使用方法。</li>
+<li>搭建一个可 Debug 的环境，为后续看不懂代码的情况下进行调试，根据运行时数据，可加快代码的理解速度，但千万不要一开始就 debug。</li>
+<li>寻找源码阅读的入口。</li>
+</ul>
+<p>2、<a target="_blank" rel="noopener" href="https://blog.csdn.net/prestigeding/article/details/103654590">源码分析 Sentinel 之 Dubbo 适配原理</a><br>紧跟第一篇文章，既然使用的是 Dubbo 作为其示例代码，自然而然的思考 Sentinel 是如何做到对 Dubbo 的适配并对业务无侵入性。</p>
+<p>通过该篇文章的学习我们了解到可以通过 Dubbo 的扩展机制实现对 Dubbo 的适配，在 Dubbo Filter 中我们能看到了与 Sentinel 相关的核心 API SphU.entry，从而找到深入学习 Sentinel 的核心入口，也就是后续文章会通过对该方法的研究，从而打开进入 Sentinel 内核世界的大门。</p>
+<blockquote>
+<p>备注：在阅读这篇文章的时候，我觉得 Dubbo 的适配感觉非常简单，但随着我对这个系列的深入学习，发现了该方法没有那么简单，当时很多点都没有理解到位，这个在后续会有重点阐述，这也是不断学习、不断思考带来的好处。</p>
+</blockquote>
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/posts/b9d8cad7.html#more" rel="contents">
+              阅读全文 &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
     <link itemprop="mainEntityOfPage" href="https://geekdingw.github.io/posts/a815ae71.html">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -2303,225 +2535,6 @@
 
 
     
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="https://geekdingw.github.io/posts/5f8f7185.html">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="中间件兴趣圈">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/posts/5f8f7185.html" itemprop="url">源码分析 Sentinel 实时数据采集实现原理</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-12-08T22:47:35+08:00">
-                2020-12-08
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/sentinel/" itemprop="url" rel="index">
-                    <span itemprop="name">sentinel</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/posts/5f8f7185.html#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count valine-comment-count" data-xid="/posts/5f8f7185.html" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-             <span id="/posts/5f8f7185.html" class="leancloud_visitors" data-flag-title="源码分析 Sentinel 实时数据采集实现原理">
-               <span class="post-meta-divider">|</span>
-               <span class="post-meta-item-icon">
-                 <i class="fa fa-eye"></i>
-               </span>
-               
-                 <span class="post-meta-item-text">阅读次数&#58;</span>
-               
-                 <span class="leancloud-visitors-count"></span>
-             </span>
-          
-
-          
-
-          
-            <div class="post-wordcount">
-              
-                
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-file-word-o"></i>
-                </span>
-                
-                  <span class="post-meta-item-text">字数统计&#58;</span>
-                
-                <span title="字数统计">
-                  2.9k 字
-                </span>
-              
-
-              
-                <span class="post-meta-divider">|</span>
-              
-
-              
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-clock-o"></i>
-                </span>
-                
-                  <span class="post-meta-item-text">阅读时长 &asymp;</span>
-                
-                <span title="阅读时长">
-                  12 分钟
-                </span>
-              
-            </div>
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          <p>本篇将重点关注 Sentienl 实时数据收集，即 Sentienl 具体是如何收集调用信息，以此来判断是否需要触发限流或熔断。</p>
-<p>Sentienl 实时数据收集的入口类为 StatisticSlot。</p>
-<p>我们先简单来看一下 StatisticSlot 该类的注释，来看一下该类的整体定位。</p>
-<p>StatisticSlot，专用于实时统计的 slot。在进入一个资源时，在执行 Sentienl 的处理链条中会进入到该 slot 中，需要完成如下计算任务：</p>
-<ul>
-<li>集群维度计算资源的总统计信息，用于集群限流，后续文章将详细探讨。</li>
-<li>来自不同调用方/来源的群集节点的统计信息。</li>
-<li>特定调用上下文环境的统计信息。</li>
-<li>统计所有入口的统计信息。</li>
-</ul>
-<p>接下来用源码分析的手段来详细分析 StatisticSlot 的实现原理。</p>
-<h2 id="1、源码分析-StatisticSlot"><a href="#1、源码分析-StatisticSlot" class="headerlink" title="1、源码分析 StatisticSlot"></a>1、源码分析 StatisticSlot</h2><h4 id="1-1-StatisticSlot-entry-详解"><a href="#1-1-StatisticSlot-entry-详解" class="headerlink" title="1.1 StatisticSlot entry 详解"></a>1.1 StatisticSlot entry 详解</h4><p>StatisticSlot#entry </p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">entry</span><span class="params">(Context context, ResourceWrapper resourceWrapper, DefaultNode node, <span class="keyword">int</span> count,<span class="keyword">boolean</span> prioritized, Object... args)</span> <span class="keyword">throws</span> Throwable </span>&#123; </span><br><span class="line">	<span class="keyword">try</span> &#123;</span><br><span class="line">		<span class="comment">// Do some checking.</span></span><br><span class="line">                fireEntry(context, resourceWrapper, node, count, prioritized, args);  <span class="comment">// @1</span></span><br><span class="line">        	<span class="comment">// Request passed, add thread count and pass count.</span></span><br><span class="line">        	node.increaseThreadNum();                                                             <span class="comment">// @2</span></span><br><span class="line">       		node.addPassRequest(count);</span><br><span class="line">		<span class="keyword">if</span> (context.getCurEntry().getOriginNode() != <span class="keyword">null</span>) &#123;                           <span class="comment">// @3</span></span><br><span class="line">			<span class="comment">// Add count for origin node.</span></span><br><span class="line">            		context.getCurEntry().getOriginNode().increaseThreadNum();</span><br><span class="line">            		context.getCurEntry().getOriginNode().addPassRequest(count);</span><br><span class="line">       		 &#125;</span><br><span class="line">		<span class="keyword">if</span> (resourceWrapper.getEntryType() == EntryType.IN) &#123;                <span class="comment">// @4</span></span><br><span class="line">			<span class="comment">// Add count for global inbound entry node for global statistics.</span></span><br><span class="line">            		Constants.ENTRY_NODE.increaseThreadNum();</span><br><span class="line">           	 	Constants.ENTRY_NODE.addPassRequest(count);</span><br><span class="line">        	&#125;</span><br><span class="line">		<span class="comment">// Handle pass event with registered entry callback handlers.</span></span><br><span class="line">        	<span class="keyword">for</span> (ProcessorSlotEntryCallback&lt;DefaultNode&gt; handler : StatisticSlotCallbackRegistry.getEntryCallbacks()) &#123;   <span class="comment">// @5</span></span><br><span class="line">            		handler.onPass(context, resourceWrapper, node, count, args);</span><br><span class="line">        	&#125;</span><br><span class="line">    	&#125; <span class="keyword">catch</span> (PriorityWaitException ex) &#123;                                                                                                                                <span class="comment">// @6</span></span><br><span class="line">		node.increaseThreadNum();</span><br><span class="line">		<span class="keyword">if</span> (context.getCurEntry().getOriginNode() != <span class="keyword">null</span>) &#123;</span><br><span class="line">			<span class="comment">// Add count for origin node.</span></span><br><span class="line">            		context.getCurEntry().getOriginNode().increaseThreadNum();</span><br><span class="line">       	 	&#125;</span><br><span class="line">		<span class="keyword">if</span> (resourceWrapper.getEntryType() == EntryType.IN) &#123;</span><br><span class="line">			<span class="comment">// Add count for global inbound entry node for global statistics.</span></span><br><span class="line">            		Constants.ENTRY_NODE.increaseThreadNum();</span><br><span class="line">        	&#125;</span><br><span class="line">        	<span class="comment">// Handle pass event with registered entry callback handlers.</span></span><br><span class="line">        	<span class="keyword">for</span> (ProcessorSlotEntryCallback&lt;DefaultNode&gt; handler : StatisticSlotCallbackRegistry.getEntryCallbacks()) &#123;</span><br><span class="line">            		handler.onPass(context, resourceWrapper, node, count, args);</span><br><span class="line">        	&#125;</span><br><span class="line">    	&#125; <span class="keyword">catch</span> (BlockException e) &#123;     <span class="comment">// @7                                                                                                              </span></span><br><span class="line">        	<span class="comment">// Blocked, set block exception to current entry.</span></span><br><span class="line">        	context.getCurEntry().setError(e);</span><br><span class="line">		<span class="comment">// Add block count.</span></span><br><span class="line">        	node.increaseBlockQps(count);</span><br><span class="line">        	<span class="keyword">if</span> (context.getCurEntry().getOriginNode() != <span class="keyword">null</span>) &#123;</span><br><span class="line">            		context.getCurEntry().getOriginNode().increaseBlockQps(count);</span><br><span class="line">        	&#125;</span><br><span class="line">		<span class="keyword">if</span> (resourceWrapper.getEntryType() == EntryType.IN) &#123;</span><br><span class="line">            		<span class="comment">// Add count for global inbound entry node for global statistics.</span></span><br><span class="line">            		Constants.ENTRY_NODE.increaseBlockQps(count);</span><br><span class="line">        	&#125;</span><br><span class="line">        	<span class="comment">// Handle block event with registered entry callback handlers.</span></span><br><span class="line">        	<span class="keyword">for</span> (ProcessorSlotEntryCallback&lt;DefaultNode&gt; handler : StatisticSlotCallbackRegistry.getEntryCallbacks()) &#123;</span><br><span class="line">            		handler.onBlocked(e, context, resourceWrapper, node, count, args);</span><br><span class="line">        	&#125;</span><br><span class="line">		<span class="keyword">throw</span> e;</span><br><span class="line">    	&#125; <span class="keyword">catch</span> (Throwable e) &#123;   <span class="comment">// @8</span></span><br><span class="line">        	<span class="comment">// Unexpected error, set error to current entry.</span></span><br><span class="line">        	context.getCurEntry().setError(e);</span><br><span class="line">		<span class="comment">// This should not happen.</span></span><br><span class="line">        	node.increaseExceptionQps(count);</span><br><span class="line">        	<span class="keyword">if</span> (context.getCurEntry().getOriginNode() != <span class="keyword">null</span>) &#123;</span><br><span class="line">            		context.getCurEntry().getOriginNode().increaseExceptionQps(count);</span><br><span class="line">        	&#125;</span><br><span class="line">		<span class="keyword">if</span> (resourceWrapper.getEntryType() == EntryType.IN) &#123;</span><br><span class="line">            		Constants.ENTRY_NODE.increaseExceptionQps(count);</span><br><span class="line">        	&#125;</span><br><span class="line">        	<span class="keyword">throw</span> e;</span><br><span class="line">    	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>代码@1：首先调用 fireEntry，先调用 Sentinel Slot Chain 中其他的处理器，执行完其他处理器的逻辑，例如 FlowSlot、DegradeSlot，因为 StatisticSlot 的职责是收集统计信息。</p>
-<p>代码@2：如果后续处理器成功执行，则将正在执行线程数统计指标加一，并将通过的请求数量指标增加对应的值。下文会对 Sentinel Node 体系进行详细的介绍，在 Sentinel 中使用 Node 来表示调用链中的某一个节点，每个节点关联一个资源，资源的实时统计信息就存储在 Node 中，故该部分也是调用 DefaultNode 的相关方法来改变线程数等，将在下文会向详细介绍。</p>
-<p>代码@3：如果上下文环境中保存了调用的源头（调用方）的节点信息不为空，则更新该节点的统计数据：线程数与通过数量。</p>
-<p>代码@4：如果资源的进入类型为 EntryType.IN，表示入站流量，更新入站全局统计数据(集群范围 ClusterNode)。</p>
-<p>代码@5：执行注册的进入Handler，可以通过 StatisticSlotCallbackRegistry 的 addEntryCallback 注册相关监听器。</p>
-<p>代码@6：如果捕获到 PriorityWaitException ，则认为是等待过一定时间，但最终还是算通过，只需增加线程的个数，但无需增加节点通过的数量，具体原因我们在详细分析限流部分时会重点讨论，也会再次阐述 PriorityWaitException 的含义。</p>
-<p>代码@7：如果捕获到 BlockException，则主要增加阻塞的数量。</p>
-<p>代码@8：如果是系统异常，则增加异常数量。</p>
-<p>我想上面的代码应该不难理解，但涉及到统计指标数据的变化，都是调用 DefaultNode node 相关的方法，从这里也可以看出，Node 将是实时统计数据的直接持有者，那毋容置疑接下来将重点来学习 Node，为了知识体系的完备性，我们先来看一下 StatisticSlot 的 exit 方法。</p>
-          <!--noindex-->
-          <div class="post-button text-center">
-            <a class="btn" href="/posts/5f8f7185.html#more" rel="contents">
-              阅读全文 &raquo;
-            </a>
-          </div>
-          <!--/noindex-->
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
   </section>
 
   
@@ -2572,7 +2585,7 @@
               
                 <a href="/archives/">
               
-                  <span class="site-state-item-count">117</span>
+                  <span class="site-state-item-count">118</span>
                   <span class="site-state-item-name">日志</span>
                 </a>
               </div>
@@ -2583,7 +2596,7 @@
               
               <div class="site-state-item site-state-categories">
                 <a href="/categories/index.html">
-                  <span class="site-state-item-count">13</span>
+                  <span class="site-state-item-count">14</span>
                   <span class="site-state-item-name">分类</span>
                 </a>
               </div>
@@ -2594,7 +2607,7 @@
               
               <div class="site-state-item site-state-tags">
                 <a href="/tags/index.html">
-                  <span class="site-state-item-count">184</span>
+                  <span class="site-state-item-count">187</span>
                   <span class="site-state-item-name">标签</span>
                 </a>
               </div>
@@ -2652,7 +2665,7 @@
     
       <span class="post-meta-item-text">Site words total count&#58;</span>
     
-    <span title="Site words total count">305.2k</span>
+    <span title="Site words total count">307.5k</span>
   
 </div>
 
