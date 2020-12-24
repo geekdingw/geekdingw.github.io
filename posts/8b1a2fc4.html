@@ -5,7 +5,7 @@
   
 
 
-<html class="theme-next pisces use-motion" lang="zh-Hans">
+<html class="theme-next muse use-motion" lang="zh-Hans">
 <head>
   <meta charset="UTF-8"/>
 <meta http-equiv="X-UA-Compatible" content="IE=edge" />
@@ -84,15 +84,15 @@
 <meta name="description" content="本文将按照《RocketMQ 多副本前置篇：初探raft协议》的思路来学习RocketMQ选主逻辑。首先先回顾一下关于Leader的一些思考：  节点状态 需要引入3种节点状态：Follower(跟随者)、Candidate(候选者)，该状态下的节点会发起投票请求，Leader(主节点)。 选举计时器 Follower、Candidate两个状态时，需要维护一个定时器，每次定时时间从150ms-3">
 <meta property="og:type" content="article">
 <meta property="og:title" content="源码分析 RocketMQ DLedger 多副本之 Leader 选主">
-<meta property="og:url" content="https://geekdingw.github.io/posts/8b1a2fc4.html">
+<meta property="og:url" content="https://www.codingw.net/posts/8b1a2fc4.html">
 <meta property="og:site_name" content="中间件兴趣圈">
 <meta property="og:description" content="本文将按照《RocketMQ 多副本前置篇：初探raft协议》的思路来学习RocketMQ选主逻辑。首先先回顾一下关于Leader的一些思考：  节点状态 需要引入3种节点状态：Follower(跟随者)、Candidate(候选者)，该状态下的节点会发起投票请求，Leader(主节点)。 选举计时器 Follower、Candidate两个状态时，需要维护一个定时器，每次定时时间从150ms-3">
 <meta property="og:locale">
 <meta property="og:image" content="https://img-blog.csdnimg.cn/20190817201207350.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70">
 <meta property="og:image" content="https://img-blog.csdnimg.cn/20190817201557322.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70">
 <meta property="og:image" content="https://img-blog.csdnimg.cn/20190817204737273.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70">
-<meta property="article:published_time" content="2020-12-07T15:43:01.000Z">
-<meta property="article:modified_time" content="2020-12-11T04:38:09.547Z">
+<meta property="article:published_time" content="2020-08-23T15:43:01.000Z">
+<meta property="article:modified_time" content="2020-12-24T10:30:47.080Z">
 <meta property="article:author" content="中间件兴趣圈">
 <meta property="article:tag" content="rocketmq">
 <meta property="article:tag" content="多副本">
@@ -107,7 +107,7 @@
   var NexT = window.NexT || {};
   var CONFIG = {
     root: '',
-    scheme: 'Pisces',
+    scheme: 'Muse',
     version: '5.1.4',
     sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
     fancybox: true,
@@ -129,7 +129,7 @@
 
 
 
-  <link rel="canonical" href="https://geekdingw.github.io/posts/8b1a2fc4.html"/>
+  <link rel="canonical" href="https://www.codingw.net/posts/8b1a2fc4.html"/>
 
 
 
@@ -296,7 +296,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="https://geekdingw.github.io/posts/8b1a2fc4.html">
+    <link itemprop="mainEntityOfPage" href="https://www.codingw.net/posts/8b1a2fc4.html">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="">
@@ -325,8 +325,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-12-07T23:43:01+08:00">
-                2020-12-07
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-08-23T23:43:01+08:00">
+                2020-08-23
               </time>
             
 
@@ -711,18 +711,14 @@ Step3：判断请求节点的 ledgerEndTerm 与当前节点的 ledgerEndTerm，�
         <div class="post-nav">
           <div class="post-nav-next post-nav-item">
             
-              <a href="/posts/d198d6eb.html" rel="next" title="RocketMQ 多副本前置篇：初探raft协议">
-                <i class="fa fa-chevron-left"></i> RocketMQ 多副本前置篇：初探raft协议
-              </a>
-            
           </div>
 
           <span class="post-nav-divider"></span>
 
           <div class="post-nav-prev post-nav-item">
             
-              <a href="/posts/f03d9942.html" rel="prev" title="源码分析 RocketMQ DLedger 多副本存储实现">
-                源码分析 RocketMQ DLedger 多副本存储实现 <i class="fa fa-chevron-right"></i>
+              <a href="/posts/bfa9fca1.html" rel="prev" title="探究java8流收集数据原理">
+                探究java8流收集数据原理 <i class="fa fa-chevron-right"></i>
               </a>
             
           </div>
@@ -803,7 +799,7 @@ Step3：判断请求节点的 ledgerEndTerm 与当前节点的 ledgerEndTerm，�
               
                 <a href="/archives/">
               
-                  <span class="site-state-item-count">118</span>
+                  <span class="site-state-item-count">117</span>
                   <span class="site-state-item-name">日志</span>
                 </a>
               </div>
@@ -912,7 +908,7 @@ Step3：判断请求节点的 ledgerEndTerm 与当前节点的 ledgerEndTerm，�
 
 
 
-  <div class="theme-info">主题 &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Pisces</a> v5.1.4</div>
+  <div class="theme-info">主题 &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Muse</a> v5.1.4</div>
 
 
 
@@ -1031,13 +1027,6 @@ Step3：判断请求节点的 ledgerEndTerm 与当前节点的 ledgerEndTerm，�
 
   
   
-
-
-  <script type="text/javascript" src="/js/src/affix.js?v=5.1.4"></script>
-
-  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.1.4"></script>
-
-
 
   
   <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.4"></script>

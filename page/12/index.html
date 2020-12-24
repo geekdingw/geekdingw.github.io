@@ -5,7 +5,7 @@
   
 
 
-<html class="theme-next pisces use-motion" lang="zh-Hans">
+<html class="theme-next muse use-motion" lang="zh-Hans">
 <head>
   <meta charset="UTF-8"/>
 <meta http-equiv="X-UA-Compatible" content="IE=edge" />
@@ -84,7 +84,7 @@
 <meta name="description" content="关注微信公众号「中间件兴趣圈」，第一时间获取最新干货！">
 <meta property="og:type" content="website">
 <meta property="og:title" content="中间件兴趣圈">
-<meta property="og:url" content="https://geekdingw.github.io/page/12/index.html">
+<meta property="og:url" content="https://www.codingw.net/page/12/index.html">
 <meta property="og:site_name" content="中间件兴趣圈">
 <meta property="og:description" content="关注微信公众号「中间件兴趣圈」，第一时间获取最新干货！">
 <meta property="og:locale">
@@ -97,7 +97,7 @@
   var NexT = window.NexT || {};
   var CONFIG = {
     root: '',
-    scheme: 'Pisces',
+    scheme: 'Muse',
     version: '5.1.4',
     sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
     fancybox: true,
@@ -119,7 +119,7 @@
 
 
 
-  <link rel="canonical" href="https://geekdingw.github.io/page/12/"/>
+  <link rel="canonical" href="https://www.codingw.net/page/12/"/>
 
 
 
@@ -287,1126 +287,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="https://geekdingw.github.io/posts/e0111576.html">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="中间件兴趣圈">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/posts/e0111576.html" itemprop="url">RocketMQ msgId与offsetMsgId释疑(实战篇)</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-12-07T22:53:57+08:00">
-                2020-12-07
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/rocketmq/" itemprop="url" rel="index">
-                    <span itemprop="name">rocketmq</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/posts/e0111576.html#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count valine-comment-count" data-xid="/posts/e0111576.html" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-             <span id="/posts/e0111576.html" class="leancloud_visitors" data-flag-title="RocketMQ msgId与offsetMsgId释疑(实战篇)">
-               <span class="post-meta-divider">|</span>
-               <span class="post-meta-item-icon">
-                 <i class="fa fa-eye"></i>
-               </span>
-               
-                 <span class="post-meta-item-text">阅读次数&#58;</span>
-               
-                 <span class="leancloud-visitors-count"></span>
-             </span>
-          
-
-          
-
-          
-            <div class="post-wordcount">
-              
-                
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-file-word-o"></i>
-                </span>
-                
-                  <span class="post-meta-item-text">字数统计&#58;</span>
-                
-                <span title="字数统计">
-                  1.9k 字
-                </span>
-              
-
-              
-                <span class="post-meta-divider">|</span>
-              
-
-              
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-clock-o"></i>
-                </span>
-                
-                  <span class="post-meta-item-text">阅读时长 &asymp;</span>
-                
-                <span title="阅读时长">
-                  8 分钟
-                </span>
-              
-            </div>
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <div id="vip-container"><p>本篇详细介绍消息发送、消息消费、RocketMQ queryMsgById 命令以及 rocketmq-console 等使用场景中究竟是用的哪一个ID。</p>
-<p>@<a href="%E6%9C%AC%E8%8A%82%E7%9B%AE%E5%BD%95">TOC</a></p>
-<h2 id="1、抛出问题"><a href="#1、抛出问题" class="headerlink" title="1、抛出问题"></a>1、抛出问题</h2><h4 id="1-1-从消息发送看消息ID"><a href="#1-1-从消息发送看消息ID" class="headerlink" title="1.1 从消息发送看消息ID"></a>1.1 从消息发送看消息ID</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> org.apache.rocketmq.example.quickstart;</span><br><span class="line"><span class="keyword">import</span> org.apache.rocketmq.client.producer.DefaultMQProducer;</span><br><span class="line"><span class="keyword">import</span> org.apache.rocketmq.client.producer.SendResult;</span><br><span class="line"><span class="keyword">import</span> org.apache.rocketmq.common.message.Message;</span><br><span class="line"><span class="keyword">import</span> org.apache.rocketmq.remoting.common.RemotingHelper;</span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Producer</span> </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span>  </span>&#123;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            DefaultMQProducer producer = <span class="keyword">new</span> DefaultMQProducer(<span class="string">&quot;please_rename_unique_group_name&quot;</span>);</span><br><span class="line">            producer.setNamesrvAddr(<span class="string">&quot;127.0.0.1:9876&quot;</span>);</span><br><span class="line">            producer.start();</span><br><span class="line">            Message msg = <span class="keyword">new</span> Message(<span class="string">&quot;TestTopic&quot;</span> <span class="comment">/* Topic */</span>,<span class="keyword">null</span> <span class="comment">/* Tag */</span>, (<span class="string">&quot;Hello RocketMQ test1&quot;</span> ).getBytes(RemotingHelper.DEFAULT_CHARSET) <span class="comment">/* Message body */</span>);</span><br><span class="line">            SendResult sendResult = producer.send(msg);</span><br><span class="line">            System.out.printf(<span class="string">&quot;%s%n&quot;</span>, sendResult);</span><br><span class="line">            producer.shutdown();</span><br><span class="line">        &#125; <span class="keyword">catch</span> (Throwable e) &#123;</span><br><span class="line">            e.printStackTrace();</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>执行效果如图所示：<br><img src="https://img-blog.csdnimg.cn/20200308201940382.png" alt="在这里插入图片描述">即消息发送会返回 msgId 与 offsetMsgId。</p>
-<h4 id="1-2-从消息消费看消息ID"><a href="#1-2-从消息消费看消息ID" class="headerlink" title="1.2 从消息消费看消息ID"></a>1.2 从消息消费看消息ID</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> org.apache.rocketmq.example.quickstart;</span><br><span class="line"><span class="keyword">import</span> java.util.List;</span><br><span class="line"><span class="keyword">import</span> org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;</span><br><span class="line"><span class="keyword">import</span> org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext;</span><br><span class="line"><span class="keyword">import</span> org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;</span><br><span class="line"><span class="keyword">import</span> org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently;</span><br><span class="line"><span class="keyword">import</span> org.apache.rocketmq.client.exception.MQClientException;</span><br><span class="line"><span class="keyword">import</span> org.apache.rocketmq.common.consumer.ConsumeFromWhere;</span><br><span class="line"><span class="keyword">import</span> org.apache.rocketmq.common.message.MessageExt;</span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Consumer</span> </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> InterruptedException, MQClientException </span>&#123;</span><br><span class="line">        DefaultMQPushConsumer consumer = <span class="keyword">new</span> DefaultMQPushConsumer(<span class="string">&quot;please_rename_unique_group_name_1&quot;</span>);</span><br><span class="line">        consumer.setNamesrvAddr(<span class="string">&quot;127.0.0.1:9876&quot;</span>);</span><br><span class="line">        consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET);</span><br><span class="line">        consumer.subscribe(<span class="string">&quot;TestTopic&quot;</span>, <span class="string">&quot;*&quot;</span>);</span><br><span class="line">        consumer.registerMessageListener(<span class="keyword">new</span> MessageListenerConcurrently() &#123;</span><br><span class="line">            <span class="function"><span class="keyword">public</span> ConsumeConcurrentlyStatus <span class="title">consumeMessage</span><span class="params">(List&lt;MessageExt&gt; msgs,</span></span></span><br><span class="line"><span class="function"><span class="params">                ConsumeConcurrentlyContext context)</span> </span>&#123;</span><br><span class="line">                System.out.println(<span class="string">&quot;MessageExt msg.getMsgId():&quot;</span> +  msgs.get(<span class="number">0</span>).getMsgId());</span><br><span class="line">                System.out.println(<span class="string">&quot;-------------------分割线-----------------&quot;</span>);</span><br><span class="line">                System.out.printf(<span class="string">&quot;%s Receive New Messages: %s %n&quot;</span>, Thread.currentThread().getName(), msgs);</span><br><span class="line">                <span class="keyword">return</span> ConsumeConcurrentlyStatus.CONSUME_SUCCESS;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;);</span><br><span class="line">        consumer.start();</span><br><span class="line">        System.out.printf(<span class="string">&quot;Consumer Started.%n&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>执行效果如图所示：<br><img src="https://img-blog.csdnimg.cn/20200308202103968.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br><strong>不知道大家是否有注意到，调用 msgs.get(0).getMsgId()返回的msgId 与直接输出msgs中的 msgId 不一样，那这又是为什么呢？答案在本文的第二部分有详细分析。</strong></p>
-<h2 id="2、消息ID释疑"><a href="#2、消息ID释疑" class="headerlink" title="2、消息ID释疑"></a>2、消息ID释疑</h2><p>从消息发送的结果可以得知，RocketMQ 发送的返回结果会返回msgId 与 offsetMsgId，那这两个 msgId 分别是代表什么呢？</p>
-<ul>
-<li>msgId：该ID 是消息发送者在消息发送时会首先在客户端生成，全局唯一，在 RocketMQ 中该 ID 还有另外的一个叫法：uniqId，无不体现其全局唯一性。</li>
-<li>offsetMsgId：消息偏移ID，该 ID 记录了消息所在集群的物理地址，主要包含所存储 Broker 服务器的地址( IP 与端口号)以及所在commitlog 文件的物理偏移量。</li>
-</ul>
-<h4 id="2-1-msgId-即全局唯一-ID-构建规则"><a href="#2-1-msgId-即全局唯一-ID-构建规则" class="headerlink" title="2.1 msgId 即全局唯一 ID 构建规则"></a>2.1 msgId 即全局唯一 ID 构建规则</h4><p><img src="https://img-blog.csdnimg.cn/20200308202402908.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>从这张图可以看出，msgId确实是客户端生成的，接下来我们详细分析一下其生成算法。</p>
-<p>MessageClientIDSetter#createUniqID</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> String <span class="title">createUniqID</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    StringBuilder sb = <span class="keyword">new</span> StringBuilder(LEN * <span class="number">2</span>);</span><br><span class="line">    sb.append(FIX_STRING);    <span class="comment">// @1</span></span><br><span class="line">    sb.append(UtilAll.bytes2string(createUniqIDBuffer()));  <span class="comment">// @2</span></span><br><span class="line">    <span class="keyword">return</span> sb.toString();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>一个 uniqID 的构建主要分成两个部分：FIX_STRING 与唯一 ID 生成算法，顾名思义，FIX_STRING 就是一个客户端固定一个前缀，那接下来先看一下固定字符串的生成规则。</p>
-<h5 id="2-1-1-FIX-STRING"><a href="#2-1-1-FIX-STRING" class="headerlink" title="2.1.1 FIX_STRING"></a>2.1.1 FIX_STRING</h5><p>MessageClientIDSetter静态代码块</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">static</span> &#123;</span><br><span class="line">    <span class="keyword">byte</span>[] ip;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        ip = UtilAll.getIP();</span><br><span class="line">    &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">        ip = createFakeIP();</span><br><span class="line">    &#125;</span><br><span class="line">    LEN = ip.length + <span class="number">2</span> + <span class="number">4</span> + <span class="number">4</span> + <span class="number">2</span>;</span><br><span class="line">    ByteBuffer tempBuffer = ByteBuffer.allocate(ip.length + <span class="number">2</span> + <span class="number">4</span>);</span><br><span class="line">    tempBuffer.position(<span class="number">0</span>);</span><br><span class="line">    tempBuffer.put(ip);</span><br><span class="line">    tempBuffer.position(ip.length);</span><br><span class="line">    tempBuffer.putInt(UtilAll.getPid());</span><br><span class="line">    tempBuffer.position(ip.length + <span class="number">2</span>);</span><br><span class="line">    tempBuffer.putInt(MessageClientIDSetter.class.getClassLoader().hashCode());</span><br><span class="line">    FIX_STRING = UtilAll.bytes2string(tempBuffer.array());</span><br><span class="line">    setStartTime(System.currentTimeMillis());</span><br><span class="line">    COUNTER = <span class="keyword">new</span> AtomicInteger(<span class="number">0</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>从这里可以看出 FIX_STRING 的主要由：客户端的IP、进程ID、加载 MessageClientIDSetter 的类加载器的 hashcode。</p>
-<h5 id="2-1-2-唯一性算法"><a href="#2-1-2-唯一性算法" class="headerlink" title="2.1.2 唯一性算法"></a>2.1.2 唯一性算法</h5><p>msgId 的唯一性算法由 MessageClientIDSetter 的createUniqIDBuffer 方法实现。</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">byte</span>[] createUniqIDBuffer() &#123;</span><br><span class="line">    ByteBuffer buffer = ByteBuffer.allocate(<span class="number">4</span> + <span class="number">2</span>);</span><br><span class="line">    <span class="keyword">long</span> current = System.currentTimeMillis();</span><br><span class="line">    <span class="keyword">if</span> (current &gt;= nextStartTime) &#123;</span><br><span class="line">        setStartTime(current);</span><br><span class="line">    &#125;</span><br><span class="line">    buffer.position(<span class="number">0</span>);</span><br><span class="line">    buffer.putInt((<span class="keyword">int</span>) (System.currentTimeMillis() - startTime));</span><br><span class="line">    buffer.putShort((<span class="keyword">short</span>) COUNTER.getAndIncrement());</span><br><span class="line">    <span class="keyword">return</span> buffer.array();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>可以得出 msgId 的后半段主要由：当前时间与系统启动时间的差值，以及自增序号。</p>
-<h4 id="2-2-offsetMsgId构建规则"><a href="#2-2-offsetMsgId构建规则" class="headerlink" title="2.2 offsetMsgId构建规则"></a>2.2 offsetMsgId构建规则</h4><p><img src="https://img-blog.csdnimg.cn/20200308202705728.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>在消息 Broker 服务端将消息追加到内存后会返回其物理偏移量，即在 commitlog 文件中的文件，然后会再次生成一个id，代码中虽然也叫 msgId，其实这里就是我们常说的 offsetMsgId，即记录了消息的物理偏移量，故我们重点来看一下其具体生成规则：<br>MessageDecoder#createMessageId</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> String <span class="title">createMessageId</span><span class="params">(<span class="keyword">final</span> ByteBuffer input ,</span></span></span><br><span class="line"><span class="function"><span class="params">            <span class="keyword">final</span> ByteBuffer addr, <span class="keyword">final</span> <span class="keyword">long</span> offset)</span> </span>&#123;</span><br><span class="line">	input.flip();</span><br><span class="line">    <span class="keyword">int</span> msgIDLength = addr.limit() == <span class="number">8</span> ? <span class="number">16</span> : <span class="number">28</span>;</span><br><span class="line">    input.limit(msgIDLength);</span><br><span class="line">    input.put(addr);</span><br><span class="line">    input.putLong(offset);</span><br><span class="line">    <span class="keyword">return</span> UtilAll.bytes2string(input.array());</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>首先结合该方法的调用上下文，先解释一下该方法三个入参的含义：</p>
-<ul>
-<li>ByteBuffer input<br>用来存放 offsetMsgId 的字节缓存区( NIO 相关的基础知识)</li>
-<li>ByteBuffer addr<br>当前 Broker 服务器的 IP 地址与端口号，即通过解析 offsetMsgId 从而得到消息服务器的地址信息。</li>
-<li>long offset<br>消息的物理偏移量。<br>即构成 offsetMsgId 的组成部分：Broker 服务器的 IP 与端口号、消息的物理偏移量。</li>
-</ul>
-<blockquote>
-<p>温馨提示：即在 RocketMQ中，只需要提供 offsetMsgId，可用不必知道该消息所属的topic信息即可查询该条消息的内容。</p>
-</blockquote>
-<h4 id="2-3-消息发送与消息消费返回的消息ID信息"><a href="#2-3-消息发送与消息消费返回的消息ID信息" class="headerlink" title="2.3 消息发送与消息消费返回的消息ID信息"></a>2.3 消息发送与消息消费返回的消息ID信息</h4><p>消息发送时会在 SendSesult中返回 msgId、offsetMsgId，在了解了这个两个 ID 的含义时则问题不大，接下来重点介绍一下消息消费时返回的 msgId 到底是哪一个。</p>
-<p>在消息消费时，我们更加希望因为 msgId (即客户端生成的全局唯一性ID)，因为该全局性 ID 非常方便实现消费端的幂等。</p>
-<p>在本文的1.2节我们也提到一个现象，为什么如下图代码中输出的 msgId 会不一样呢？<br><img src="https://img-blog.csdnimg.cn/20200308203117923.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>在客户端返回的 msg 信息，其最终返回的对象是  MessageClientExt ，继承自 MessageExt。<br>那我们接下来分别看一下其 getMsgId() 方法与 toString 方法即可。</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Override</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> String <span class="title">getMsgId</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    String uniqID = MessageClientIDSetter.getUniqID(<span class="keyword">this</span>);</span><br><span class="line">    <span class="keyword">if</span> (uniqID == <span class="keyword">null</span>) &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">this</span>.getOffsetMsgId();</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> uniqID;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>原来在调用 MessageClientExt 中的 getMsgId 方法时，如果消息的属性中存在其唯一ID，则返回消息的全局唯一ID，否则返回消息的 offsetMsgId。</p>
-<p>而 MessageClientExt 方法并没有重写 MessageExt 的 toString 方法，其实现如图所示：<br><img src="https://img-blog.csdnimg.cn/20200308203311967.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>故返回的是 MessageExt中 的 msgId，该 msgId 存放的是offsetMsgId，所以才造成了困扰。</p>
-<blockquote>
-<p>温馨提示：如果消息消费失败需要重试，RocketMQ 的做法是将消息重新发送到 Broker 服务器，此时全局 msgId 是不会发送变化的，但该消息的 offsetMsgId 会发送变化，因为其存储在服务器中的位置发生了变化。</p>
-</blockquote>
-<h2 id="3、实践经验"><a href="#3、实践经验" class="headerlink" title="3、实践经验"></a>3、实践经验</h2><p>在回答了消息发送与消息消费关于msgId与offsetMsgId的困扰后，再来介绍一下如果根据msgId去查询消息。</p>
-<p>想必大家对 rocketmq-console ，那在消息查找界面，展示的消息列表中返回的 msgId 又是哪一个呢？<br><img src="https://img-blog.csdnimg.cn/20200308203400221.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>这里的 Message ID 返回的是消息的全局唯一ID。</p>
-<p>其实 RokcetMQ 也提供了 queryMsgById 命令来查看消息的内容，不过这里的 msgId 是 offsetMsgId，我们首先将全局唯一ID传入命令，其执行效果如下：<br><img src="https://img-blog.csdnimg.cn/20200308203431178.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>发现报错，那我们将 offsetMsgId 传入其执行效果如图所示：<br><img src="https://img-blog.csdnimg.cn/20200308203452188.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>但在 rocketmq-console 的根据消息ID去查找消息，无论传入哪个msgId，下图该功能都能返回正确的结果：<br><img src="https://img-blog.csdnimg.cn/20200308203540222.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>这是因为 rocketmq-console 做了兼容，首先将传入的 msgId 用 queryMsgById 该命令去查，如果报错，则当成 uniqID(全局ID)去查，首先全局ID会存储在消息的属性中，并会创建 Hash 索引，即可用通过 indexfile 快速定位到该条消息。</p>
-</div>
-
-			<script src="https://my.openwrite.cn/js/readmore.js" type="text/javascript"></script>
-			<script>
-			var isMobile = navigator.userAgent.match(/(phone|pad|pod|iPhone|iPod|ios|iPad|Android|Mobile|BlackBerry|IEMobile|MQQBrowser|JUC|Fennec|wOSBrowser|BrowserNG|WebOS|Symbian|Windows Phone)/i);
-			if (!isMobile) {
-			    var btw = new BTWPlugin();
-			    btw.init({
-			        "id": "vip-container",
-			        "blogId": "18019-1573088808868-542",
-			        "name": "中间件兴趣圈",
-			        "qrcode": "https://img-blog.csdnimg.cn/20190314214003962.jpg",
-			        "keyword": "more"
-			    });
-			}
-			</script>
-		
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="https://geekdingw.github.io/posts/54929501.html">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="中间件兴趣圈">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/posts/54929501.html" itemprop="url">RocketMQ一行代码造成大量消息发送失败</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-12-07T22:51:57+08:00">
-                2020-12-07
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/rocketmq/" itemprop="url" rel="index">
-                    <span itemprop="name">rocketmq</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/posts/54929501.html#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count valine-comment-count" data-xid="/posts/54929501.html" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-             <span id="/posts/54929501.html" class="leancloud_visitors" data-flag-title="RocketMQ一行代码造成大量消息发送失败">
-               <span class="post-meta-divider">|</span>
-               <span class="post-meta-item-icon">
-                 <i class="fa fa-eye"></i>
-               </span>
-               
-                 <span class="post-meta-item-text">阅读次数&#58;</span>
-               
-                 <span class="leancloud-visitors-count"></span>
-             </span>
-          
-
-          
-
-          
-            <div class="post-wordcount">
-              
-                
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-file-word-o"></i>
-                </span>
-                
-                  <span class="post-meta-item-text">字数统计&#58;</span>
-                
-                <span title="字数统计">
-                  1.7k 字
-                </span>
-              
-
-              
-                <span class="post-meta-divider">|</span>
-              
-
-              
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-clock-o"></i>
-                </span>
-                
-                  <span class="post-meta-item-text">阅读时长 &asymp;</span>
-                
-                <span title="阅读时长">
-                  5 分钟
-                </span>
-              
-            </div>
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          <h2 id="1、问题现象"><a href="#1、问题现象" class="headerlink" title="1、问题现象"></a>1、问题现象</h2><p>首先接到项目反馈使用 RocketMQ 会出现如下错误：<br><img src="https://img-blog.csdnimg.cn/2020051623272777.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br>错误信息关键点：MQBrokerException：CODE:2 DESC:[TIMEOUT_CLEAN_QUEUE]broker busy,start flow control for a while,period in queue：205ms，size of queue:880。</p>
-<p>由于项目组并没有对消息发送失败做任何补偿，导致丢失消息发送失败，故需要对这个问题进行深层次的探讨，并加以解决。</p>
-<h2 id="2、问题分析"><a href="#2、问题分析" class="headerlink" title="2、问题分析"></a>2、问题分析</h2><p>首先我们根据关键字：TIMEOUT_CLEAN_QUEUE 去 RocketMQ 中查询，去探究在什么时候会抛出如上错误。根据全文搜索如下图所示：<br><img src="https://img-blog.csdnimg.cn/20200517091330168.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br>该方法是在 BrokerFastFailure 中定义的，通过名称即可以看成其设计目的：Broker端快速失败机制。</p>
-<p><strong>Broker 端快速失败其原理图如下：</strong><br><img src="https://img-blog.csdnimg.cn/20200517091356312.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"></p>
-<ul>
-<li>消息发送者向 Broker 发送消息写入请求，Broker 端在接收到请求后会首先放入一个队列中(SendThreadPoolQueue)，默认容量为 10000。</li>
-<li>Broker 会专门使用一个线程池(SendMessageExecutor)去从队列中获取任务并执行消息写入请求，为了保证消息的顺序处理，该线程池默认线程个数为1。</li>
-</ul>
-<p>如果 Broker 端受到垃圾回收等等因素造成单条写入数据发生抖动，单个 Broker 端积压的请求太多从而得不到及时处理，会极大的造成客户端消息发送的时间延长。</p>
-<p>设想一下，如果由于 Broker 压力增大，写入一条消息需要500ms甚至超过1s，并且队列中积压了5000条消息，消息发送端的默认超时时间为3s，如果按照这样的速度，这些请求在轮到 Broker 执行写入请求时，客户端已经将这个请求超时了，这样不仅会造成大量的无效处理，还会导致客户端发送超时。</p>
-          <!--noindex-->
-          <div class="post-button text-center">
-            <a class="btn" href="/posts/54929501.html#more" rel="contents">
-              阅读全文 &raquo;
-            </a>
-          </div>
-          <!--/noindex-->
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="https://geekdingw.github.io/posts/97996927.html">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="中间件兴趣圈">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/posts/97996927.html" itemprop="url">我的另一种参与 RocketMQ 开源社区的方式</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-12-07T22:49:57+08:00">
-                2020-12-07
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/rocketmq/" itemprop="url" rel="index">
-                    <span itemprop="name">rocketmq</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/posts/97996927.html#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count valine-comment-count" data-xid="/posts/97996927.html" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-             <span id="/posts/97996927.html" class="leancloud_visitors" data-flag-title="我的另一种参与 RocketMQ 开源社区的方式">
-               <span class="post-meta-divider">|</span>
-               <span class="post-meta-item-icon">
-                 <i class="fa fa-eye"></i>
-               </span>
-               
-                 <span class="post-meta-item-text">阅读次数&#58;</span>
-               
-                 <span class="leancloud-visitors-count"></span>
-             </span>
-          
-
-          
-
-          
-            <div class="post-wordcount">
-              
-                
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-file-word-o"></i>
-                </span>
-                
-                  <span class="post-meta-item-text">字数统计&#58;</span>
-                
-                <span title="字数统计">
-                  2.3k 字
-                </span>
-              
-
-              
-                <span class="post-meta-divider">|</span>
-              
-
-              
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-clock-o"></i>
-                </span>
-                
-                  <span class="post-meta-item-text">阅读时长 &asymp;</span>
-                
-                <span title="阅读时长">
-                  8 分钟
-                </span>
-              
-            </div>
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          <p>首先先“SHOW”一波我在 RocketMQ 开源社区所获得的成就：2019年RocketMQ社区授予我优秀布道师荣誉称号，证书很高大上，奖品丰厚哦。<br><img src="https://img-blog.csdnimg.cn/20200608190532198.jpg?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br>布道师是什么？开源项目不是都在追求如何成为一名 Committer？其实这个就是参与开源项目的两种不同方式。如何参与一个开源项目，容我慢慢道来。</p>
-<p>@<a href="%E6%9C%AC%E8%8A%82%E7%9B%AE%E5%BD%95">TOC</a></p>
-<h2 id="1、与-RocketMQ-相识、相知到“在一起”"><a href="#1、与-RocketMQ-相识、相知到“在一起”" class="headerlink" title="1、与 RocketMQ 相识、相知到“在一起”"></a>1、与 RocketMQ 相识、相知到“在一起”</h2><p>在2017年听到阿里巴巴将 RocketMQ 捐赠给 Apache基金会成为 Apache 的顶级项目，我内心是无比激动，因为终于可以一睹一款高性能的消息中间件的实现原理。</p>
-<p>通过阅读 RocketMQ 官方文档，以下几个特别的点吸引了我的注意，让我下定决心深入研究一番。</p>
-<ul>
-<li>RocketMQ 为什么性能高效，到底运用了什么“厉害”的技术</li>
-<li>RocketMQ 如何实现刷盘（可以类比一下数据库方面的刷盘、redo、undo日志）</li>
-<li>RocketMQ 文件存储设计理念、基于文件的 Hash 索引是怎么实现的</li>
-<li>定时消息、消息过滤等实现原理</li>
-<li>如何进行网络编程（Netty实战）</li>
-</ul>
-<p>心动不如行动，下定决心后便开始了我的源码分析 RocketMQ 之旅，大概在4个多月的时间中连续发表了30余篇文章，从 Nameserver、消息发送高可用设计、消息存储、消息消费、消息过滤、事务消息等各个方面对其进行了体系化的剖析，边写边分享，边分享边传播，终于得到了机械工业出版社华章分社的杨福川老师的认可，邀请我出书。</p>
-<p>在杨老师和张工的帮助与指点下，经过将近半年的努力，书稿基本完稿。</p>
-<p>由于我当时是一位名不经传的新人，按照出版行业的惯例，需要找一些该领域内专家大牛帮忙做序或写写推荐语。</p>
-<p>当时我是初生牛犊不怕虎，蹦出了一个非常大胆的想法，是不是可以联系 RocketMQ 官方的一些大佬，最终我直接锁定了 RocketMQ 创始人冯嘉大神，希望他能帮我作序推荐。</p>
-<p>令人惊喜的是冯嘉大神非常平易见人，得知我的来意后，他说了这样一句话：“我是非常愿意为写书的朋友作序，但需要评估一下书稿的质量，如果质量OK，非常愿意效劳”。</p>
-<p>我备受鼓舞，在和出版社初步沟通后，将试读稿件再加上消息存储整章的内容发给冯嘉大神后，经冯嘉大神认真审稿后，决定帮忙推荐作序，真的让我备受鼓舞。</p>
-<p>随着《RocketMQ技术内幕》一书的正式出版上市，并得到广大读者朋友的认可，与官方的联系也越来越多，后面在 RocketMQ 中国社区负责人青峰大佬的筹备下，我还参与了 RocketMQ 官方社区的源码解析直播活动、官方文档审稿等工作，并在社区得到了不错的反响。</p>
-<p><strong>说到这里大家是不是觉得非常奇怪，是不是都认为你只是在写文章，写书，没有真正参与开源社区呀，没有贡献代码，这个算哪门子参与开源社区？</strong></p>
-<p>其实我一开始连我自己也没有意识到我正在参与一个开源项目，直到我在冯嘉大神为我写的序言中看到他给了我一个新的称号：<strong>RocketMQ布道师</strong>，从而才真正了解到参与开源的另外一种方式：做一个开源项目的传播者，让更多人更容易的使用它，即降低大众对它的使用门槛。</p>
-<p>我后面也特意去查了一下开源项目的布道师是一个什么的角色，或者说什么样的人能被称之为布道师。个人的理解就是首先认可并热爱这项技术，并持续输出高质量的技术类文章、文档等有助于技术传播的素材，让更多人更容易理解并使用它。</p>
-<p>有了新的称号，那就得更加努力，朝着优秀努力，在2019年我又陆续发表了20几篇关于RocketMQ相关的文章，这些文章含金量极高，不仅及时跟进了RocketMQ4.3之后的新特性：消息轨迹、ACL、主从切换等机制，更是发表了数篇实战类文章，详细指出在生产环境下一些使用误区，更是输出了几篇生产环境真实故障与解决方案。最终于2019年 RocketMQ 官方社区授予我优秀布道师荣誉称号。</p>
-<p>RocketMQ 成就了现在的我，我也会继续努力，为传播RocketMQ尽一份力所能及的力量。2020年，继续努力。</p>
-<h2 id="2、如何成为开源项目的-Committer"><a href="#2、如何成为开源项目的-Committer" class="headerlink" title="2、如何成为开源项目的 Committer"></a>2、如何成为开源项目的 Committer</h2><p>有一些粉丝在问我，您对 RocketMQ 研究的这么深入，为什么不考虑贡献代码，成为一名 Committer 呢？这是因为参与开源项目需要具备一些基本条件，当下我的实际情况不符合，那成为一个开源项目的 Committer 有些什么条件呢？</p>
-          <!--noindex-->
-          <div class="post-button text-center">
-            <a class="btn" href="/posts/97996927.html#more" rel="contents">
-              阅读全文 &raquo;
-            </a>
-          </div>
-          <!--/noindex-->
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="https://geekdingw.github.io/posts/6a2393aa.html">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="中间件兴趣圈">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/posts/6a2393aa.html" itemprop="url">RocketMQ消息发送常见错误与解决方案</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-12-07T22:46:57+08:00">
-                2020-12-07
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/rocketmq/" itemprop="url" rel="index">
-                    <span itemprop="name">rocketmq</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/posts/6a2393aa.html#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count valine-comment-count" data-xid="/posts/6a2393aa.html" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-             <span id="/posts/6a2393aa.html" class="leancloud_visitors" data-flag-title="RocketMQ消息发送常见错误与解决方案">
-               <span class="post-meta-divider">|</span>
-               <span class="post-meta-item-icon">
-                 <i class="fa fa-eye"></i>
-               </span>
-               
-                 <span class="post-meta-item-text">阅读次数&#58;</span>
-               
-                 <span class="leancloud-visitors-count"></span>
-             </span>
-          
-
-          
-
-          
-            <div class="post-wordcount">
-              
-                
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-file-word-o"></i>
-                </span>
-                
-                  <span class="post-meta-item-text">字数统计&#58;</span>
-                
-                <span title="字数统计">
-                  2.8k 字
-                </span>
-              
-
-              
-                <span class="post-meta-divider">|</span>
-              
-
-              
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-clock-o"></i>
-                </span>
-                
-                  <span class="post-meta-item-text">阅读时长 &asymp;</span>
-                
-                <span title="阅读时长">
-                  10 分钟
-                </span>
-              
-            </div>
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          <p>本文将结合自己使用RocketMQ的经验，对消息发送常见的问题进行分享，基本会遵循出现问题，分析问题、解决问题。</p>
-<h2 id="1、No-route-info-of-this-topic"><a href="#1、No-route-info-of-this-topic" class="headerlink" title="1、No route info of this topic"></a>1、No route info of this topic</h2><p>无法找到路由信息，其完整的错误堆栈信息如下：<br><img src="https://img-blog.csdnimg.cn/20200927212104148.png#pic_center" alt="在这里插入图片描述">而且很多读者朋友会说Broker端开启了自动创建主题也会出现上述问题。</p>
-<p>RocketMQ的路由寻找流程如下图所示：<br><img src="https://img-blog.csdnimg.cn/2020092721214148.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述">上面的核心关键点如下：</p>
-<ul>
-<li>如果Broker开启了自动创建Topic，在启动的时候会默认创建主题：TBW102，并会随着Broker发送到Nameserver的心跳包汇报给Nameserver，继而从Nameserver查询路由信息时能返回路由信息。</li>
-<li>消息发送者在消息发送时首先会查本地缓存，如果本地缓存中存在，直接返回路由信息。</li>
-<li>如果缓存不存在，则向Nameserver查询路由信息，如果Nameserver存在该路由信息，就直接返回。</li>
-<li>如果Nameserver不存在该topic的路由信息，如果没有开启自动创建主题，则抛出 No route info of this topic。</li>
-<li>如果开启了自动创建主题，则使用默认主题向Nameserver查询路由信息，并使用默认Topic的路由信息为自己的路由信息，将不会抛出 No route info of this topic。</li>
-</ul>
-<p>通常情况下 No route info of this topic 这个错误一般是在刚搭建RocketMQ，刚入门 RocketMQ遇到的比较多，通常的排查思路如下：</p>
-<ul>
-<li><p>可以通过rocketmq-console查询路由信息是否存在，或使用如下命令查询路由信息：</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">cd $&#123;ROCKETMQ_HOME&#125;/bin</span><br><span class="line">sh ./mqadmin topicRoute -n 127.0.0.1:9876 -t dw_test_0003</span><br></pre></td></tr></table></figure>
-<p>其输出结果如下所示：<br><img src="https://img-blog.csdnimg.cn/20200927212234119.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"></p>
-</li>
-<li><p>如果通过命令无法查询到路由信息，则查看Broker是否开启了自动创建topic，参数为：autoCreateTopicEnable,该参数默认为true。但在生产环境不建议开启。</p>
-</li>
-<li><p>如果开启了自动创建路由信息，但还是抛出这个错误，这个时候请检查客户端(Producer)连接的Nameserver地址是否与Broker中配置的nameserver地址是否一致。</p>
-</li>
-</ul>
-<p>经过上面的步骤，基本就能解决该错误。</p>
-          <!--noindex-->
-          <div class="post-button text-center">
-            <a class="btn" href="/posts/6a2393aa.html#more" rel="contents">
-              阅读全文 &raquo;
-            </a>
-          </div>
-          <!--/noindex-->
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="https://geekdingw.github.io/posts/3f6db0.html">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="中间件兴趣圈">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/posts/3f6db0.html" itemprop="url">RocketMQ学习环境搭建(RocketMQ安装与IDEA Debug环境搭建)</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-12-07T22:42:28+08:00">
-                2020-12-07
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/rocketmq/" itemprop="url" rel="index">
-                    <span itemprop="name">rocketmq</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/posts/3f6db0.html#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count valine-comment-count" data-xid="/posts/3f6db0.html" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-             <span id="/posts/3f6db0.html" class="leancloud_visitors" data-flag-title="RocketMQ学习环境搭建(RocketMQ安装与IDEA Debug环境搭建)">
-               <span class="post-meta-divider">|</span>
-               <span class="post-meta-item-icon">
-                 <i class="fa fa-eye"></i>
-               </span>
-               
-                 <span class="post-meta-item-text">阅读次数&#58;</span>
-               
-                 <span class="leancloud-visitors-count"></span>
-             </span>
-          
-
-          
-
-          
-            <div class="post-wordcount">
-              
-                
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-file-word-o"></i>
-                </span>
-                
-                  <span class="post-meta-item-text">字数统计&#58;</span>
-                
-                <span title="字数统计">
-                  1.7k 字
-                </span>
-              
-
-              
-                <span class="post-meta-divider">|</span>
-              
-
-              
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-clock-o"></i>
-                </span>
-                
-                  <span class="post-meta-item-text">阅读时长 &asymp;</span>
-                
-                <span title="阅读时长">
-                  7 分钟
-                </span>
-              
-            </div>
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          <p>本文主要分如下几个部分展开：</p>
-<ul>
-<li>Linux服务器安装RocketMQ、RocketMQ-Console</li>
-<li>IDEA中搭建可调试环境</li>
-</ul>
-<h2 id="1、Linux安装RocketMQ、RocketMQ-Console"><a href="#1、Linux安装RocketMQ、RocketMQ-Console" class="headerlink" title="1、Linux安装RocketMQ、RocketMQ-Console"></a>1、Linux安装RocketMQ、RocketMQ-Console</h2><h3 id="1-1安装RocketMQ"><a href="#1-1安装RocketMQ" class="headerlink" title="1.1安装RocketMQ"></a>1.1安装RocketMQ</h3><p>Step1：从如下地址下载RocketMQ安装包</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">cd /opt/application</span><br><span class="line">wget https://mirrors.tuna.tsinghua.edu.cn/apache/rocketmq/4.7.1/rocketmq-all-4.7.1-bin-release.zip</span><br></pre></td></tr></table></figure>
-
-<p>Step2：解压安装包</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">unzip rocketmq-all-4.7.1-bin-release.zip</span><br><span class="line">ls -l</span><br></pre></td></tr></table></figure>
-
-<p>解压后的文件如下图所示：<br><img src="https://img-blog.csdnimg.cn/20201011210742646.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br>其中 conf 文件夹存放的是RocketMQ的配置文件，提供了各种部署结构的示例配置。例如2m-2s-async是2主2从异步复制的配置示例；2m-noslave是2主的示例配置。由于本文主要是搭建一个学习环境，故采取的部署架构为1主的部署架构，关于生产环境下如何搭建RocketMQ集群、如何调优参数将在该专栏的后续文章中专门介绍。</p>
-<p>Step3：修改Nameserver jvm参数</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">cd bin</span><br><span class="line">vi runserver.sh</span><br><span class="line"></span><br><span class="line"><span class="meta">#</span><span class="bash"> 定位到如下代码</span></span><br><span class="line">JAVA_OPT=&quot;$&#123;JAVA_OPT&#125; -server -Xms4g -Xmx4g -Xmn2g -XX:MetaspaceSize=128m -XX:MaxMetaspaceSize=320m&quot;</span><br><span class="line"></span><br><span class="line"><span class="meta">#</span><span class="bash"> 修改　<span class="string">&quot;-Xms -Xmx -Xmn&quot;</span>　参数</span></span><br><span class="line">JAVA_OPT=&quot;$&#123;JAVA_OPT&#125; -server -Xms512M -Xmx512M -Xmn256M -XX:MetaspaceSize=128m -XX:MaxMetaspaceSize=320m&quot;</span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>温馨提示：这里修改JVM参数主要目的是个人学习电脑内存不够，默认NameServer 会占用4G。</p>
-</blockquote>
-<p>Step4：启动nameserver</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nohup ./mqnamesrv &amp;</span><br></pre></td></tr></table></figure>
-
-<p>查看${user_home}/logs/rocketmqlogs/namesrv.log日志文件，如果输出结果如下图所示即表示启动成功。<br><img src="https://img-blog.csdnimg.cn/20201011210817888.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"></p>
-          <!--noindex-->
-          <div class="post-button text-center">
-            <a class="btn" href="/posts/3f6db0.html#more" rel="contents">
-              阅读全文 &raquo;
-            </a>
-          </div>
-          <!--/noindex-->
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="https://geekdingw.github.io/posts/32f79e19.html">
+    <link itemprop="mainEntityOfPage" href="https://www.codingw.net/posts/32f79e19.html">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="">
@@ -1437,8 +318,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-12-07T22:40:25+08:00">
-                2020-12-07
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-08-27T22:40:25+08:00">
+                2020-08-27
               </time>
             
 
@@ -1620,7 +501,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="https://geekdingw.github.io/posts/b9e3e3ee.html">
+    <link itemprop="mainEntityOfPage" href="https://www.codingw.net/posts/79082d0a.html">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="">
@@ -1639,7 +520,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/posts/b9e3e3ee.html" itemprop="url">Kafka与RocketMQ性能对比大揭秘</a></h1>
+                <a class="post-title-link" href="/posts/79082d0a.html" itemprop="url">使用流收集数据之toList、joining、groupBy(多字段分组)</a></h1>
         
 
         <div class="post-meta">
@@ -1651,8 +532,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-12-07T22:37:01+08:00">
-                2020-12-07
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-08-26T22:45:35+08:00">
+                2020-08-26
               </time>
             
 
@@ -1674,8 +555,8 @@
               
               
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/kafka/" itemprop="url" rel="index">
-                    <span itemprop="name">kafka</span>
+                  <a href="/categories/java8/" itemprop="url" rel="index">
+                    <span itemprop="name">java8</span>
                   </a>
                 </span>
 
@@ -1692,8 +573,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/posts/b9e3e3ee.html#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count valine-comment-count" data-xid="/posts/b9e3e3ee.html" itemprop="commentCount"></span>
+                <a href="/posts/79082d0a.html#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count valine-comment-count" data-xid="/posts/79082d0a.html" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -1701,7 +582,7 @@
 
           
           
-             <span id="/posts/b9e3e3ee.html" class="leancloud_visitors" data-flag-title="Kafka与RocketMQ性能对比大揭秘">
+             <span id="/posts/79082d0a.html" class="leancloud_visitors" data-flag-title="使用流收集数据之toList、joining、groupBy(多字段分组)">
                <span class="post-meta-divider">|</span>
                <span class="post-meta-item-icon">
                  <i class="fa fa-eye"></i>
@@ -1726,7 +607,7 @@
                   <span class="post-meta-item-text">字数统计&#58;</span>
                 
                 <span title="字数统计">
-                  2.4k 字
+                  3.1k 字
                 </span>
               
 
@@ -1742,7 +623,7 @@
                   <span class="post-meta-item-text">阅读时长 &asymp;</span>
                 
                 <span title="阅读时长">
-                  8 分钟
+                  14 分钟
                 </span>
               
             </div>
@@ -1764,13 +645,38 @@
 
       
         
-          <p>在双十一过程中投入同样的硬件资源，Kafka 搭建的日志集群单个Topic可以达到几百万的TPS，而使用RocketMQ组件的核心业务集群，集群TPS只能达到几十万TPS，这样的现象激发了我对两者性能方面的思考。</p>
+          <p>本文将从Collectos中构建收集器入手，详细介绍java8提供了哪些收集器，重点介绍:toList、toSet、toCollection、joining、groupBy(包含多级分组)、reducing的核心实现原理与使用示例。</p>
+<h2 id="1、toList、toSet、toCollection"><a href="#1、toList、toSet、toCollection" class="headerlink" title="1、toList、toSet、toCollection"></a>1、toList、toSet、toCollection</h2><p>首先对流中的数据进行计算，最终返回的数据类型为集合。Collectors中定义了如下3集合类收集器，其声明如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> &lt;T&gt; Collector&lt;T, ?, List&lt;T&gt;&gt; toList()</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> &lt;T&gt; Collector&lt;T, ?, Set&lt;T&gt;&gt; toSet()</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> &lt;T, C extends Collection&lt;T&gt;&gt; Collector&lt;T, ?, C&gt; toCollection(Supplier&lt;C&gt; collectionFactory)</span><br></pre></td></tr></table></figure>
 <blockquote>
-<p>温馨提示：TPS只是众多性能指标中的一个，我们在做技术选型方面要从多方面考虑，本文并不打算就消息中间件选型方面投入太多笔墨，重点想尝试剖析两者在性能方面的设计思想。</p>
+<p>温馨提示：建议根据上篇的理论，再来反推一下这些Collector中的核心属性的值，例如supplier、accumulator、combiner、characteristics。不过特别注意，toList、toCollection是不支持并行运行的，但toSet()方法支持并行运行。</p>
 </blockquote>
+<p>我们首先来看一个一直使用的示例，返回菜单中所有菜品的名称：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">test_toList</span><span class="params">(List&lt;Dish&gt; menu)</span> </span>&#123;</span><br><span class="line">    List&lt;String&gt; names = menu.stream().map(Dish::getName)</span><br><span class="line">                        .collect(Collectors.toList());</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>由于toList方法的实现原理已经在 <a target="_blank" rel="noopener" href="https://blog.csdn.net/prestigeding/article/details/90813819">java8读书笔记：探究java8流收集数据原理</a>中也详细介绍，故本篇不再重点介绍。</p>
+<h2 id="2、joining"><a href="#2、joining" class="headerlink" title="2、joining"></a>2、joining</h2><p>Collectors定义了如下3个重载方法。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> Collector&lt;CharSequence, ?, String&gt; joining()</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> Collector&lt;CharSequence, ?, String&gt; joining(CharSequence delimiter)</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> Collector&lt;CharSequence, ?, String&gt; joining(CharSequence delimiter,</span><br><span class="line">    CharSequence prefix, CharSequence suffix)</span><br></pre></td></tr></table></figure>
+<h3 id="2-1-joining"><a href="#2-1-joining" class="headerlink" title="2.1 joining"></a>2.1 joining</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> Collector&lt;CharSequence, ?, String&gt; joining() &#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">new</span> CollectorImpl&lt;CharSequence, StringBuilder, String&gt;(</span><br><span class="line">        StringBuilder::<span class="keyword">new</span>, StringBuilder::append,</span><br><span class="line">        (r1, r2) -&gt; &#123; r1.append(r2); <span class="keyword">return</span> r1; &#125;,</span><br><span class="line">        StringBuilder::toString, CH_NOID);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<ul>
+<li>Supplier&lt; A&gt; supplier()<br>其函数为StringBuilder::new，即通过该方法创建一个StringBuilder方法，作为累积器的初始值。</li>
+<li>BiConsumer&lt;A, T&gt; accumulator<br>累积器：StringBuilder::append，即会对流中的元素执行追加。</li>
+<li>BinaryOperator&lt; A&gt; combiner<br>组合器，也是调用append方法，进行字符串的规约。</li>
+<li>Function&lt;A,R&gt; finisher<br>转换器：由于累积器返回的最终对象为StringBuilder，并不是目标String类型，故需要调用StringBuilder#toString方法进行转换</li>
+<li>Set&lt; Characteristics&gt; characteristics<br>无任何行为。</li>
+</ul>
+<p>从上面的函数定义我们可以得出该方法的作用：针对字符串流，会对流中的元素执行字符的追加动作，流元素之间没有分隔符号，示例如下：<br><img src="https://img-blog.csdnimg.cn/20190609173712998.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"></p>
+<h3 id="2-2-joining-CharSequence-delimiter"><a href="#2-2-joining-CharSequence-delimiter" class="headerlink" title="2.2 joining(CharSequence delimiter)"></a>2.2 joining(CharSequence delimiter)</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> Collector&lt;CharSequence, ?, String&gt; joining(CharSequence delimiter) &#123;</span><br><span class="line">    <span class="keyword">return</span> joining(delimiter, <span class="string">&quot;&quot;</span>, <span class="string">&quot;&quot;</span>);</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> Collector&lt;CharSequence, ?, String&gt; joining(CharSequence delimiter,</span><br><span class="line">                                                         CharSequence prefix,</span><br><span class="line">                                                         CharSequence suffix) &#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">new</span> CollectorImpl&lt;&gt;(</span><br><span class="line">            () -&gt; <span class="keyword">new</span> StringJoiner(delimiter, prefix, suffix),</span><br><span class="line">            StringJoiner::add, StringJoiner::merge,</span><br><span class="line">            StringJoiner::toString, CH_NOID);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<ul>
+<li>Supplier&lt; A&gt; supplier()<br>其函数为() -&gt; new StringJoiner(delimiter, prefix, suffix)，累积器的初始值为StringJoiner。</li>
+<li>BiConsumer&lt;A, T&gt; accumulator<br>累积器：StringJoiner::append，即会对流中的元素执行追加。</li>
+<li>BinaryOperator&lt; A&gt; combiner<br>组合器，StringJoiner::merge。</li>
+<li>Function&lt;A,R&gt; finisher<br>转换器：由于累积器返回的最终对象为StringBuilder，并不是目标String类型，故需要调用StringBuilder#toString方法进行转换</li>
+<li>Set&lt; Characteristics&gt; characteristics<br>无任何行为。</li>
+</ul>
+<p>其示例如下：<br><img src="https://img-blog.csdnimg.cn/20190609173901452.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"></p>
           <!--noindex-->
           <div class="post-button text-center">
-            <a class="btn" href="/posts/b9e3e3ee.html#more" rel="contents">
+            <a class="btn" href="/posts/79082d0a.html#more" rel="contents">
               阅读全文 &raquo;
             </a>
           </div>
@@ -1821,7 +727,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="https://geekdingw.github.io/posts/7b3f0619.html">
+    <link itemprop="mainEntityOfPage" href="https://www.codingw.net/posts/3f62c87c.html">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="">
@@ -1840,7 +746,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/posts/7b3f0619.html" itemprop="url">10年IT老兵给职场新人的一些建议</a></h1>
+                <a class="post-title-link" href="/posts/3f62c87c.html" itemprop="url">初识Stream、流的基本操作（流计算）</a></h1>
         
 
         <div class="post-meta">
@@ -1852,8 +758,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-12-07T20:37:01+08:00">
-                2020-12-07
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-08-26T22:32:35+08:00">
+                2020-08-26
               </time>
             
 
@@ -1875,8 +781,8 @@
               
               
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/%E7%A8%8B%E5%BA%8F%E4%BA%BA%E7%94%9F/" itemprop="url" rel="index">
-                    <span itemprop="name">程序人生</span>
+                  <a href="/categories/java8/" itemprop="url" rel="index">
+                    <span itemprop="name">java8</span>
                   </a>
                 </span>
 
@@ -1893,8 +799,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/posts/7b3f0619.html#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count valine-comment-count" data-xid="/posts/7b3f0619.html" itemprop="commentCount"></span>
+                <a href="/posts/3f62c87c.html#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count valine-comment-count" data-xid="/posts/3f62c87c.html" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -1902,7 +808,7 @@
 
           
           
-             <span id="/posts/7b3f0619.html" class="leancloud_visitors" data-flag-title="10年IT老兵给职场新人的一些建议">
+             <span id="/posts/3f62c87c.html" class="leancloud_visitors" data-flag-title="初识Stream、流的基本操作（流计算）">
                <span class="post-meta-divider">|</span>
                <span class="post-meta-item-icon">
                  <i class="fa fa-eye"></i>
@@ -1927,7 +833,7 @@
                   <span class="post-meta-item-text">字数统计&#58;</span>
                 
                 <span title="字数统计">
-                  1.4k 字
+                  4.3k 字
                 </span>
               
 
@@ -1943,7 +849,7 @@
                   <span class="post-meta-item-text">阅读时长 &asymp;</span>
                 
                 <span title="阅读时长">
-                  4 分钟
+                  18 分钟
                 </span>
               
             </div>
@@ -1965,12 +871,933 @@
 
       
         
-          <p>2020年04年01，对我来说一个非常值得纪念的日子，因为10年前的今天我从一个<strong>普通二类本科</strong>的大学毕业生正式步入职场，开启了我人生的新篇章。</p>
-<p>经过10年的成长，我从一个青涩少年依然蜕变为一个“中年大叔”了，也取得了一定的成绩，为了突破“中年危机”，将持续努力。</p>
-<p>首先先来一个自我介绍：丁威，《RocketMQ技术内幕》作者、『中间件兴趣圈』公众号维护者、2019年RocketMQ社区优秀布道师评选斩获第一名、2019年度CSDN博客之星TOP10获得者，目前就任中通科技技术平台部担任资深架构师，负责消息中间件与全链路压测在科技中心的落地与实施工作。</p>
+          <p>本文中的部分示例基于如下场景：餐厅点菜，Dish为餐厅中可提供的菜品，Dish的定义如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">public class Dish &#123;</span><br><span class="line">    &#x2F;** 菜品名称 *&#x2F;</span><br><span class="line">	private final String name;</span><br><span class="line">	&#x2F;** 是否是素食 *&#x2F;</span><br><span class="line">	private final boolean vegetarian;</span><br><span class="line">	&#x2F;** 含卡路里 *&#x2F;</span><br><span class="line">	private final int calories;</span><br><span class="line">	&#x2F;** 类型 *&#x2F;</span><br><span class="line">	private final Type type;</span><br><span class="line">	</span><br><span class="line">	public Dish(String name, boolean vegetarian, int calories, Type type) &#123;</span><br><span class="line">		this.name &#x3D; name;</span><br><span class="line">		this.vegetarian &#x3D; vegetarian;</span><br><span class="line">		this.calories &#x3D; calories;</span><br><span class="line">		this.type &#x3D; type;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	public enum Type &#123; MEAT, FISH, OTHER &#125;</span><br><span class="line">	</span><br><span class="line">	&#x2F;&#x2F; 省略set get方法</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>菜单的数据如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">List&lt;Dish&gt; menu &#x3D; Arrays.asList(</span><br><span class="line">new Dish(&quot;pork&quot;, false, 800, Dish.Type.MEAT),</span><br><span class="line">new Dish(&quot;beef&quot;, false, 700, Dish.Type.MEAT),</span><br><span class="line">new Dish(&quot;chicken&quot;, false, 400, Dish.Type.MEAT),</span><br><span class="line">new Dish(&quot;french fries&quot;, true, 530, Dish.Type.OTHER),</span><br><span class="line">new Dish(&quot;rice&quot;, true, 350, Dish.Type.OTHER),</span><br><span class="line">new Dish(&quot;season fruit&quot;, true, 120, Dish.Type.OTHER),</span><br><span class="line">new Dish(&quot;pizza&quot;, true, 550, Dish.Type.OTHER),</span><br><span class="line">new Dish(&quot;prawns&quot;, false, 300, Dish.Type.FISH),</span><br><span class="line">new Dish(&quot;salmon&quot;, false, 450, Dish.Type.FISH) );</span><br></pre></td></tr></table></figure>
+<p>我们以一个简单的示例来引入流：从菜单列表中，查找出是素食的菜品，并打印其菜品的名称。</p>
+<p>在Java8之前，我们通常是这样实现该需求的：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">List&lt;String&gt; dishNames &#x3D; new ArrayList&lt;&gt;();</span><br><span class="line">for(Dish d menu) &#123;</span><br><span class="line">    if(d.isVegetarian()) &#123;</span><br><span class="line">        dishNames.add(d.getName()); </span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line">&#x2F;&#x2F;输出帅选出来的菜品的名称：</span><br><span class="line">for(String n : dishNames) &#123;</span><br><span class="line">    System.out.println(n);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>那在java8中，我们可以这样写：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">menu.streams() .filter( Dish::isVegetarian).map( Dish::getName) .forEach( a -&gt; System.out.println(a) );</span><br></pre></td></tr></table></figure>
+<p>其运行输出的结果：<br><img src="https://img-blog.csdnimg.cn/20190518134242508.png" alt="在这里插入图片描述"><br>怎么样，神奇吧！！！</p>
+<p>在解释上面的代码之前，我们先对流做一个理论上的介绍。</p>
+<h2 id="1、流是什么？"><a href="#1、流是什么？" class="headerlink" title="1、流是什么？"></a>1、流是什么？</h2><p>流，就是数据流，是元素序列，在Java8中，流的接口定义在 java.util.stream.Stream包中，并且在Collection(集合)接口中新增一个方法：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">default Stream&lt;E&gt; stream() &#123;</span><br><span class="line">        return StreamSupport.stream(spliterator(), false);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>流的简短定义：从支持数据处理操作的源生成的元素序列。例如集合、数组都是支持数据操作的数据结构（容器），都可以做为流的创建源，该定义的核心要素如下：</p>
+<ul>
+<li>源<br>流是从一个源创建来而来，而且这个源是支持数据处理的，例如集合、数组等。</li>
+<li>元素序列<br>流代表一个元素序列（流水线），因为是从根据一个数据处理源而创建得来的。</li>
+<li>数据处理操作<br>流的侧重点并不在数据存储，而在于数据处理，例如示例中的filter、map、forEach等。</li>
+<li>迭代方式<br>流的迭代方式为内部迭代，而集合的迭代方式为外部迭代。例如我们遍历Collection接口需要用户去做迭代，例如for-each，然后在循环体中写对应的处理代码，这叫外部迭代。相反，Stream库使用内部迭代，我们只需要对流传入对应的函数即可，表示要做什么就行。</li>
+</ul>
+<blockquote>
+<p>注意：流和迭代器Iterator一样，只能遍历一次，如果要多次遍历，请创建多个流。</p>
+</blockquote>
+<p>接下来我们将重点先介绍流的常用操作方法。</p>
+<h2 id="2、常用的流操作方法"><a href="#2、常用的流操作方法" class="headerlink" title="2、常用的流操作方法"></a>2、常用的流操作方法</h2><h4 id="2-1-filter"><a href="#2-1-filter" class="headerlink" title="2.1 filter"></a>2.1 filter</h4><p>filter函数的方法声明如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">java.util.stream.Stream#filter</span><br><span class="line">Stream&lt;T&gt; filter(Predicate&lt;? super T&gt; predicate);</span><br></pre></td></tr></table></figure>
+<p>该方法接收一个谓词，返回一个流，即filter方法接收的lambda表达式需要满足 （  T  -&gt; Boolean ）。</p>
+<p>示例：从菜单中选出所有是素食的菜品：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">List&lt;Dish&gt; vegetarianDishs &#x3D; menu.stream().filter(  Dish::isVegetarian )    &#x2F;&#x2F; 使用filter过滤流中的菜品。</span><br><span class="line">                                          .collect(toList())；              &#x2F;&#x2F; 将流转换成List，该方法将在后面介绍。</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>温馨提示：流的操作可以分成中间件操作和终端操作。中间操作通常的返回结果还是流，并且在调用终端操作之前，并不会立即调用，等终端方法调用后，中间操作才会真正触发执行，该示例中的collect方法为终端方法。</p>
+</blockquote>
+<p>我们类比一下数据库查询操作，除了基本的筛选动作外，还有去重，分页等功能，那java8的流API能支持这些操作吗？<br>答案当然是肯定。</p>
+<h4 id="2-1-1-distinct"><a href="#2-1-1-distinct" class="headerlink" title="2.1.1 distinct"></a>2.1.1 distinct</h4><p>distinct，类似于数据库中的排重函数，就是对结果集去重。<br>例如有一个数值numArr = [1,5,8,6,5,2,6]，现在要输出该数值中的所有奇数并且不能重复输出，那该如何实现呢？</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Arrays.stream(numArr).filter(  a -&gt; a % 2 &#x3D;&#x3D; 0 ).distinict().forEach(System.out::println);</span><br></pre></td></tr></table></figure>
+<h4 id="2-1-2-limit"><a href="#2-1-2-limit" class="headerlink" title="2.1.2 limit"></a>2.1.2 limit</h4><p>截断流，返回一个i不超过指定元素个数的流。<br>还是以上例举例，如果要输出的元素是偶数，不能重复输出，并且只输出1个元素，那又该如何实现呢？</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Arrays.stream(numArr).filter(  a -&gt; a % 2 &#x3D;&#x3D; 0 ).distinict().limit(1).forEach(System.out::println);</span><br></pre></td></tr></table></figure>
+<h4 id="2-1-3-skip"><a href="#2-1-3-skip" class="headerlink" title="2.1.3 skip"></a>2.1.3 skip</h4><p>跳过指定元素，返回剩余元素的流，与limit互补。</p>
           <!--noindex-->
           <div class="post-button text-center">
-            <a class="btn" href="/posts/7b3f0619.html#more" rel="contents">
+            <a class="btn" href="/posts/3f62c87c.html#more" rel="contents">
+              阅读全文 &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="https://www.codingw.net/posts/fcb673e6.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="中间件兴趣圈">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/posts/fcb673e6.html" itemprop="url">数值流、Stream创建与Optional类的使用</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-08-25T22:32:35+08:00">
+                2020-08-25
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/java8/" itemprop="url" rel="index">
+                    <span itemprop="name">java8</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/posts/fcb673e6.html#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count valine-comment-count" data-xid="/posts/fcb673e6.html" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+             <span id="/posts/fcb673e6.html" class="leancloud_visitors" data-flag-title="数值流、Stream创建与Optional类的使用">
+               <span class="post-meta-divider">|</span>
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               
+                 <span class="post-meta-item-text">阅读次数&#58;</span>
+               
+                 <span class="leancloud-visitors-count"></span>
+             </span>
+          
+
+          
+
+          
+            <div class="post-wordcount">
+              
+                
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-file-word-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">字数统计&#58;</span>
+                
+                <span title="字数统计">
+                  1.9k 字
+                </span>
+              
+
+              
+                <span class="post-meta-divider">|</span>
+              
+
+              
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-clock-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">阅读时长 &asymp;</span>
+                
+                <span title="阅读时长">
+                  8 分钟
+                </span>
+              
+            </div>
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          <h2 id="1、数值流"><a href="#1、数值流" class="headerlink" title="1、数值流"></a>1、数值流</h2><p>不知大家还记不得，在介绍函数式编程接口中为了避免基础数据类型的装箱/拆箱带来的性能损耗，特意为函数式接口引入了基础数据类型的函数式编程接口，例如IntPredicate、LongPredicate、DoublePredicate。同样，流API也考虑到基本数据类型的装箱/拆箱会带来性能损耗，引入了数值流，例如IntStream、LongStream、DoubleStream。</p>
+<h3 id="1-1-原始数据特化流"><a href="#1-1-原始数据特化流" class="headerlink" title="1.1 原始数据特化流"></a>1.1 原始数据特化流</h3><p>java8中提供了3个原始数据特化流，分别为IntStream、LongStream、DoubleStream。本文将以IntStream进行讲解，其他流类似，只是数据类型分别代表Long或Double。</p>
+<h4 id="1-1-1-映射到数据流"><a href="#1-1-1-映射到数据流" class="headerlink" title="1.1.1 映射到数据流"></a>1.1.1 映射到数据流</h4><p>首先我们还是从一个示例开始本节的学习：计算菜单中所有菜品的卡路里之和。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">test_reduce_caluli</span><span class="params">(List&lt;Dish&gt; menu)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">int</span> calories = menu.stream()</span><br><span class="line">                    .map(Dish::getCalories)</span><br><span class="line">                    .reduce(<span class="number">0</span>, Integer::sum);</span><br><span class="line">    System.out.println(<span class="string">&quot;菜品中的总卡路里：&quot;</span> + calories);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>上面包含了一个基本数据类型的装箱/拆箱动作，java8的流API提供了mapToInt方法，直接返回int类型的流</p>
+<p>我们先稍微看一下mapToInt的方法声明：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function">IntStream <span class="title">mapToInt</span><span class="params">(ToIntFunction&lt;? <span class="keyword">super</span> T&gt; mapper)</span></span></span><br></pre></td></tr></table></figure>
+<p>接受一个T-&gt;int的函数式编程接口，直接返回IntStream流对象，而且IntStream本身提供了一些常用的聚合函数，例如sum。<br>使用IntStream来实现计算菜单中所有菜品的卡路里之和，其示例如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">test_reduce_caluli_intStream</span><span class="params">(List&lt;Dish&gt; menu)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">int</span> calories = menu.stream()</span><br><span class="line">            .mapToInt(Dish::getCalories)</span><br><span class="line">            .sum();</span><br><span class="line">    System.out.println(<span class="string">&quot;菜品中的总卡路里：&quot;</span> + calories);</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h4 id="1-1-2-转换回对象流"><a href="#1-1-2-转换回对象流" class="headerlink" title="1.1.2 转换回对象流"></a>1.1.2 转换回对象流</h4><p>使用了特化流例如IntStream后，将不能再自动转换为其对应的封装对象流Stream&lt; T &gt;了，我们可以随意从IntStream对象中对应的通用方法的函数声明，例如IntStream#map函数的声明如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function">IntStream <span class="title">map</span><span class="params">(IntUnaryOperator mapper)</span></span>;</span><br></pre></td></tr></table></figure>
+<p>只能接受int -&gt; int的函数式编程接口，如果想将IntStream转回到Stream&lt; Integer &gt;，该如何处理呢？</p>
+<p>IntStream提供了boxed()方法来实现将基础数据类型转换回对应的包装类型的流。</p>
+<h4 id="1-1-3-常用函数"><a href="#1-1-3-常用函数" class="headerlink" title="1.1.3 常用函数"></a>1.1.3 常用函数</h4><p>Stream中定义的方法，IntStream也可以使用，例如map、flatMap、distinict等，IntStream除这些之外，还提供了常用的聚合函数，例如sum、min、max、average(平均数)。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="function">OptionalDouble <span class="title">average</span><span class="params">()</span></span>;</span><br><span class="line"><span class="function">OptionalInt <span class="title">max</span><span class="params">()</span></span>;</span><br><span class="line"><span class="function">OptionalInt <span class="title">min</span><span class="params">()</span></span>;</span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">sum</span><span class="params">()</span></span>;</span><br></pre></td></tr></table></figure>
+<p>有关Optional相关的类将在下文详细介绍。</p>
+<p>另外除了上面提到的聚合函数，IntStream还提供了两个与数值范围的方法：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> IntStream <span class="title">range</span><span class="params">(<span class="keyword">int</span> startInclusive, <span class="keyword">int</span> endExclusive)</span></span>;</span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> IntStream <span class="title">rangeClosed</span><span class="params">(<span class="keyword">int</span> startInclusive, <span class="keyword">int</span> endExclusive)</span></span>;</span><br></pre></td></tr></table></figure>
+<p>rangeClosed与range的区别就是rangeClosed包含结束边界，举一个简单示例如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">test_range</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">long</span> count = IntStream.range(<span class="number">1</span>,<span class="number">100</span>)</span><br><span class="line">                        .filter( i -&gt; i % <span class="number">2</span> == <span class="number">0</span> )</span><br><span class="line">                         .count();</span><br><span class="line">    System.out.println(<span class="string">&quot;count:&quot;</span> + count);</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>计算【1，100）中包含的偶数个数，将输出49。如果将range(1,100)修改为rangeClosed(1,100)，在输出的个数为50。</p>
+<h2 id="2、构建流"><a href="#2、构建流" class="headerlink" title="2、构建流"></a>2、构建流</h2><h3 id="2-1-通过值构建流"><a href="#2-1-通过值构建流" class="headerlink" title="2.1 通过值构建流"></a>2.1 通过值构建流</h3><p>java 8的Stream提供了两个重载的of函数来显示的构建流，其声明如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span>&lt;T&gt; Stream&lt;T&gt; <span class="title">of</span><span class="params">(T t)</span></span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span>&lt;T&gt; Stream&lt;T&gt; <span class="title">of</span><span class="params">(T... values)</span></span></span><br></pre></td></tr></table></figure>
+
+<h3 id="2-2-通过数组构建流"><a href="#2-2-通过数组构建流" class="headerlink" title="2.2 通过数组构建流"></a>2.2 通过数组构建流</h3><p>通过Arrays.stream构建流，其声明如下：<br>Arrays#stream</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> &lt;T&gt; <span class="function">Stream&lt;T&gt; <span class="title">stream</span><span class="params">(T[] array)</span></span></span><br></pre></td></tr></table></figure>
+<h3 id="2-3-通过文件流"><a href="#2-3-通过文件流" class="headerlink" title="2.3 通过文件流"></a>2.3 通过文件流</h3><p>可以通过文件流创建流，在java.nio.file.Files类中定义了如下创建流的方法。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> Stream&lt;Path&gt; <span class="title">list</span><span class="params">(Path dir)</span> <span class="keyword">throws</span> IOException</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> Stream&lt;Path&gt; <span class="title">walk</span><span class="params">(Path start, <span class="keyword">int</span> maxDepth, FileVisitOption... options)</span></span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> Stream&lt;Path&gt; <span class="title">walk</span><span class="params">(Path start, FileVisitOption... options)</span></span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> Stream&lt;Path&gt; <span class="title">find</span><span class="params">(Path start, <span class="keyword">int</span> maxDepth,BiPredicate&lt;Path, BasicFileAttributes&gt; matcher,   </span></span></span><br><span class="line"><span class="function"><span class="params">    FileVisitOption... options)</span></span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> Stream&lt;String&gt; <span class="title">lines</span><span class="params">(Path path, Charset cs)</span></span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> Stream&lt;String&gt; <span class="title">lines</span><span class="params">(Path path)</span> <span class="keyword">throws</span> IOException</span></span><br></pre></td></tr></table></figure>
+<p>下面我们举一个示例：找出一个文件中不同词的个数。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">test_file_stram</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">long</span> uniqueWords = <span class="number">0</span>;</span><br><span class="line">    <span class="keyword">try</span>(Stream&lt;String&gt; lines = Files.lines(Paths.get(<span class="string">&quot;d:/tmp/words.txt&quot;</span>), Charset.defaultCharset())) &#123;  </span><br><span class="line">        uniqueWords = lines.flatMap(line -&gt; Arrays.stream(line.split(<span class="string">&quot;&quot;</span> )))</span><br><span class="line">                .distinct()</span><br><span class="line">                .count();</span><br><span class="line"></span><br><span class="line">        System.out.println(<span class="string">&quot;不重复字符个数：&quot;</span> + uniqueWords);</span><br><span class="line">    &#125; <span class="keyword">catch</span> (IOException e) &#123;</span><br><span class="line">        e.printStackTrace();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/posts/fcb673e6.html#more" rel="contents">
+              阅读全文 &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="https://www.codingw.net/posts/4c12373d.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="中间件兴趣圈">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/posts/4c12373d.html" itemprop="url">复合Lambda表达式</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-08-25T22:25:35+08:00">
+                2020-08-25
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/java8/" itemprop="url" rel="index">
+                    <span itemprop="name">java8</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/posts/4c12373d.html#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count valine-comment-count" data-xid="/posts/4c12373d.html" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+             <span id="/posts/4c12373d.html" class="leancloud_visitors" data-flag-title="复合Lambda表达式">
+               <span class="post-meta-divider">|</span>
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               
+                 <span class="post-meta-item-text">阅读次数&#58;</span>
+               
+                 <span class="leancloud-visitors-count"></span>
+             </span>
+          
+
+          
+
+          
+            <div class="post-wordcount">
+              
+                
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-file-word-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">字数统计&#58;</span>
+                
+                <span title="字数统计">
+                  756 字
+                </span>
+              
+
+              
+                <span class="post-meta-divider">|</span>
+              
+
+              
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-clock-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">阅读时长 &asymp;</span>
+                
+                <span title="阅读时长">
+                  3 分钟
+                </span>
+              
+            </div>
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          <h2 id="1、比较器复合"><a href="#1、比较器复合" class="headerlink" title="1、比较器复合"></a>1、比较器复合</h2><p><img src="https://img-blog.csdnimg.cn/20190515201329740.png" alt="在这里插入图片描述"><br>上面是JDK8中java.util.Comparator接口，相比jdk1.7增加了好多方法，也许你会觉得奇怪，为什么接口中还能定义方法，原因是JDK8中，可以为接口添加默认实现，使用default关键字定义。</p>
+<p>例如，我们可以这样定义一个比较器：<br>Comparator&lt; Apple&gt;  c = Comparator.comparing(Apple::getWeight());<br>其等价为：<br>Comparator&lt; Apple&gt;  c = Comparator.comparing(  (a) -&gt; a.getWeight()  );</p>
+<p>为什么可以这样写呢？因为Comparator定义了如下静态方法：<br><img src="https://img-blog.csdnimg.cn/20190515202531959.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"></p>
+<h4 id="1-1-逆序"><a href="#1-1-逆序" class="headerlink" title="1.1 逆序"></a>1.1 逆序</h4><p>Comparator定义了一个静态方法，reversed，故我们不需要重新再定义一个比较器，我们可以这样就能实现逆序排序：<br>List&lt; Apple&gt; apples = new ArrayList&lt;&gt;();<br>apples.sort(  Comparator.comparing(Apple::getWeight()).reversed()  );</p>
+<h4 id="1-2-比较器链"><a href="#1-2-比较器链" class="headerlink" title="1.2 比较器链"></a>1.2 比较器链</h4><p>如果要支持多重排序呢？例如先根据苹果的重量，如果重量相同就按照颜色排序，那如何来实现呢？<br>apples.sort(  Comparator.comparing(Apple::getWeight()).thenComparing(  Apple::getColor()  ) );<br>之所以可以使用上述表达式，是因为Comparator定义了如下方法：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">default &lt;U extends Comparable&lt;? super U&gt;&gt; Comparator&lt;T&gt; thenComparing( Function&lt;? super T, ? extends U&gt; keyExtractor)</span><br><span class="line">&#123;</span><br><span class="line">    return thenComparing(comparing(keyExtractor));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>温馨提示：Comparator中定义很多thenComparing重载方法,在具体使用过程中，可以先看看其函数声明。</p>
+</blockquote>
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/posts/4c12373d.html#more" rel="contents">
+              阅读全文 &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="https://www.codingw.net/posts/bfa9fca1.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="中间件兴趣圈">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/posts/bfa9fca1.html" itemprop="url">探究java8流收集数据原理</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-08-24T22:43:35+08:00">
+                2020-08-24
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/java8/" itemprop="url" rel="index">
+                    <span itemprop="name">java8</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/posts/bfa9fca1.html#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count valine-comment-count" data-xid="/posts/bfa9fca1.html" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+             <span id="/posts/bfa9fca1.html" class="leancloud_visitors" data-flag-title="探究java8流收集数据原理">
+               <span class="post-meta-divider">|</span>
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               
+                 <span class="post-meta-item-text">阅读次数&#58;</span>
+               
+                 <span class="leancloud-visitors-count"></span>
+             </span>
+          
+
+          
+
+          
+            <div class="post-wordcount">
+              
+                
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-file-word-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">字数统计&#58;</span>
+                
+                <span title="字数统计">
+                  1.7k 字
+                </span>
+              
+
+              
+                <span class="post-meta-divider">|</span>
+              
+
+              
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-clock-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">阅读时长 &asymp;</span>
+                
+                <span title="阅读时长">
+                  6 分钟
+                </span>
+              
+            </div>
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          <p>本文揭示如何学习一门新技术，从示例入手，重点阐述Stream#collect方法的实现原理，为更好的使用java8中流来收集数据。</p>
+<p>我们在前面的文章中反复使用的场景：获取菜单中所有菜品的名称，返回一个集合，其代码如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">test_toList</span><span class="params">(List&lt;Dish&gt; menu)</span> </span>&#123;</span><br><span class="line">    List&lt;String&gt; names = menu.stream().map(Dish::getName)</span><br><span class="line">                        .collect(Collectors.toList()); <span class="comment">// @1</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span>(String s : names) &#123;</span><br><span class="line">        System.out.println(s);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>通过Stream.collect这个终端操作进行数据收集，至于如何收集，则由该方法的参数来决定(Collector)，即行为参数化。</p>
+<p>代码@1：collect(Collectors.toList()) 的意思就是返回List，这里涉及到两个关键，一个是Stream#collect方法，另外一个就是其参数Collectors.toList()。</p>
+<p>接下来我们将以上述两个突破点来揭开如何使用java8的流来收集数据。</p>
+<h2 id="1、Stream-collect"><a href="#1、Stream-collect" class="headerlink" title="1、Stream#collect"></a>1、Stream#collect</h2><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">ReferencePipeline#collect</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">final</span> &lt;R, A&gt; <span class="function">R <span class="title">collect</span><span class="params">(Collector&lt;? <span class="keyword">super</span> P_OUT, A, R&gt; collector)</span> </span>&#123;   <span class="comment">// @1</span></span><br><span class="line">    A container;</span><br><span class="line">    <span class="keyword">if</span> (isParallel()</span><br><span class="line">            &amp;&amp; (collector.characteristics().contains(Collector.Characteristics.CONCURRENT))</span><br><span class="line">            &amp;&amp; (!isOrdered() || collector.characteristics().contains(Collector.Characteristics.UNORDERED))) &#123;   <span class="comment">// @2</span></span><br><span class="line">        container = collector.supplier().get();                                                                 <span class="comment">// @3</span></span><br><span class="line">        BiConsumer&lt;A, ? <span class="keyword">super</span> P_OUT&gt; accumulator = collector.accumulator();</span><br><span class="line">        forEach(u -&gt; accumulator.accept(container, u));</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">else</span> &#123;                                                                                                     <span class="comment">// @4</span></span><br><span class="line">        container = evaluate(ReduceOps.makeRef(collector));                                                                                              </span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> collector.characteristics().contains(Collector.Characteristics.IDENTITY_FINISH)                    <span class="comment">// @5</span></span><br><span class="line">           ? (R) container</span><br><span class="line">           : collector.finisher().apply(container);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>代码@1：函数声明，该方法返回的结果类型为R，传入的行为参数接口为Collector。<br>代码@2：判断是否符合并行化累积与规约的条件。</p>
+<ul>
+<li>是否是并行流，例如上例中创建流的代码为menu.stream()，该方法的流是非并行化流，如果要支持并行化执行，需要满足的第一个条件就是需要使用menu.parallelStream()方法返回的流。</li>
+<li>Collector(收集器，行为化参数)中收集器行为集合中是否包含Characteristics.CONCURRENT(并行执行)，如果不包含该行为，则不支持并行执行。</li>
+<li>原始流是否有顺序 或 者 收集器的行为集合中明确包含Characteristics.UNORDERED(不要求顺序性)。<br>上述三个条件必须同时满足，才能并行执行，否则串行执行。</li>
+</ul>
+<p>代码@3：并行执行收集动作。</p>
+<p>代码@4：串行执行收集动作。</p>
+<p>代码@5：如果收集器收集行为集合中包含Characteristics.IDENTITY_FINISH，则直接返回原始值，否则使用Collector.finishier()方式对计算的值进行函数式计算。</p>
+<p>通过上面的代码，我们应该对Characteristics枚举类型中的3个值不难得出如下类型：</p>
+<ul>
+<li>CONCURRENT<br>收集器行为，表示收集其中的累积函数是否支持并行执行。</li>
+<li>Characteristics.UNORDERED<br>收集器行为，表示整个收集期间，没有顺序要求。</li>
+<li>Characteristics.IDENTITY_FINISH<br>收集器行为，表示可以忽略Collector.finsher()定义的最终转换函数，直接返回累积之后的结果即可。</li>
+</ul>
+<blockquote>
+<p>疑问？代码@3,这段代码不是很好理解，该怎么继续往下深入呢？</p>
+</blockquote>
+<p>针对上面看不太懂的代码，我的处理办法是先转移思路，看一下Collector接口以及示例中Collectos.toList()返回的收集器是什么(重点关注返回的Collector中具体属性)。</p>
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/posts/bfa9fca1.html#more" rel="contents">
+              阅读全文 &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="https://www.codingw.net/posts/8b1a2fc4.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="中间件兴趣圈">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/posts/8b1a2fc4.html" itemprop="url">源码分析 RocketMQ DLedger 多副本之 Leader 选主</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-08-23T23:43:01+08:00">
+                2020-08-23
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/rocketmq/" itemprop="url" rel="index">
+                    <span itemprop="name">rocketmq</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/posts/8b1a2fc4.html#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count valine-comment-count" data-xid="/posts/8b1a2fc4.html" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+             <span id="/posts/8b1a2fc4.html" class="leancloud_visitors" data-flag-title="源码分析 RocketMQ DLedger 多副本之 Leader 选主">
+               <span class="post-meta-divider">|</span>
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               
+                 <span class="post-meta-item-text">阅读次数&#58;</span>
+               
+                 <span class="leancloud-visitors-count"></span>
+             </span>
+          
+
+          
+
+          
+            <div class="post-wordcount">
+              
+                
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-file-word-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">字数统计&#58;</span>
+                
+                <span title="字数统计">
+                  6.4k 字
+                </span>
+              
+
+              
+                <span class="post-meta-divider">|</span>
+              
+
+              
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-clock-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">阅读时长 &asymp;</span>
+                
+                <span title="阅读时长">
+                  26 分钟
+                </span>
+              
+            </div>
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          <p>本文将按照<a target="_blank" rel="noopener" href="https://blog.csdn.net/prestigeding/article/details/99101912">《RocketMQ 多副本前置篇：初探raft协议》</a>的思路来学习RocketMQ选主逻辑。首先先回顾一下关于Leader的一些思考：</p>
+<ol>
+<li>节点状态<br> 需要引入3种节点状态：Follower(跟随者)、Candidate(候选者)，该状态下的节点会发起投票请求，Leader(主节点)。</li>
+<li>选举计时器<br> Follower、Candidate两个状态时，需要维护一个定时器，每次定时时间从150ms-300ms直接进行随机，即每个节点的定时过期不一样，Follower状态时，定时器到点后，触发一轮投票。节点在收到投票请求、Leader的心跳请求并作出响应后，需要重置定时器。</li>
+<li>投票轮次Team<br> Candidate状态的节点，每发起一轮投票，Team加一。</li>
+<li>投票机制<br> 每一轮一个节点只能为一个节点投赞成票，例如节点A中维护的轮次为3，并且已经为节点B投了赞成票，如果收到其他节点，投票轮次为3，则会投反对票，如果收到轮次为4的节点，是又可以投赞成票的。</li>
+<li>成为Leader的条件<br> 必须得到集群中初始数量的大多数，例如如果集群中有3台，则必须得到两票，如果其中一台服务器宕机，剩下的两个节点，还能进行选主吗？答案是可以的，因为可以得到2票，超过初始集群中3的一半，所以通常集群中的机器各位尽量为奇数，因为4台的可用性与3台的一样。</li>
+</ol>
+<blockquote>
+<p>温馨提示：本文是从源码的角度分析 DLedger 选主实现原理，可能比较鼓噪，文末给出了选主流程图。</p>
+</blockquote>
+<p>@<a href="%E6%9C%AC%E8%8A%82%E7%9B%AE%E5%BD%95">TOC</a></p>
+<h2 id="1、DLedger关于选主的核心类图"><a href="#1、DLedger关于选主的核心类图" class="headerlink" title="1、DLedger关于选主的核心类图"></a>1、DLedger关于选主的核心类图</h2><p><img src="https://img-blog.csdnimg.cn/20190817201207350.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"></p>
+<h3 id="1-1-DLedgerConfig"><a href="#1-1-DLedgerConfig" class="headerlink" title="1.1 DLedgerConfig"></a>1.1 DLedgerConfig</h3><p>多副本模块相关的配置信息，例如集群节点信息。</p>
+<h3 id="1-2-MemberState"><a href="#1-2-MemberState" class="headerlink" title="1.2 MemberState"></a>1.2 MemberState</h3><p>节点状态机，即raft协议中的follower、candidate、leader三种状态的状态机实现。</p>
+<h3 id="1-3-raft协议相关"><a href="#1-3-raft协议相关" class="headerlink" title="1.3 raft协议相关"></a>1.3 raft协议相关</h3><h4 id="1-3-1-DLedgerClientProtocol"><a href="#1-3-1-DLedgerClientProtocol" class="headerlink" title="1.3.1 DLedgerClientProtocol"></a>1.3.1 DLedgerClientProtocol</h4><p>DLedger客户端协议，主要定义如下三个方法，在后面的日志复制部分会重点阐述。</p>
+<ul>
+<li>CompletableFuture&lt; GetEntriesResponse&gt; get(GetEntriesRequest request)<br>客户端从服务器获取日志条目（获取数据）</li>
+<li>CompletableFuture&lt; AppendEntryResponse&gt; append(AppendEntryRequest request)<br>客户端向服务器追加日志（存储数据）</li>
+<li>CompletableFuture&lt; MetadataResponse&gt; metadata(MetadataRequest request)<br>获取元数据。</li>
+</ul>
+<h4 id="1-3-2-DLedgerProtocol"><a href="#1-3-2-DLedgerProtocol" class="headerlink" title="1.3.2 DLedgerProtocol"></a>1.3.2 DLedgerProtocol</h4><p>DLedger服务端协议，主要定义如下三个方法。</p>
+<ul>
+<li>CompletableFuture&lt; VoteResponse&gt; vote(VoteRequest request)<br>发起投票请求。</li>
+<li>CompletableFuture&lt; HeartBeatResponse&gt; heartBeat(HeartBeatRequest request)<br>Leader向从节点发送心跳包。</li>
+<li>CompletableFuture&lt; PullEntriesResponse&gt; pull(PullEntriesRequest request)<br>拉取日志条目，在日志复制部分会详细介绍。</li>
+<li>CompletableFuture&lt; PushEntryResponse&gt; push(PushEntryRequest request)<br>推送日志条件，在日志复制部分会详细介绍。</li>
+</ul>
+<h4 id="1-3-3-协议处理Handler"><a href="#1-3-3-协议处理Handler" class="headerlink" title="1.3.3 协议处理Handler"></a>1.3.3 协议处理Handler</h4><p>DLedgerClientProtocolHandler、DLedgerProtocolHander协议处理器。</p>
+<h3 id="1-4-DLedgerRpcService"><a href="#1-4-DLedgerRpcService" class="headerlink" title="1.4 DLedgerRpcService"></a>1.4 DLedgerRpcService</h3><p>DLedger Server(节点)之间的网络通信，默认基于Netty实现，其实现类为：DLedgerRpcNettyService。</p>
+<h3 id="1-5-DLedgerLeaderElector"><a href="#1-5-DLedgerLeaderElector" class="headerlink" title="1.5 DLedgerLeaderElector"></a>1.5 DLedgerLeaderElector</h3><p>Leader选举实现器。</p>
+<h3 id="1-6-DLedgerServer"><a href="#1-6-DLedgerServer" class="headerlink" title="1.6 DLedgerServer"></a>1.6 DLedgerServer</h3><p>Dledger Server，Dledger节点的封装类。</p>
+<p>接下来将从DLedgerLeaderElector开始剖析DLedger是如何实现Leader选举的。（基于raft协议）。</p>
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/posts/8b1a2fc4.html#more" rel="contents">
               阅读全文 &raquo;
             </a>
           </div>
@@ -2058,7 +1885,7 @@
               
                 <a href="/archives/">
               
-                  <span class="site-state-item-count">118</span>
+                  <span class="site-state-item-count">117</span>
                   <span class="site-state-item-name">日志</span>
                 </a>
               </div>
@@ -2151,7 +1978,7 @@
 
 
 
-  <div class="theme-info">主题 &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Pisces</a> v5.1.4</div>
+  <div class="theme-info">主题 &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Muse</a> v5.1.4</div>
 
 
 
@@ -2270,13 +2097,6 @@
 
   
   
-
-
-  <script type="text/javascript" src="/js/src/affix.js?v=5.1.4"></script>
-
-  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.1.4"></script>
-
-
 
   
 

@@ -5,7 +5,7 @@
   
 
 
-<html class="theme-next pisces use-motion" lang="zh-Hans">
+<html class="theme-next muse use-motion" lang="zh-Hans">
 <head>
   <meta charset="UTF-8"/>
 <meta http-equiv="X-UA-Compatible" content="IE=edge" />
@@ -84,7 +84,7 @@
 <meta name="description" content="本文紧接着 源码分析 RocketMQ DLedger(多副本) 之日志追加流程  ，继续 Leader 处理客户端 append 的请求流程中最至关重要的一环：日志复制。 DLedger 多副本的日志转发由 DLedgerEntryPusher 实现，接下来将对其进行详细介绍。  温馨提示：由于本篇幅较长，为了更好的理解其实现，大家可以带着如下疑问来通读本篇文章：1、raft 协议中有一个非常重">
 <meta property="og:type" content="article">
 <meta property="og:title" content="源码分析 RocketMQ DLedger(多副本) 之日志复制(传播)">
-<meta property="og:url" content="https://geekdingw.github.io/posts/91680207.html">
+<meta property="og:url" content="https://www.codingw.net/posts/91680207.html">
 <meta property="og:site_name" content="中间件兴趣圈">
 <meta property="og:description" content="本文紧接着 源码分析 RocketMQ DLedger(多副本) 之日志追加流程  ，继续 Leader 处理客户端 append 的请求流程中最至关重要的一环：日志复制。 DLedger 多副本的日志转发由 DLedgerEntryPusher 实现，接下来将对其进行详细介绍。  温馨提示：由于本篇幅较长，为了更好的理解其实现，大家可以带着如下疑问来通读本篇文章：1、raft 协议中有一个非常重">
 <meta property="og:locale">
@@ -94,8 +94,8 @@
 <meta property="og:image" content="https://img-blog.csdnimg.cn/20190914220450532.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70">
 <meta property="og:image" content="https://img-blog.csdnimg.cn/20190914220604630.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70">
 <meta property="og:image" content="https://img-blog.csdnimg.cn/20190914221601709.png">
-<meta property="article:published_time" content="2020-12-08T12:12:05.000Z">
-<meta property="article:modified_time" content="2020-12-11T14:47:49.087Z">
+<meta property="article:published_time" content="2020-10-18T12:12:05.000Z">
+<meta property="article:modified_time" content="2020-12-24T10:22:14.918Z">
 <meta property="article:author" content="中间件兴趣圈">
 <meta property="article:tag" content="rocketmq">
 <meta property="article:tag" content="多副本">
@@ -110,7 +110,7 @@
   var NexT = window.NexT || {};
   var CONFIG = {
     root: '',
-    scheme: 'Pisces',
+    scheme: 'Muse',
     version: '5.1.4',
     sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
     fancybox: true,
@@ -132,7 +132,7 @@
 
 
 
-  <link rel="canonical" href="https://geekdingw.github.io/posts/91680207.html"/>
+  <link rel="canonical" href="https://www.codingw.net/posts/91680207.html"/>
 
 
 
@@ -299,7 +299,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="https://geekdingw.github.io/posts/91680207.html">
+    <link itemprop="mainEntityOfPage" href="https://www.codingw.net/posts/91680207.html">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="">
@@ -328,8 +328,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-12-08T20:12:05+08:00">
-                2020-12-08
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-10-18T20:12:05+08:00">
+                2020-10-18
               </time>
             
 
@@ -767,8 +767,8 @@
 
           <div class="post-nav-prev post-nav-item">
             
-              <a href="/posts/9ef855bf.html" rel="prev" title="基于 raft 协议的 RocketMQ DLedger 多副本日志复制设计原理">
-                基于 raft 协议的 RocketMQ DLedger 多副本日志复制设计原理 <i class="fa fa-chevron-right"></i>
+              <a href="/posts/433e34a1.html" rel="prev" title="源码分析 RocketMQ DLedger 多副本即主从切换实现原理">
+                源码分析 RocketMQ DLedger 多副本即主从切换实现原理 <i class="fa fa-chevron-right"></i>
               </a>
             
           </div>
@@ -849,7 +849,7 @@
               
                 <a href="/archives/">
               
-                  <span class="site-state-item-count">118</span>
+                  <span class="site-state-item-count">117</span>
                   <span class="site-state-item-name">日志</span>
                 </a>
               </div>
@@ -958,7 +958,7 @@
 
 
 
-  <div class="theme-info">主题 &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Pisces</a> v5.1.4</div>
+  <div class="theme-info">主题 &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Muse</a> v5.1.4</div>
 
 
 
@@ -1077,13 +1077,6 @@
 
   
   
-
-
-  <script type="text/javascript" src="/js/src/affix.js?v=5.1.4"></script>
-
-  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.1.4"></script>
-
-
 
   
   <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.4"></script>

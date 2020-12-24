@@ -5,7 +5,7 @@
   
 
 
-<html class="theme-next pisces use-motion" lang="zh-Hans">
+<html class="theme-next muse use-motion" lang="zh-Hans">
 <head>
   <meta charset="UTF-8"/>
 <meta http-equiv="X-UA-Compatible" content="IE=edge" />
@@ -84,15 +84,15 @@
 <meta name="description" content="通过前面文章详解，我们知道Dubbo服务消费者标签dubbo:reference最终会在Spring容器中创建一个对应的ReferenceBean实例，而ReferenceBean实现了Spring生命周期接口：InitializingBean，接下来应该看一下其afterPropertiesSet方法的实现。">
 <meta property="og:type" content="article">
 <meta property="og:title" content="源码分析Dubbo服务消费端启动流程">
-<meta property="og:url" content="https://geekdingw.github.io/posts/cc583494.html">
+<meta property="og:url" content="https://www.codingw.net/posts/cc583494.html">
 <meta property="og:site_name" content="中间件兴趣圈">
 <meta property="og:description" content="通过前面文章详解，我们知道Dubbo服务消费者标签dubbo:reference最终会在Spring容器中创建一个对应的ReferenceBean实例，而ReferenceBean实现了Spring生命周期接口：InitializingBean，接下来应该看一下其afterPropertiesSet方法的实现。">
 <meta property="og:locale">
 <meta property="og:image" content="https://img-blog.csdn.net/20180608122049691?watermark/2/text/aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70">
 <meta property="og:image" content="https://img-blog.csdn.net/20180608122123696?watermark/2/text/aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70">
 <meta property="og:image" content="https://img-blog.csdn.net/20180608122248962?watermark/2/text/aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70">
-<meta property="article:published_time" content="2020-12-12T14:57:01.000Z">
-<meta property="article:modified_time" content="2020-12-12T15:44:36.442Z">
+<meta property="article:published_time" content="2020-11-05T14:57:01.000Z">
+<meta property="article:modified_time" content="2020-12-24T10:19:44.949Z">
 <meta property="article:author" content="中间件兴趣圈">
 <meta property="article:tag" content="dubbo">
 <meta property="article:tag" content="启动">
@@ -106,7 +106,7 @@
   var NexT = window.NexT || {};
   var CONFIG = {
     root: '',
-    scheme: 'Pisces',
+    scheme: 'Muse',
     version: '5.1.4',
     sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
     fancybox: true,
@@ -128,7 +128,7 @@
 
 
 
-  <link rel="canonical" href="https://geekdingw.github.io/posts/cc583494.html"/>
+  <link rel="canonical" href="https://www.codingw.net/posts/cc583494.html"/>
 
 
 
@@ -295,7 +295,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="https://geekdingw.github.io/posts/cc583494.html">
+    <link itemprop="mainEntityOfPage" href="https://www.codingw.net/posts/cc583494.html">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="">
@@ -324,8 +324,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-12-12T22:57:01+08:00">
-                2020-12-12
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-11-05T22:57:01+08:00">
+                2020-11-05
               </time>
             
 
@@ -602,8 +602,8 @@ Step3：调用appendProperties方法，填充ReferenceBean的属性，属性值�
         <div class="post-nav">
           <div class="post-nav-next post-nav-item">
             
-              <a href="/posts/380ae8bd.html" rel="next" title="源码分析Dubbo服务提供者启动流程-下篇">
-                <i class="fa fa-chevron-left"></i> 源码分析Dubbo服务提供者启动流程-下篇
+              <a href="/posts/7c2dea71.html" rel="next" title="源码分析Dubbo服务注册与发现机制RegistryDirectory)">
+                <i class="fa fa-chevron-left"></i> 源码分析Dubbo服务注册与发现机制RegistryDirectory)
               </a>
             
           </div>
@@ -612,8 +612,8 @@ Step3：调用appendProperties方法，填充ReferenceBean的属性，属性值�
 
           <div class="post-nav-prev post-nav-item">
             
-              <a href="/posts/22a2e460.html" rel="prev" title="源码分析Dubbo Invoker概述----服务发现、集群、负载均衡、路由体系">
-                源码分析Dubbo Invoker概述----服务发现、集群、负载均衡、路由体系 <i class="fa fa-chevron-right"></i>
+              <a href="/posts/380ae8bd.html" rel="prev" title="源码分析Dubbo服务提供者启动流程-下篇">
+                源码分析Dubbo服务提供者启动流程-下篇 <i class="fa fa-chevron-right"></i>
               </a>
             
           </div>
@@ -694,7 +694,7 @@ Step3：调用appendProperties方法，填充ReferenceBean的属性，属性值�
               
                 <a href="/archives/">
               
-                  <span class="site-state-item-count">118</span>
+                  <span class="site-state-item-count">117</span>
                   <span class="site-state-item-name">日志</span>
                 </a>
               </div>
@@ -803,7 +803,7 @@ Step3：调用appendProperties方法，填充ReferenceBean的属性，属性值�
 
 
 
-  <div class="theme-info">主题 &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Pisces</a> v5.1.4</div>
+  <div class="theme-info">主题 &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Muse</a> v5.1.4</div>
 
 
 
@@ -922,13 +922,6 @@ Step3：调用appendProperties方法，填充ReferenceBean的属性，属性值�
 
   
   
-
-
-  <script type="text/javascript" src="/js/src/affix.js?v=5.1.4"></script>
-
-  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.1.4"></script>
-
-
 
   
   <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.4"></script>

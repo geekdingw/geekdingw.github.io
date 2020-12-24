@@ -5,7 +5,7 @@
   
 
 
-<html class="theme-next pisces use-motion" lang="zh-Hans">
+<html class="theme-next muse use-motion" lang="zh-Hans">
 <head>
   <meta charset="UTF-8"/>
 <meta http-equiv="X-UA-Compatible" content="IE=edge" />
@@ -84,7 +84,7 @@
 <meta name="description" content="关注微信公众号「中间件兴趣圈」，第一时间获取最新干货！">
 <meta property="og:type" content="website">
 <meta property="og:title" content="中间件兴趣圈">
-<meta property="og:url" content="https://geekdingw.github.io/page/6/index.html">
+<meta property="og:url" content="https://www.codingw.net/page/6/index.html">
 <meta property="og:site_name" content="中间件兴趣圈">
 <meta property="og:description" content="关注微信公众号「中间件兴趣圈」，第一时间获取最新干货！">
 <meta property="og:locale">
@@ -97,7 +97,7 @@
   var NexT = window.NexT || {};
   var CONFIG = {
     root: '',
-    scheme: 'Pisces',
+    scheme: 'Muse',
     version: '5.1.4',
     sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
     fancybox: true,
@@ -119,7 +119,7 @@
 
 
 
-  <link rel="canonical" href="https://geekdingw.github.io/page/6/"/>
+  <link rel="canonical" href="https://www.codingw.net/page/6/"/>
 
 
 
@@ -287,7 +287,261 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="https://geekdingw.github.io/posts/80780dfa.html">
+    <link itemprop="mainEntityOfPage" href="https://www.codingw.net/posts/a618bda.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="中间件兴趣圈">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/posts/a618bda.html" itemprop="url">源码分析 Alibaba sentinel 滑动窗口实现原理(文末附原理图)</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-10-28T22:41:35+08:00">
+                2020-10-28
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/sentinel/" itemprop="url" rel="index">
+                    <span itemprop="name">sentinel</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/posts/a618bda.html#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count valine-comment-count" data-xid="/posts/a618bda.html" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+             <span id="/posts/a618bda.html" class="leancloud_visitors" data-flag-title="源码分析 Alibaba sentinel 滑动窗口实现原理(文末附原理图)">
+               <span class="post-meta-divider">|</span>
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               
+                 <span class="post-meta-item-text">阅读次数&#58;</span>
+               
+                 <span class="leancloud-visitors-count"></span>
+             </span>
+          
+
+          
+
+          
+            <div class="post-wordcount">
+              
+                
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-file-word-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">字数统计&#58;</span>
+                
+                <span title="字数统计">
+                  3.1k 字
+                </span>
+              
+
+              
+                <span class="post-meta-divider">|</span>
+              
+
+              
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-clock-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">阅读时长 &asymp;</span>
+                
+                <span title="阅读时长">
+                  12 分钟
+                </span>
+              
+            </div>
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          <p>要实现限流、熔断等功能，首先要解决的问题是如何实时采集服务(资源)调用信息。例如将某一个接口设置的限流阔值 1W/tps，那首先如何判断当前的 TPS 是多少？Alibaba Sentinel 采用滑动窗口来实现实时数据的统计。</p>
+<blockquote>
+<p>温馨提示：如果对源码不太感兴趣，可以先跳到文末，看一下滑动窗口的设计原理图，再决定是否需要阅读源码。</p>
+</blockquote>
+<h2 id="1、滑动窗口核心类图"><a href="#1、滑动窗口核心类图" class="headerlink" title="1、滑动窗口核心类图"></a>1、滑动窗口核心类图</h2><p><img src="https://img-blog.csdnimg.cn/20191229144055643.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>我们先对上述核心类做一个简单的介绍，重点关注核心类的作用与核心属性（重点需要探究其核心数据结构）。</p>
+<ul>
+<li>Metric<br>指标收集核心接口，主要定义一个滑动窗口中成功的数量、异常数量、阻塞数量，TPS、响应时间等数据。</li>
+<li>ArrayMetric<br>滑动窗口核心实现类。</li>
+<li>LeapArray<br>滑动窗口顶层数据结构，包含一个一个的窗口数据。</li>
+<li>WindowWrap<br>每一个滑动窗口的包装类，其内部的数据结构用 MetricBucket 表示。</li>
+<li>MetricBucket<br>指标桶，例如通过数量、阻塞数量、异常数量、成功数量、响应时间，已通过未来配额（抢占下一个滑动窗口的数量）。</li>
+<li>MetricEvent<br>指标类型，例如通过数量、阻塞数量、异常数量、成功数量、响应时间等。</li>
+</ul>
+<h2 id="2、滑动窗口实现原理"><a href="#2、滑动窗口实现原理" class="headerlink" title="2、滑动窗口实现原理"></a>2、滑动窗口实现原理</h2><h4 id="2-1-ArrayMetric"><a href="#2-1-ArrayMetric" class="headerlink" title="2.1 ArrayMetric"></a>2.1 ArrayMetric</h4><p>滑动窗口的入口类为 ArrayMetric ，我们先来看一下其核心代码。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">final</span> LeapArray&lt;MetricBucket&gt; data;   <span class="comment">// @1</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="title">ArrayMetric</span><span class="params">(<span class="keyword">int</span> sampleCount, <span class="keyword">int</span> intervalInMs)</span> </span>&#123;    <span class="comment">// @2</span></span><br><span class="line">    <span class="keyword">this</span>.data = <span class="keyword">new</span> OccupiableBucketLeapArray(sampleCount, intervalInMs);</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="title">ArrayMetric</span><span class="params">(<span class="keyword">int</span> sampleCount, <span class="keyword">int</span> intervalInMs, <span class="keyword">boolean</span> enableOccupy)</span> </span>&#123;   <span class="comment">// @3</span></span><br><span class="line">	<span class="keyword">if</span> (enableOccupy) &#123;</span><br><span class="line">		<span class="keyword">this</span>.data = <span class="keyword">new</span> OccupiableBucketLeapArray(sampleCount, intervalInMs);</span><br><span class="line">	&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">		<span class="keyword">this</span>.data = <span class="keyword">new</span> BucketLeapArray(sampleCount, intervalInMs);</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>代码@1：ArrayMetric 类唯一的属性，用来存储各个窗口的数据，这个是接下来我们探究的重点。</p>
+<p>代码@2，代码@3  该类提供了两个构造方法，其核心参数为：</p>
+<ul>
+<li>int intervalInMs<br>表示一个采集的时间间隔，例如1秒，1分钟。</li>
+<li>int sampleCount<br>在一个采集间隔中抽样的个数，默认为 2，例如当 intervalInMs = 1000时，抽象两次，则一个采集间隔中会包含两个相等的区间，一个区间就是滑动窗口。</li>
+<li>boolean enableOccupy<br>是否允许抢占，即当前时间戳已经达到限制后，是否可以占用下一个时间窗口的容量，这里对应 LeapArray 的两个实现类，如果允许抢占，则为 OccupiableBucketLeapArray，否则为   BucketLeapArray。</li>
+</ul>
+<blockquote>
+<p>注意，LeapArray 的泛型类为 MetricBucket，意思就是指标桶，可以认为一个 MetricBucket 对象可以存储一个抽样时间段内所有的指标，例如一个抽象时间段中通过数量、阻塞数量、异常数量、成功数量、响应时间，其实现的奥秘在 LongAdder 中，本文先不对该类进行详细介绍，后续文章会单独来探究其实现原理。</p>
+</blockquote>
+<p>这次，我们先不去看子类，反其道而行，先去看看其父类。</p>
+<h4 id="2-2-LongAdder"><a href="#2-2-LongAdder" class="headerlink" title="2.2 LongAdder"></a>2.2 LongAdder</h4><h5 id="2-2-1-类图与核心属性"><a href="#2-2-1-类图与核心属性" class="headerlink" title="2.2.1 类图与核心属性"></a>2.2.1 类图与核心属性</h5><p><img src="https://img-blog.csdnimg.cn/20191229144447580.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>LeapArray 的核心属性如下：</p>
+<ul>
+<li>int windowLengthInMs<br>每一个窗口的时间间隔，单位为毫秒。</li>
+<li>int sampleCount<br>抽样个数，就一个统计时间间隔中包含的滑动窗口个数，在 intervalInMs 相同的情况下，sampleCount 越多，抽样的统计数据就越精确，相应的需要的内存也越多。</li>
+<li>int intervalInMs<br>一个统计的时间间隔。</li>
+<li>AtomicReferenceArray&lt;WindowWrap&lt; T&gt;&gt; array<br>一个统计时间间隔中滑动窗口的数组，从这里也可以看出，一个滑动窗口就是使用的 WindowWrap&lt; MetricBucket &gt; 来表示。</li>
+</ul>
+<p>上面的各个属性的含义是从其构造函数得出来的，请其看构造函数。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="title">LeapArray</span><span class="params">(<span class="keyword">int</span> sampleCount, <span class="keyword">int</span> intervalInMs)</span> </span>&#123;</span><br><span class="line">    AssertUtil.isTrue(sampleCount &gt; <span class="number">0</span>, <span class="string">&quot;bucket count is invalid: &quot;</span> + sampleCount);</span><br><span class="line">    AssertUtil.isTrue(intervalInMs &gt; <span class="number">0</span>, <span class="string">&quot;total time interval of the sliding window should be positive&quot;</span>);</span><br><span class="line">    AssertUtil.isTrue(intervalInMs % sampleCount == <span class="number">0</span>, <span class="string">&quot;time span needs to be evenly divided&quot;</span>);</span><br><span class="line">    <span class="keyword">this</span>.windowLengthInMs = intervalInMs / sampleCount;</span><br><span class="line">    <span class="keyword">this</span>.intervalInMs = intervalInMs;</span><br><span class="line">    <span class="keyword">this</span>.sampleCount = sampleCount;</span><br><span class="line">    <span class="keyword">this</span>.array = <span class="keyword">new</span> AtomicReferenceArray&lt;&gt;(sampleCount);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>那我们继续来看 LeapArray 中的方法，深入探究滑动窗口的实现细节。</p>
+<h5 id="2-2-2-currentWindow-详解"><a href="#2-2-2-currentWindow-详解" class="headerlink" title="2.2.2 currentWindow() 详解"></a>2.2.2 currentWindow() 详解</h5><p>该方法主要是根据当前时间来确定处于哪一个滑动窗口中，即找到上图中的 WindowWrap，该方法内部就是调用其重载方法，参数为系统的当前时间，故我们重点来看一下重载方法的实现。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> WindowWrap&lt;T&gt; <span class="title">currentWindow</span><span class="params">(<span class="keyword">long</span> timeMillis)</span> </span>&#123; </span><br><span class="line">	<span class="keyword">if</span> (timeMillis &lt; <span class="number">0</span>) &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="keyword">null</span>;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">int</span> idx = calculateTimeIdx(timeMillis);  <span class="comment">// @1</span></span><br><span class="line">	<span class="keyword">long</span> windowStart = calculateWindowStart(timeMillis); <span class="comment">// @2</span></span><br><span class="line">	<span class="keyword">while</span> (<span class="keyword">true</span>) &#123; <span class="comment">// 死循环查找当前的时间窗口，这里之所有需要循环，是因为可能多个线程都在获取当前时间窗口。</span></span><br><span class="line">		WindowWrap&lt;T&gt; old = array.get(idx);  <span class="comment">// @3</span></span><br><span class="line">       		 <span class="keyword">if</span> (old == <span class="keyword">null</span>) &#123;  <span class="comment">// @4</span></span><br><span class="line">			WindowWrap&lt;T&gt; window = <span class="keyword">new</span> WindowWrap&lt;T&gt;(windowLengthInMs, windowStart, newEmptyBucket(timeMillis));</span><br><span class="line">           		 <span class="keyword">if</span> (array.compareAndSet(idx, <span class="keyword">null</span>, window)) &#123;  <span class="comment">// @5</span></span><br><span class="line">				<span class="keyword">return</span> window;</span><br><span class="line">           		 &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">				Thread.yield();</span><br><span class="line">           		 &#125;</span><br><span class="line">       		 &#125; <span class="keyword">else</span> <span class="keyword">if</span> (windowStart == old.windowStart()) &#123; <span class="comment">// @6</span></span><br><span class="line">			<span class="keyword">return</span> old;</span><br><span class="line">       		 &#125; <span class="keyword">else</span> <span class="keyword">if</span> (windowStart &gt; old.windowStart()) &#123;  <span class="comment">// @7</span></span><br><span class="line">			<span class="keyword">if</span> (updateLock.tryLock()) &#123;</span><br><span class="line">               			 <span class="keyword">try</span> &#123;</span><br><span class="line">					<span class="keyword">return</span> resetWindowTo(old, windowStart);</span><br><span class="line">                		&#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">					updateLock.unlock();</span><br><span class="line">              			&#125;</span><br><span class="line">           		 &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">				Thread.yield();</span><br><span class="line">            		&#125;</span><br><span class="line">        	&#125; <span class="keyword">else</span> <span class="keyword">if</span> (windowStart &lt; old.windowStart()) &#123; <span class="comment">// @8</span></span><br><span class="line">            		<span class="keyword">return</span> <span class="keyword">new</span> WindowWrap&lt;T&gt;(windowLengthInMs, windowStart, newEmptyBucket(timeMillis));</span><br><span class="line">        	&#125;</span><br><span class="line">    	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>代码@1：计算当前时间会落在一个采集间隔 ( LeapArray ) 中哪一个时间窗口中，即在 LeapArray 中属性 AtomicReferenceArray &lt;WindowWrap&lt; T&gt;&gt; array 的下标。其实现算法如下：</p>
+<ul>
+<li>首先用当前时间除以一个时间窗口的时间间隔，得出当前时间是多少个时间窗口的倍数，用 n 表示。</li>
+<li>然后我们可以看出从一系列时间窗口，从 0 开始，一起向前滚动 n 隔得到当前时间戳代表的时间窗口的位置。现在我们要定位到这个时间窗口的位置是落在 LeapArray 中数组的下标，而一个 LeapArray 中包含 sampleCount 个元素，要得到其下标，则使用 n % sampleCount 即可。</li>
+</ul>
+<p>代码@2：计算当前时间戳所在的时间窗口的开始时间，即要计算出 WindowWrap 中 windowStart 的值，其实就是要算出小于当前时间戳，并且是 windowLengthInMs 的整数倍最大的数字，Sentinel 给出是算法为 ( timeMillis - timeMillis % windowLengthInMs )。</p>
+<p>代码@3：尝试从 LeapArray 中的 WindowWrap 数组查找指定下标的元素。</p>
+<p>代码@4：如果指定下标的元素为空，则需要创建一个 WindowWrap 。 其中 WindowWrap 中的 MetricBucket 是调用其抽象方法 newEmptyBucket (timeMillis)，由不同的子类去实现。</p>
+<p>代码@5：这里使用了 CAS 机制来更新 LeapArray 数组中的 元素，因为同一时间戳，可能有多个线程都在获取当前时间窗口对象，但该时间窗口对象还未创建，这里就是避免创建多个，导致统计数据被覆盖，如果用 CAS 更新成功的线程，则返回新建好的 WindowWrap ，CAS 设置不成功的线程继续跑这个流程，然后会进入到代码@6。</p>
+<p>代码@6：如果指定索引下的时间窗口对象不为空并判断起始时间相等，则返回。</p>
+<p>代码@7：如果原先存在的窗口开始时间小于当前时间戳计算出来的开始时间，则表示 bucket 已被弃用。则需要将开始时间重置到新时间戳对应的开始时间戳，重置的逻辑将在下文详细介绍。</p>
+<p>代码@8：应该不会进入到该分支，因为当前时间算出来时间窗口不会比之前的小。</p>
+<h5 id="2-2-3-isWindowDeprecated-详解"><a href="#2-2-3-isWindowDeprecated-详解" class="headerlink" title="2.2.3 isWindowDeprecated() 详解"></a>2.2.3 isWindowDeprecated() 详解</h5><p>接下来我们来看一下窗口的过期机制。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">boolean</span> <span class="title">isWindowDeprecated</span><span class="params">(<span class="comment">/*@NonNull*/</span> WindowWrap&lt;T&gt; windowWrap)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> isWindowDeprecated(TimeUtil.currentTimeMillis(), windowWrap);</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">boolean</span> <span class="title">isWindowDeprecated</span><span class="params">(<span class="keyword">long</span> time, WindowWrap&lt;T&gt; windowWrap)</span> </span>&#123;</span><br><span class="line">	<span class="keyword">return</span> time - windowWrap.windowStart() &gt; intervalInMs;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>判断滑动窗口是否生效的依据是当系统时间与滑动窗口的开始时间戳的间隔大于一个采集时间，即表示过期。即从当前窗口开始，通常包含的有效窗口为 sampleCount 个有效滑动窗口。</p>
+<h5 id="2-2-4-getPreviousWindow-详解"><a href="#2-2-4-getPreviousWindow-详解" class="headerlink" title="2.2.4 getPreviousWindow() 详解"></a>2.2.4 getPreviousWindow() 详解</h5><p>根据当前时间获取前一个有效滑动窗口，其代码如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> WindowWrap&lt;T&gt; <span class="title">getPreviousWindow</span><span class="params">(<span class="keyword">long</span> timeMillis)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (timeMillis &lt; <span class="number">0</span>) &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="keyword">null</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">int</span> idx = calculateTimeIdx(timeMillis - windowLengthInMs); <span class="comment">// @1</span></span><br><span class="line">    timeMillis = timeMillis - windowLengthInMs;</span><br><span class="line">    WindowWrap&lt;T&gt; wrap = array.get(idx);</span><br><span class="line">    <span class="keyword">if</span> (wrap == <span class="keyword">null</span> || isWindowDeprecated(wrap)) &#123;                 <span class="comment">// @2</span></span><br><span class="line">		<span class="keyword">return</span> <span class="keyword">null</span>;</span><br><span class="line">    &#125;</span><br><span class="line">   <span class="keyword">if</span> (wrap.windowStart() + windowLengthInMs &lt; (timeMillis)) &#123;   <span class="comment">// @3</span></span><br><span class="line">		<span class="keyword">return</span> <span class="keyword">null</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> wrap;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>其实现的关键点如下：<br>代码@1：用当前时间减去一个时间窗口间隔，然后去定位所在 LeapArray 中 数组的下标。<br>代码@2：如果为空或已过期，则返回 null。<br>代码@3：如果定位的窗口的开始时间再加上 windowLengthInMs 小于 timeMills ，说明失效，则返回 null，通常是不会走到该分支。</p>
+<h5 id="2-2-5-滑动窗口图示"><a href="#2-2-5-滑动窗口图示" class="headerlink" title="2.2.5 滑动窗口图示"></a>2.2.5 滑动窗口图示</h5><p>经过上面的分析，虽然还有一个核心方法 (resetWindowTo) 未进行分析，但我们应该可以画出滑动窗口的实现的实现原理图了。<br><img src="https://img-blog.csdnimg.cn/20191229144957318.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>接下来对上面的图进行一个简单的说明：下面的示例以采集间隔为 1 s，抽样次数为 2。</p>
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/posts/a618bda.html#more" rel="contents">
+              阅读全文 &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="https://www.codingw.net/posts/80780dfa.html">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="">
@@ -318,8 +572,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-12-11T23:16:01+08:00">
-                2020-12-11
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-10-27T23:16:01+08:00">
+                2020-10-27
               </time>
             
 
@@ -505,7 +759,437 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="https://geekdingw.github.io/posts/b579d244.html">
+    <link itemprop="mainEntityOfPage" href="https://www.codingw.net/posts/a79560fc.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="中间件兴趣圈">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/posts/a79560fc.html" itemprop="url">Netty4 Channel 概述</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-10-26T22:53:01+08:00">
+                2020-10-26
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/netty4/" itemprop="url" rel="index">
+                    <span itemprop="name">netty4</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/posts/a79560fc.html#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count valine-comment-count" data-xid="/posts/a79560fc.html" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+             <span id="/posts/a79560fc.html" class="leancloud_visitors" data-flag-title="Netty4 Channel 概述">
+               <span class="post-meta-divider">|</span>
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               
+                 <span class="post-meta-item-text">阅读次数&#58;</span>
+               
+                 <span class="leancloud-visitors-count"></span>
+             </span>
+          
+
+          
+
+          
+            <div class="post-wordcount">
+              
+                
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-file-word-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">字数统计&#58;</span>
+                
+                <span title="字数统计">
+                  2.2k 字
+                </span>
+              
+
+              
+                <span class="post-meta-divider">|</span>
+              
+
+              
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-clock-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">阅读时长 &asymp;</span>
+                
+                <span title="阅读时长">
+                  8 分钟
+                </span>
+              
+            </div>
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          <blockquote>
+<p>专栏介绍：《让天下没有难学的Netty》系列，基于 Netty，以源码分析为主要手段，关键流程给出流程图，从 通道篇、内存篇、性能篇三个维度深度剖析 Netty 的实现原理。 </p>
+</blockquote>
+<h2 id="1、通道概述"><a href="#1、通道概述" class="headerlink" title="1、通道概述"></a>1、通道概述</h2><p>我们从如下几个方面来简单了解一下 Channel。</p>
+<ul>
+<li>通道的当前状态，open(端口打开)、connect(连接)。</li>
+<li>通道的配置，包含通道的配置属性与网络通信选项(ChannelOption)。</li>
+<li>IO 通道方法诸如 read、write、connect、bind 与管道(ChannelPipeline)。</li>
+<li>所有 IO 操作在 Netty 中都是异步的，调用 IO 方法例如 write 方法后，并不是等 IO 操作实际完成后再返回，而是会立即返回一个凭证，IO 操作完成后会将结果写入凭证中，典型的 Future设计模式。</li>
+<li>Channel 具有父子关系，由于所有的 SocketChannel（客户端发起TCP连接）都是由 ServerSocketChannel（服务端接收连接）接收客户端连接而创建的，故 SocketChannel 的 parent() 方法会返回对应的 ServerSocketChannel。</li>
+<li>所有通道对象在使用完后，请务必调用通道的colse方法来释放资源。</li>
+</ul>
+<p>本节将从如下3个方面来重点介绍Channel。</p>
+<ul>
+<li>Channel 常用API</li>
+<li>Channel 配置与选项</li>
+<li>NIO相关的Channel继承图</li>
+</ul>
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/posts/a79560fc.html#more" rel="contents">
+              阅读全文 &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="https://www.codingw.net/posts/eab70bff.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="中间件兴趣圈">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/posts/eab70bff.html" itemprop="url">Netty4 ChannelHandler 概述</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-10-25T22:54:01+08:00">
+                2020-10-25
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/netty4/" itemprop="url" rel="index">
+                    <span itemprop="name">netty4</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/posts/eab70bff.html#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count valine-comment-count" data-xid="/posts/eab70bff.html" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+             <span id="/posts/eab70bff.html" class="leancloud_visitors" data-flag-title="Netty4 ChannelHandler 概述">
+               <span class="post-meta-divider">|</span>
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               
+                 <span class="post-meta-item-text">阅读次数&#58;</span>
+               
+                 <span class="leancloud-visitors-count"></span>
+             </span>
+          
+
+          
+
+          
+            <div class="post-wordcount">
+              
+                
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-file-word-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">字数统计&#58;</span>
+                
+                <span title="字数统计">
+                  2.2k 字
+                </span>
+              
+
+              
+                <span class="post-meta-divider">|</span>
+              
+
+              
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-clock-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">阅读时长 &asymp;</span>
+                
+                <span title="阅读时长">
+                  8 分钟
+                </span>
+              
+            </div>
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          <blockquote>
+<p>专栏介绍：《让天下没有难学的Netty》系列，基于 Netty，以源码分析为主要手段，关键流程给出流程图，从 通道篇、内存篇、性能篇三个维度深度剖析 Netty 的实现原理。 </p>
+</blockquote>
+<h2 id="1、通道概述"><a href="#1、通道概述" class="headerlink" title="1、通道概述"></a>1、通道概述</h2><p>我们从如下几个方面来简单了解一下 Channel。</p>
+<ul>
+<li>通道的当前状态，open(端口打开)、connect(连接)。</li>
+<li>通道的配置，包含通道的配置属性与网络通信选项(ChannelOption)。</li>
+<li>IO 通道方法诸如 read、write、connect、bind 与管道(ChannelPipeline)。</li>
+<li>所有 IO 操作在 Netty 中都是异步的，调用 IO 方法例如 write 方法后，并不是等 IO 操作实际完成后再返回，而是会立即返回一个凭证，IO 操作完成后会将结果写入凭证中，典型的 Future设计模式。</li>
+<li>Channel 具有父子关系，由于所有的 SocketChannel（客户端发起TCP连接）都是由 ServerSocketChannel（服务端接收连接）接收客户端连接而创建的，故 SocketChannel 的 parent() 方法会返回对应的 ServerSocketChannel。</li>
+<li>所有通道对象在使用完后，请务必调用通道的colse方法来释放资源。</li>
+</ul>
+<p>本节将从如下3个方面来重点介绍Channel。</p>
+<ul>
+<li>Channel 常用API</li>
+<li>Channel 配置与选项</li>
+<li>NIO相关的Channel继承图</li>
+</ul>
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/posts/eab70bff.html#more" rel="contents">
+              阅读全文 &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="https://www.codingw.net/posts/b579d244.html">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="">
@@ -536,8 +1220,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-12-11T22:56:01+08:00">
-                2020-12-11
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-10-24T22:56:01+08:00">
+                2020-10-24
               </time>
             
 
@@ -714,7 +1398,458 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="https://geekdingw.github.io/posts/f81e58bb.html">
+    <link itemprop="mainEntityOfPage" href="https://www.codingw.net/posts/d9d4c345.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="中间件兴趣圈">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/posts/d9d4c345.html" itemprop="url">初始 Kafka Consumer 消费者</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-10-23T23:18:01+08:00">
+                2020-10-23
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/kafka/" itemprop="url" rel="index">
+                    <span itemprop="name">kafka</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/posts/d9d4c345.html#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count valine-comment-count" data-xid="/posts/d9d4c345.html" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+             <span id="/posts/d9d4c345.html" class="leancloud_visitors" data-flag-title="初始 Kafka Consumer 消费者">
+               <span class="post-meta-divider">|</span>
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               
+                 <span class="post-meta-item-text">阅读次数&#58;</span>
+               
+                 <span class="leancloud-visitors-count"></span>
+             </span>
+          
+
+          
+
+          
+            <div class="post-wordcount">
+              
+                
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-file-word-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">字数统计&#58;</span>
+                
+                <span title="字数统计">
+                  2.4k 字
+                </span>
+              
+
+              
+                <span class="post-meta-divider">|</span>
+              
+
+              
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-clock-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">阅读时长 &asymp;</span>
+                
+                <span title="阅读时长">
+                  10 分钟
+                </span>
+              
+            </div>
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          <h2 id="1、KafkaConsumer-概述"><a href="#1、KafkaConsumer-概述" class="headerlink" title="1、KafkaConsumer 概述"></a>1、KafkaConsumer 概述</h2><p>根据 KafkaConsumer 类上的注释上来看 KafkaConsumer 具有如下特征：</p>
+<ul>
+<li><p>在 Kafka 中 KafkaConsumer 是线程不安全的。</p>
+</li>
+<li><p>2.2.1 版本的KafkaConsumer 兼容 kafka 0.10.0 和 0.11.0 等低版本。</p>
+</li>
+<li><p>消息偏移量与消费偏移量(消息消费进度)<br>Kafka 为分区中的每一条消息维护一个偏移量，即消息偏移量。这个偏移量充当该分区内记录的唯一标识符。消费偏移量(消息消费进度)存储的是消费组当前的处理进度。消息消费进度的提交在 kafka 中可以定时自动提交也可以手动提交。手动提交可以调用 ommitSync() 或 commitAsync 方法。</p>
+</li>
+<li><p>消费组 与 订阅关系<br>多个消费这可以同属于一个消费组，消费组内的所有消费者共同消费主题下的所有消息。一个消费组可以订阅多个主题。</p>
+</li>
+<li><p>队列负载机制<br>既然同一个消费组内的消费者共同承担主题下所有队列的消费，那他们如何进行分工呢？默认情况下采取平均分配，例如一个消费组有两个消费者c1、c2，一个 topic 的分区数为6，那 c1 会负责3个分区的消费，同样 c2 会负责另外3个分区的分配。</p>
+<p>那如果其中一个消费者宕机或新增一个消费者，那队列能动态调整吗？</p>
+<p>答案是会重新再次平衡，例如如果新增一个消费者 c3，则c1,c2,c3都会负责2个分区的消息消费，分区重平衡会在后续文章中重点介绍。消费者也可以通过 assign 方法手动指定分区，此时会禁用默认的自动分配机制。</p>
+</li>
+<li><p>消费者故障检测机制<br>当通过 subscribe 方法订阅某些主题时，此时该消费者还未真正加入到订阅组，只有当 consumeer#poll 方法被调用后，并且会向 broker 定时发送心跳包，如果 broker 在 session.timeout.ms 时间内未收到心跳包，则 broker 会任务该消费者已宕机，会将其剔除，并触发消费端的分区重平衡。</p>
+<p>消费者也有可能遇到“活体锁”的情况，即它继续发送心跳，但没有任何进展。在这种情况下，为了防止消费者无限期地占用它的分区，可以使用max.poll.interval.ms 设置提供了一个活性检测机制。基本上，如果您调用轮询的频率低于配置的最大间隔，那么客户机将主动离开组，以便另一个消费者可以接管它的分区。当这种情况发生时,您可能会看到一个偏移提交失败(由调用{@link #commitSync()}抛出的{@link CommitFailedException}表示)。</p>
+</li>
+<li><p>kafka 对 poll loop 行为的控制参数<br>Kafka 提供了如下两个参数来控制 poll 的行为：</p>
+<ul>
+<li> max.poll.interval.ms<br>允许 两次调用 poll 方法的最大间隔，即设置每一批任务最大的处理时间。</li>
+<li> max.poll.records<br>每一次 poll 最大拉取的消息条数。</li>
+</ul>
+<p>对于消息处理时间不可预测的情况下上述两个参数可能不够用，那将如何是好呢？</p>
+<p>通常的建议将消息拉取与消息消费分开，一个线程负责 poll 消息，处理这些消息使用另外的线程，这里就需要手动提交消费进度。为了控制消息拉起的过快，您可能会需要用到 Consumer#pause(Collection) 方法，暂时停止向该分区拉起消息。RocketMQ 的推模式就是采用了这种策略。如果大家有兴趣的话，可以从笔者所著的《RocketMQ技术内幕》一书中详细了解。</p>
+</li>
+</ul>
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/posts/d9d4c345.html#more" rel="contents">
+              阅读全文 &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="https://www.codingw.net/posts/497923c7.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="中间件兴趣圈">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/posts/497923c7.html" itemprop="url">源码分析Kafka 消息拉取流程</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-10-22T23:19:01+08:00">
+                2020-10-22
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/kafka/" itemprop="url" rel="index">
+                    <span itemprop="name">kafka</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/posts/497923c7.html#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count valine-comment-count" data-xid="/posts/497923c7.html" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+             <span id="/posts/497923c7.html" class="leancloud_visitors" data-flag-title="源码分析Kafka 消息拉取流程">
+               <span class="post-meta-divider">|</span>
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               
+                 <span class="post-meta-item-text">阅读次数&#58;</span>
+               
+                 <span class="leancloud-visitors-count"></span>
+             </span>
+          
+
+          
+
+          
+            <div class="post-wordcount">
+              
+                
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-file-word-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">字数统计&#58;</span>
+                
+                <span title="字数统计">
+                  7.3k 字
+                </span>
+              
+
+              
+                <span class="post-meta-divider">|</span>
+              
+
+              
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-clock-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">阅读时长 &asymp;</span>
+                
+                <span title="阅读时长">
+                  31 分钟
+                </span>
+              
+            </div>
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          <h2 id="１、KafkaConsumer-poll-详解"><a href="#１、KafkaConsumer-poll-详解" class="headerlink" title="１、KafkaConsumer poll 详解"></a>１、KafkaConsumer poll 详解</h2><p>消息拉起主要入口为：KafkaConsumer#poll方法，其声明如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> ConsumerRecords&lt;K, V&gt; <span class="title">poll</span><span class="params">(<span class="keyword">final</span> Duration timeout)</span> </span>&#123;  <span class="comment">// @1</span></span><br><span class="line">    <span class="keyword">return</span> poll(time.timer(timeout), <span class="keyword">true</span>);                                     <span class="comment">// @2</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>代码＠１：参数为超时时间，使用 java 的 Duration 来定义。<br>代码＠２：调用内部的 poll 方法。</p>
+<p>KafkaConsumer#poll</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> ConsumerRecords&lt;K, V&gt; <span class="title">poll</span><span class="params">(<span class="keyword">final</span> Timer timer, <span class="keyword">final</span> <span class="keyword">boolean</span> includeMetadataInTimeout)</span> </span>&#123;  <span class="comment">// @1</span></span><br><span class="line">    acquireAndEnsureOpen();                                                                                                               <span class="comment">// @2</span></span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        <span class="keyword">if</span> (<span class="keyword">this</span>.subscriptions.hasNoSubscriptionOrUserAssignment()) &#123;                                                  <span class="comment">// @3</span></span><br><span class="line">            <span class="keyword">throw</span> <span class="keyword">new</span> IllegalStateException(<span class="string">&quot;Consumer is not subscribed to any topics or assigned any partitions&quot;</span>);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// poll for new data until the timeout expires</span></span><br><span class="line">        <span class="keyword">do</span> &#123;　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　<span class="comment">// @4</span></span><br><span class="line">            client.maybeTriggerWakeup();                                                                                               <span class="comment">//@5</span></span><br><span class="line"></span><br><span class="line">            <span class="keyword">if</span> (includeMetadataInTimeout) &#123;                       　　　　　　　　　　　　　　　　　　　 <span class="comment">// @6 　　　　　　　　　　　　　　　　　　　　                                                          </span></span><br><span class="line">                <span class="keyword">if</span> (!updateAssignmentMetadataIfNeeded(timer)) &#123;</span><br><span class="line">                    <span class="keyword">return</span> ConsumerRecords.empty();</span><br><span class="line">                &#125;</span><br><span class="line">            &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                <span class="keyword">while</span> (!updateAssignmentMetadataIfNeeded(time.timer(Long.MAX_VALUE))) &#123;        </span><br><span class="line">                    log.warn(<span class="string">&quot;Still waiting for metadata&quot;</span>);</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            <span class="keyword">final</span> Map&lt;TopicPartition, List&lt;ConsumerRecord&lt;K, V&gt;&gt;&gt; records = pollForFetches(timer);   <span class="comment">// @7</span></span><br><span class="line">            <span class="keyword">if</span> (!records.isEmpty()) &#123;                                                                                                           </span><br><span class="line">                <span class="keyword">if</span> (fetcher.sendFetches() &gt; <span class="number">0</span> || client.hasPendingRequests()) &#123;                                           <span class="comment">// @8</span></span><br><span class="line">                    client.pollNoWakeup();</span><br><span class="line">                &#125;</span><br><span class="line">                <span class="keyword">return</span> <span class="keyword">this</span>.interceptors.onConsume(<span class="keyword">new</span> ConsumerRecords&lt;&gt;(records));                         <span class="comment">// @９</span></span><br><span class="line">            &#125;</span><br><span class="line">        &#125; <span class="keyword">while</span> (timer.notExpired());                                                                                                         </span><br><span class="line"></span><br><span class="line">        <span class="keyword">return</span> ConsumerRecords.empty();</span><br><span class="line">    &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">        release();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>代码＠１：首先先对其参数含义进行讲解。</p>
+<ul>
+<li>boolean includeMetadataInTimeout<br>拉取消息的超时时间是否包含更新元数据的时间，默认为true，即包含。</li>
+</ul>
+<p>代码＠２：检查是否可以拉取消息，其主要判断依据如下：</p>
+<ul>
+<li>KafkaConsumer 是否有其他线程再执行，如果有，则抛出异常，因为 - KafkaConsumer 是线程不安全的，同一时间只能一个线程执行。</li>
+<li>KafkaConsumer 没有被关闭。</li>
+</ul>
+<p>代码＠３：如果当前消费者未订阅任何主题或者没有指定队列，则抛出错误，结束本次消息拉取。</p>
+<p>代码＠４：使用 do while 结构循环拉取消息，直到超时或拉取到消息。</p>
+<p>代码＠５：避免在禁止禁用wakeup时，有请求想唤醒时则抛出异常，例如在下面的@8时，会禁用wakeup。</p>
+<p>代码＠６：更新相关元数据，为真正向 broker 发送消息拉取请求做好准备，该方法将在下面详细介绍，现在先简单介绍其核心实现点：</p>
+<ul>
+<li>如有必要，先向 broker 端拉取最新的订阅信息(包含消费组内的在线的消费客户端)。</li>
+<li>执行已完成(异步提交)的 offset 提交请求的回调函数。</li>
+<li>维护与 broker 端的心跳请求，确保不会被“踢出”消费组。</li>
+<li>更新元信息。</li>
+<li>如果是自动提交消费偏移量，则自动提交偏移量。</li>
+<li>更新各个分区下次待拉取的偏移量。</li>
+</ul>
+<p>这里会有一个更新元数据是否占用消息拉取的超时时间，默认为 true。</p>
+<p>代码＠７：调用 pollForFetches 向broker拉取消息，该方法将在下文详细介绍。</p>
+<p>代码＠８：如果拉取到的消息集合不为空，再返回该批消息之前，如果还有挤压的拉取请求，可以继续发送拉取请求，但此时会禁用warkup，主要的目的是用户在处理消息时，KafkaConsumer 还可以继续向broker 拉取消息。</p>
+<p>代码＠９：执行消费拦截器。</p>
+<p>接下来对上文提到的代码＠６、＠７进行详细介绍。</p>
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/posts/497923c7.html#more" rel="contents">
+              阅读全文 &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="https://www.codingw.net/posts/f81e58bb.html">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="">
@@ -745,8 +1880,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-12-11T22:56:01+08:00">
-                2020-12-11
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-10-22T22:56:01+08:00">
+                2020-10-22
               </time>
             
 
@@ -933,7 +2068,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="https://geekdingw.github.io/posts/eab70bff.html">
+    <link itemprop="mainEntityOfPage" href="https://www.codingw.net/posts/fc4470e5.html">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="">
@@ -952,7 +2087,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/posts/eab70bff.html" itemprop="url">Netty4 ChannelHandler 概述</a></h1>
+                <a class="post-title-link" href="/posts/fc4470e5.html" itemprop="url">一次 RocketMQ 进程自动退出排查经验分享（实战篇）</a></h1>
         
 
         <div class="post-meta">
@@ -964,8 +2099,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-12-11T22:54:01+08:00">
-                2020-12-11
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-10-21T23:04:01+08:00">
+                2020-10-21
               </time>
             
 
@@ -987,8 +2122,8 @@
               
               
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/netty4/" itemprop="url" rel="index">
-                    <span itemprop="name">netty4</span>
+                  <a href="/categories/rocketmq/" itemprop="url" rel="index">
+                    <span itemprop="name">rocketmq</span>
                   </a>
                 </span>
 
@@ -1005,8 +2140,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/posts/eab70bff.html#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count valine-comment-count" data-xid="/posts/eab70bff.html" itemprop="commentCount"></span>
+                <a href="/posts/fc4470e5.html#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count valine-comment-count" data-xid="/posts/fc4470e5.html" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -1014,7 +2149,7 @@
 
           
           
-             <span id="/posts/eab70bff.html" class="leancloud_visitors" data-flag-title="Netty4 ChannelHandler 概述">
+             <span id="/posts/fc4470e5.html" class="leancloud_visitors" data-flag-title="一次 RocketMQ 进程自动退出排查经验分享（实战篇）">
                <span class="post-meta-divider">|</span>
                <span class="post-meta-item-icon">
                  <i class="fa fa-eye"></i>
@@ -1039,7 +2174,7 @@
                   <span class="post-meta-item-text">字数统计&#58;</span>
                 
                 <span title="字数统计">
-                  2.2k 字
+                  967 字
                 </span>
               
 
@@ -1055,7 +2190,7 @@
                   <span class="post-meta-item-text">阅读时长 &asymp;</span>
                 
                 <span title="阅读时长">
-                  8 分钟
+                  3 分钟
                 </span>
               
             </div>
@@ -1077,27 +2212,15 @@
 
       
         
-          <blockquote>
-<p>专栏介绍：《让天下没有难学的Netty》系列，基于 Netty，以源码分析为主要手段，关键流程给出流程图，从 通道篇、内存篇、性能篇三个维度深度剖析 Netty 的实现原理。 </p>
-</blockquote>
-<h2 id="1、通道概述"><a href="#1、通道概述" class="headerlink" title="1、通道概述"></a>1、通道概述</h2><p>我们从如下几个方面来简单了解一下 Channel。</p>
-<ul>
-<li>通道的当前状态，open(端口打开)、connect(连接)。</li>
-<li>通道的配置，包含通道的配置属性与网络通信选项(ChannelOption)。</li>
-<li>IO 通道方法诸如 read、write、connect、bind 与管道(ChannelPipeline)。</li>
-<li>所有 IO 操作在 Netty 中都是异步的，调用 IO 方法例如 write 方法后，并不是等 IO 操作实际完成后再返回，而是会立即返回一个凭证，IO 操作完成后会将结果写入凭证中，典型的 Future设计模式。</li>
-<li>Channel 具有父子关系，由于所有的 SocketChannel（客户端发起TCP连接）都是由 ServerSocketChannel（服务端接收连接）接收客户端连接而创建的，故 SocketChannel 的 parent() 方法会返回对应的 ServerSocketChannel。</li>
-<li>所有通道对象在使用完后，请务必调用通道的colse方法来释放资源。</li>
-</ul>
-<p>本节将从如下3个方面来重点介绍Channel。</p>
-<ul>
-<li>Channel 常用API</li>
-<li>Channel 配置与选项</li>
-<li>NIO相关的Channel继承图</li>
-</ul>
+          <h2 id="1、背景"><a href="#1、背景" class="headerlink" title="1、背景"></a>1、背景</h2><p>公司一个 RocketMQ 集群由4主4从组成，突然其中3台服务器“竟然”在同一时间下线，其监控显示如下：<br><img src="https://img-blog.csdnimg.cn/20191026211319978.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>依次查看三台机器的监控图形，时间戳几乎完美“吻合”，不可思议吧。</p>
+<h2 id="2、故障分析"><a href="#2、故障分析" class="headerlink" title="2、故障分析"></a>2、故障分析</h2><p>出现问题，先二话不说，马上重启各服务器，尽快恢复集群，降低对业务的影响，接下来开始对日志进行分析。</p>
+<p>Java 进程自动退出(rocketmq 本身就是一个java进程)，一种最常见的问题是由于内存溢出或由于内存泄漏导致进程发送Crash等。由于我们的启动参数中未配置-XX:+HeapDumpOnOutOfMemoryError<br>-XX:HeapDumpPath=/opt/jvmdump 这两个参数，不能直接根据 是否生成 dump 文件，那退而求其次去查看其GC日志，将GC日志下载到本地，然后可以使用一个在线gc日志分析工具：<a target="_blank" rel="noopener" href="https://gceasy.io/">https://gceasy.io/</a> ，将 gc 日志上传后会给出图形化的展示，其图如下：<br><img src="https://img-blog.csdnimg.cn/20191026211454570.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br><img src="https://img-blog.csdnimg.cn/20191026211519396.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>发现垃圾回收很正常。</p>
+<p>既然 Java 进程不是由于内存溢出等问题导致的退出，那又会是什么原因呢？那我们来看一下那个点的broker的日志，其关键日志截图如下：<br><img src="https://img-blog.csdnimg.cn/20191026211607400.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>发现 broker 日志中有打印出 shutdownHook，表示在进程退出之前执行了启动时注册时的退出钩子函数，说明 broker 是正常停止的，并且也不可能是 kill -9 命令，肯定是显示的执行了 shutodown 或 kill 命令，于是立马使用 history 命令 查看历史命令，都未在指定时间执行过该命令，并且切换到 root 命令后，同样使用 history 命令，并未发现端倪。</p>
+<p>但我始终相信，肯定是执行了手动执行了 kill 命令导致进程退出的，经过网上查找查，得知可以通过查阅系统日志/var/log/messages 来查看系统命令的调用，于是乎把日志文件下载到本地，开始搜索 kill 关键字，发现如下日志：<br><img src="https://img-blog.csdnimg.cn/20191026211722459.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>发现最近一次 kill 命令是在25号的凌晨1点多，停止 rocketmq 集群，并使用 bin/mqbroker -c conf/broker-b.conf &amp; 进行了重新启动。</p>
+<p>这个命令是有问题的，没有使用 nohup ，如果会话失效，该进程就会被退出，为了验证，我们再查一下进程退出时的日志：</p>
           <!--noindex-->
           <div class="post-button text-center">
-            <a class="btn" href="/posts/eab70bff.html#more" rel="contents">
+            <a class="btn" href="/posts/fc4470e5.html#more" rel="contents">
               阅读全文 &raquo;
             </a>
           </div>
@@ -1148,7 +2271,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="https://geekdingw.github.io/posts/a79560fc.html">
+    <link itemprop="mainEntityOfPage" href="https://www.codingw.net/posts/f4f9d0d8.html">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="">
@@ -1167,7 +2290,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/posts/a79560fc.html" itemprop="url">Netty4 Channel 概述</a></h1>
+                <a class="post-title-link" href="/posts/f4f9d0d8.html" itemprop="url">源码分析 RateLimiter SmoothBursty 实现原理(文末附流程图)</a></h1>
         
 
         <div class="post-meta">
@@ -1179,8 +2302,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-12-11T22:53:01+08:00">
-                2020-12-11
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-10-20T22:51:35+08:00">
+                2020-10-20
               </time>
             
 
@@ -1202,8 +2325,8 @@
               
               
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/netty4/" itemprop="url" rel="index">
-                    <span itemprop="name">netty4</span>
+                  <a href="/categories/sentinel/" itemprop="url" rel="index">
+                    <span itemprop="name">sentinel</span>
                   </a>
                 </span>
 
@@ -1220,8 +2343,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/posts/a79560fc.html#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count valine-comment-count" data-xid="/posts/a79560fc.html" itemprop="commentCount"></span>
+                <a href="/posts/f4f9d0d8.html#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count valine-comment-count" data-xid="/posts/f4f9d0d8.html" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -1229,7 +2352,7 @@
 
           
           
-             <span id="/posts/a79560fc.html" class="leancloud_visitors" data-flag-title="Netty4 Channel 概述">
+             <span id="/posts/f4f9d0d8.html" class="leancloud_visitors" data-flag-title="源码分析 RateLimiter SmoothBursty 实现原理(文末附流程图)">
                <span class="post-meta-divider">|</span>
                <span class="post-meta-item-icon">
                  <i class="fa fa-eye"></i>
@@ -1254,7 +2377,7 @@
                   <span class="post-meta-item-text">字数统计&#58;</span>
                 
                 <span title="字数统计">
-                  2.2k 字
+                  2.3k 字
                 </span>
               
 
@@ -1270,7 +2393,7 @@
                   <span class="post-meta-item-text">阅读时长 &asymp;</span>
                 
                 <span title="阅读时长">
-                  8 分钟
+                  9 分钟
                 </span>
               
             </div>
@@ -1292,1126 +2415,52 @@
 
       
         
-          <blockquote>
-<p>专栏介绍：《让天下没有难学的Netty》系列，基于 Netty，以源码分析为主要手段，关键流程给出流程图，从 通道篇、内存篇、性能篇三个维度深度剖析 Netty 的实现原理。 </p>
-</blockquote>
-<h2 id="1、通道概述"><a href="#1、通道概述" class="headerlink" title="1、通道概述"></a>1、通道概述</h2><p>我们从如下几个方面来简单了解一下 Channel。</p>
-<ul>
-<li>通道的当前状态，open(端口打开)、connect(连接)。</li>
-<li>通道的配置，包含通道的配置属性与网络通信选项(ChannelOption)。</li>
-<li>IO 通道方法诸如 read、write、connect、bind 与管道(ChannelPipeline)。</li>
-<li>所有 IO 操作在 Netty 中都是异步的，调用 IO 方法例如 write 方法后，并不是等 IO 操作实际完成后再返回，而是会立即返回一个凭证，IO 操作完成后会将结果写入凭证中，典型的 Future设计模式。</li>
-<li>Channel 具有父子关系，由于所有的 SocketChannel（客户端发起TCP连接）都是由 ServerSocketChannel（服务端接收连接）接收客户端连接而创建的，故 SocketChannel 的 parent() 方法会返回对应的 ServerSocketChannel。</li>
-<li>所有通道对象在使用完后，请务必调用通道的colse方法来释放资源。</li>
-</ul>
-<p>本节将从如下3个方面来重点介绍Channel。</p>
-<ul>
-<li>Channel 常用API</li>
-<li>Channel 配置与选项</li>
-<li>NIO相关的Channel继承图</li>
-</ul>
-          <!--noindex-->
-          <div class="post-button text-center">
-            <a class="btn" href="/posts/a79560fc.html#more" rel="contents">
-              阅读全文 &raquo;
-            </a>
-          </div>
-          <!--/noindex-->
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="https://geekdingw.github.io/posts/42760d48.html">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="中间件兴趣圈">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/posts/42760d48.html" itemprop="url">快速排序算法java版实现</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-12-09T23:26:35+08:00">
-                2020-12-09
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/java/" itemprop="url" rel="index">
-                    <span itemprop="name">java</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/posts/42760d48.html#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count valine-comment-count" data-xid="/posts/42760d48.html" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-             <span id="/posts/42760d48.html" class="leancloud_visitors" data-flag-title="快速排序算法java版实现">
-               <span class="post-meta-divider">|</span>
-               <span class="post-meta-item-icon">
-                 <i class="fa fa-eye"></i>
-               </span>
-               
-                 <span class="post-meta-item-text">阅读次数&#58;</span>
-               
-                 <span class="leancloud-visitors-count"></span>
-             </span>
-          
-
-          
-
-          
-            <div class="post-wordcount">
-              
-                
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-file-word-o"></i>
-                </span>
-                
-                  <span class="post-meta-item-text">字数统计&#58;</span>
-                
-                <span title="字数统计">
-                  1.7k 字
-                </span>
-              
-
-              
-                <span class="post-meta-divider">|</span>
-              
-
-              
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-clock-o"></i>
-                </span>
-                
-                  <span class="post-meta-item-text">阅读时长 &asymp;</span>
-                
-                <span title="阅读时长">
-                  7 分钟
-                </span>
-              
-            </div>
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          <p>快速排序思想：从待排序序列中找到一个关键字（默认为第一个元素） 然后将比关键字少的数据排列在左边，大于关键字的排在右边，然后对关键字左右两边的序列继续上面步骤，直至关键字两边的序列都已经排好序。具体算法如下：</p>
-<p>设要排序的数组是A[0]……A[N-1]，首先任意选取一个数据（通常选用数组的第一个数）作为关键数据，</p>
-<p> 然后将所有比它小的数都放到它前面，所有比它大的数都放到它后面，这个过程称为一趟快速排序。<br> 值得注意的是，快速排序不是一种稳定的排序算法，也就是说，多个相同的值的相对位置也许会在算法结束时产生变动。<br> 一趟快速排序的算法是：<br> 1）设置两个变量i、j，排序开始的时候：i=0，j=N-1；<br> 2）以第一个数组元素作为关键数据，赋值给key，即key=A[0]；<br> 3）从j开始向前搜索，即由后开始向前搜索(j–)，找到第一个小于key的值A[j]，将A[j]和A[i]互换；<br> 4）从i开始向后搜索，即由前开始向后搜索(i++)，找到第一个大于key的A[i]，将A[i]和A[j]互换；<br> 5）重复第3、4步，直到i=j； (3,4步中，没找到符合条件的值，即3中A[j]不小于key,<br> 4中A[i]不大于key的时候改变j、i的值，使得j=j-1，i=i+1，直至找到为止。</p>
-<p> 找到符合条件的值，进行交换的时候i， j指针位置不变。另外，i==j这一过程一定正好是i+或j-完成的时候，此时令循环结束）。</p>
+          <p>上篇详细介绍了<a target="_blank" rel="noopener" href="https://blog.csdn.net/prestigeding/article/details/104884255">Sentinel FlowSlot 限流实现原理(文末附流程图与总结)</a>的限流实现机制，但主要介绍的策略限流的快速失败机制，在Sentinel 中除了快速失败，还提供了匀速排队，预热等限流策略，但我发现 Sentinel 的匀速排队、预热机制是基于 guava 的 RateLimiter，为了更加彻底的理解 Sentienl 限流相关的内容，从本文开始先来学习一下 RateLimiter 的相关实现原理。</p>
 <blockquote>
-<p>温馨提示：上述算法的描述来源与百度，大家也可以按照上面的算法，用自己熟悉的语言尝试实现一遍。</p>
+<p>温馨提示：文章的末尾会总结 SmoothBursty 的核心流程图与实现原理，本文将展示笔者是如何一步一步揭晓其实现原理的方法。</p>
+<p>@<a href="%E6%9C%AC%E8%8A%82%E7%9B%AE%E5%BD%95">TOC</a></p>
 </blockquote>
-<p>一言不合继续用代码说话。</p>
-          <!--noindex-->
-          <div class="post-button text-center">
-            <a class="btn" href="/posts/42760d48.html#more" rel="contents">
-              阅读全文 &raquo;
-            </a>
-          </div>
-          <!--/noindex-->
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="https://geekdingw.github.io/posts/3b6094a6.html">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="中间件兴趣圈">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/posts/3b6094a6.html" itemprop="url">排序二叉树JAVA版实现</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-12-09T23:22:35+08:00">
-                2020-12-09
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/java/" itemprop="url" rel="index">
-                    <span itemprop="name">java</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/posts/3b6094a6.html#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count valine-comment-count" data-xid="/posts/3b6094a6.html" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-             <span id="/posts/3b6094a6.html" class="leancloud_visitors" data-flag-title="排序二叉树JAVA版实现">
-               <span class="post-meta-divider">|</span>
-               <span class="post-meta-item-icon">
-                 <i class="fa fa-eye"></i>
-               </span>
-               
-                 <span class="post-meta-item-text">阅读次数&#58;</span>
-               
-                 <span class="leancloud-visitors-count"></span>
-             </span>
-          
-
-          
-
-          
-            <div class="post-wordcount">
-              
-                
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-file-word-o"></i>
-                </span>
-                
-                  <span class="post-meta-item-text">字数统计&#58;</span>
-                
-                <span title="字数统计">
-                  2k 字
-                </span>
-              
-
-              
-                <span class="post-meta-divider">|</span>
-              
-
-              
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-clock-o"></i>
-                </span>
-                
-                  <span class="post-meta-item-text">阅读时长 &asymp;</span>
-                
-                <span title="阅读时长">
-                  10 分钟
-                </span>
-              
-            </div>
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          <p>1、排序二叉树特点</p>
+<h2 id="1、RateLimiter-类设计图"><a href="#1、RateLimiter-类设计图" class="headerlink" title="1、RateLimiter 类设计图"></a>1、RateLimiter 类设计图</h2><p><img src="https://img-blog.csdnimg.cn/20200322143507663.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"></p>
 <ul>
-<li>根节点的值大于等于左子树的节点</li>
-<li>根节点的值小于等于它右子树的节点。</li>
+<li>RateLimiter<br>限流抽象类，定义限流器的基本接口。</li>
+<li>SmoothRateLimiter<br>平滑限流实现器，也是一个抽象类。</li>
+<li>SmoothWarmingUp<br>自带预热机制的限流器实现类型。</li>
+<li>SmoothBursty<br>适应于突发流量的限流器。</li>
 </ul>
-<p>2、遍历二叉树的方法</p>
-<ul>
-<li>先序遍历：先遍历根节点，然后遍历左子树，再遍历右子树</li>
-<li>中序遍历：先遍历左子树，然后遍历根节点，再遍历右子树</li>
-<li>后续遍历  </li>
-</ul>
-<p><strong>如果要保证节点从小到大排序，采用中序遍历</strong>；</p>
-<p>一言不合就写代码实现，提供详细的可视化角度（代码可运行）。</p>
-<p>目前代码中，已经实现 新增单个元素、删除单个元素、中序遍历整颗树。</p>
-          <!--noindex-->
-          <div class="post-button text-center">
-            <a class="btn" href="/posts/3b6094a6.html#more" rel="contents">
-              阅读全文 &raquo;
-            </a>
-          </div>
-          <!--/noindex-->
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="https://geekdingw.github.io/posts/3c69fbc4.html">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="中间件兴趣圈">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/posts/3c69fbc4.html" itemprop="url">java Reference 引用学习总结</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-12-09T23:12:35+08:00">
-                2020-12-09
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/java/" itemprop="url" rel="index">
-                    <span itemprop="name">java</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/posts/3c69fbc4.html#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count valine-comment-count" data-xid="/posts/3c69fbc4.html" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-             <span id="/posts/3c69fbc4.html" class="leancloud_visitors" data-flag-title="java Reference 引用学习总结">
-               <span class="post-meta-divider">|</span>
-               <span class="post-meta-item-icon">
-                 <i class="fa fa-eye"></i>
-               </span>
-               
-                 <span class="post-meta-item-text">阅读次数&#58;</span>
-               
-                 <span class="leancloud-visitors-count"></span>
-             </span>
-          
-
-          
-
-          
-            <div class="post-wordcount">
-              
-                
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-file-word-o"></i>
-                </span>
-                
-                  <span class="post-meta-item-text">字数统计&#58;</span>
-                
-                <span title="字数统计">
-                  2.1k 字
-                </span>
-              
-
-              
-                <span class="post-meta-divider">|</span>
-              
-
-              
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-clock-o"></i>
-                </span>
-                
-                  <span class="post-meta-item-text">阅读时长 &asymp;</span>
-                
-                <span title="阅读时长">
-                  8 分钟
-                </span>
-              
-            </div>
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          <h2 id="1、Java引用的类型"><a href="#1、Java引用的类型" class="headerlink" title="1、Java引用的类型"></a>1、Java引用的类型</h2><p>强引用、软引用(java.lang.ref.SoftReference)、弱引用(java.lang.ref.WeakReference)、虚引用(　java.lang.ref.PhantomReference　)。</p>
-<p>java默认的引用类型为强引用，比如 Object a = new Object();其中 a 为强引用，new Object()为一个具体的对象。</p>
-<p>至于软应用，弱引用，虚引用，就是 JAVA 虚拟机管理对象的范畴了，可以这样理解，SoftReference、WeakReference、PlantomReference 只是一种标记，JAVA 虚拟机在垃圾回收时，对上述不同的标记【引用的对象】采取不同的措施。采取措施如下：</p>
-<ul>
-<li><p>软引用(SoftReference)：当内存足够时，该引用【引用的对象】不会被回收，那什么是内存足够呢？进行年轻代的垃圾回收不会触发SoftReference所指向对象的回收,如果触发Full GC，那SoftReference所指向的对象将被回收。</p>
-</li>
-<li><p>弱引用(WeakReference) :当进行年轻代垃圾回收时，该引用指向的对象，就会被回收。</p>
-</li>
-<li><p>虚引用(PhantomeReference) 该引用指向的对象，无法对垃圾收集器收集对象时产生任何影响，唯一有用的是，如果被垃圾收集器收集的对象，被PhantomeReference标记，垃圾收集器会通过注册在PhantomeReference上的队列来通知应用程序，该引用指向的对象，已经被垃圾收集器回收。</p>
-</li>
-</ul>
-<p>从上文的描述，也清楚的知道，上述应用是直接JVM打交道，更直接的说是与垃圾回收器直接的交互。</p>
-          <!--noindex-->
-          <div class="post-button text-center">
-            <a class="btn" href="/posts/3c69fbc4.html#more" rel="contents">
-              阅读全文 &raquo;
-            </a>
-          </div>
-          <!--/noindex-->
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="https://geekdingw.github.io/posts/36b32da.html">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="中间件兴趣圈">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/posts/36b32da.html" itemprop="url">Mybatis一二级缓存实现原理与使用指南</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-12-09T23:08:35+08:00">
-                2020-12-09
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/mybatis/" itemprop="url" rel="index">
-                    <span itemprop="name">mybatis</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/posts/36b32da.html#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count valine-comment-count" data-xid="/posts/36b32da.html" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-             <span id="/posts/36b32da.html" class="leancloud_visitors" data-flag-title="Mybatis一二级缓存实现原理与使用指南">
-               <span class="post-meta-divider">|</span>
-               <span class="post-meta-item-icon">
-                 <i class="fa fa-eye"></i>
-               </span>
-               
-                 <span class="post-meta-item-text">阅读次数&#58;</span>
-               
-                 <span class="leancloud-visitors-count"></span>
-             </span>
-          
-
-          
-
-          
-            <div class="post-wordcount">
-              
-                
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-file-word-o"></i>
-                </span>
-                
-                  <span class="post-meta-item-text">字数统计&#58;</span>
-                
-                <span title="字数统计">
-                  3.5k 字
-                </span>
-              
-
-              
-                <span class="post-meta-divider">|</span>
-              
-
-              
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-clock-o"></i>
-                </span>
-                
-                  <span class="post-meta-item-text">阅读时长 &asymp;</span>
-                
-                <span title="阅读时长">
-                  15 分钟
-                </span>
-              
-            </div>
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          <p>Mybatis 与 Hibernate 一样，支持一二级缓存。一级缓存指的是 Session 级别的缓存，即在一个会话中多次执行同一条 SQL 语句并且参数相同，则后面的查询将不会发送到数据库，直接从 Session 缓存中获取。二级缓存，指的是 SessionFactory 级别的缓存，即不同的会话可以共享。</p>
-<p>缓存，通常涉及到缓存的写、读、过期(更新缓存)等几个方面，请带着这些问题一起来探究Mybatis关于缓存的实现原理吧。</p>
+<p>上述类这些属性，在讲解 SmoothBursty、SmoothWarmingUp 时再详细介绍。</p>
 <blockquote>
-<p>提出问题：缓存的查询顺序，是先查一级缓存还是二级缓存？</p>
+<p>温馨提示：可以看看这些类上的注释，先初步了解其设计思想。</p>
 </blockquote>
-<p>本文以SQL查询与更新两个流程来揭开Mybatis缓存实现的细节。</p>
-<h2 id="1、从-SQL-查询流程看一二级缓存"><a href="#1、从-SQL-查询流程看一二级缓存" class="headerlink" title="1、从 SQL 查询流程看一二级缓存"></a>1、从 SQL 查询流程看一二级缓存</h2><blockquote>
-<p>温馨提示，本文不会详细介绍详细的 SQL 执行流程，如果对其感兴趣，可以查阅笔者的另外一篇文章：<a target="_blank" rel="noopener" href="https://blog.csdn.net/prestigeding/article/details/90647674">源码分析Mybatis SQL执行流程</a></p>
-</blockquote>
-<h3 id="1-1-创建Executor"><a href="#1-1-创建Executor" class="headerlink" title="1.1 创建Executor"></a>1.1 创建Executor</h3><p>Configuration#newExecutor</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> Executor <span class="title">newExecutor</span><span class="params">(Transaction transaction, ExecutorType executorType)</span> </span>&#123;</span><br><span class="line">	executorType = executorType == <span class="keyword">null</span> ? defaultExecutorType : executorType;</span><br><span class="line">    executorType = executorType == <span class="keyword">null</span> ? ExecutorType.SIMPLE : executorType;</span><br><span class="line">    Executor executor;</span><br><span class="line">    <span class="keyword">if</span> (ExecutorType.BATCH == executorType) &#123;</span><br><span class="line">      executor = <span class="keyword">new</span> BatchExecutor(<span class="keyword">this</span>, transaction);</span><br><span class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> (ExecutorType.REUSE == executorType) &#123;</span><br><span class="line">      executor = <span class="keyword">new</span> ReuseExecutor(<span class="keyword">this</span>, transaction);</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">      executor = <span class="keyword">new</span> SimpleExecutor(<span class="keyword">this</span>, transaction);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (cacheEnabled) &#123;                                                           <span class="comment">// @1</span></span><br><span class="line">      executor = <span class="keyword">new</span> CachingExecutor(executor);                 <span class="comment">// @2</span></span><br><span class="line">    &#125;</span><br><span class="line">    executor = (Executor) interceptorChain.pluginAll(executor);</span><br><span class="line">    <span class="keyword">return</span> executor;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>代码@1：如果 cacheEnabled 为 true，表示开启缓存机制，缓存的实现类为 CachingExecutor，这里使用了经典的装饰模式，处理了缓存的相关逻辑后，委托给的具体的 Executor 执行。</p>
-<p>cacheEnable 在实际的使用中通过在 mybatis-config.xml 文件中指定，例如：</p>
-<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">configuration</span>&gt;</span></span><br><span class="line">	<span class="tag">&lt;<span class="name">settings</span>&gt;</span></span><br><span class="line">		<span class="tag">&lt;<span class="name">setting</span> <span class="attr">name</span>=<span class="string">&quot;cacheEnabled&quot;</span> <span class="attr">value</span>=<span class="string">&quot;true&quot;</span>&gt;</span></span><br><span class="line">	<span class="tag">&lt;/<span class="name">settings</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">configuration</span>&gt;</span></span><br></pre></td></tr></table></figure>
-<p>该值默认为true。</p>
-<h3 id="1-2-CachingExecutor-query"><a href="#1-2-CachingExecutor-query" class="headerlink" title="1.2 CachingExecutor#query"></a>1.2 CachingExecutor#query</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> &lt;E&gt; <span class="function">List&lt;E&gt; <span class="title">query</span><span class="params">(MappedStatement ms, Object parameterObject, RowBounds rowBounds, ResultHandler resultHandler)</span> <span class="keyword">throws</span> SQLException </span>&#123;</span><br><span class="line">    BoundSql boundSql = ms.getBoundSql(parameterObject);  <span class="comment">// @1</span></span><br><span class="line">    CacheKey key = createCacheKey(ms, parameterObject, rowBounds, boundSql);   <span class="comment">// @2</span></span><br><span class="line">    <span class="keyword">return</span> query(ms, parameterObject, rowBounds, resultHandler, key, boundSql);       <span class="comment">// @3</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>代码@1：根据参数生成SQL语句。</p>
-<p>代码@2：根据 MappedStatement、参数、分页参数、SQL 生成缓存 Key。</p>
-<p>代码@3：调用6个参数的 query 方法。</p>
-<p>缓存 Key 的创建比较简单，本文就只贴出代码，大家一目了然,大家重点关注组成缓存Key的要素。<br>BaseExecute#createCacheKey</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> CacheKey <span class="title">createCacheKey</span><span class="params">(MappedStatement ms, Object parameterObject, RowBounds rowBounds, BoundSql boundSql)</span> </span>&#123;</span><br><span class="line">  <span class="keyword">if</span> (closed) &#123;</span><br><span class="line">    <span class="keyword">throw</span> <span class="keyword">new</span> ExecutorException(<span class="string">&quot;Executor was closed.&quot;</span>);</span><br><span class="line">  &#125;</span><br><span class="line">  CacheKey cacheKey = <span class="keyword">new</span> CacheKey();</span><br><span class="line">  cacheKey.update(ms.getId());</span><br><span class="line">  cacheKey.update(rowBounds.getOffset());</span><br><span class="line">  cacheKey.update(rowBounds.getLimit());</span><br><span class="line">  cacheKey.update(boundSql.getSql());</span><br><span class="line">  List&lt;ParameterMapping&gt; parameterMappings = boundSql.getParameterMappings();</span><br><span class="line">  TypeHandlerRegistry typeHandlerRegistry = ms.getConfiguration().getTypeHandlerRegistry();</span><br><span class="line">  <span class="comment">// mimic DefaultParameterHandler logic</span></span><br><span class="line">  <span class="keyword">for</span> (ParameterMapping parameterMapping : parameterMappings) &#123;</span><br><span class="line">    <span class="keyword">if</span> (parameterMapping.getMode() != ParameterMode.OUT) &#123;</span><br><span class="line">      Object value;</span><br><span class="line">      String propertyName = parameterMapping.getProperty();</span><br><span class="line">      <span class="keyword">if</span> (boundSql.hasAdditionalParameter(propertyName)) &#123;</span><br><span class="line">        value = boundSql.getAdditionalParameter(propertyName);</span><br><span class="line">      &#125; <span class="keyword">else</span> <span class="keyword">if</span> (parameterObject == <span class="keyword">null</span>) &#123;</span><br><span class="line">        value = <span class="keyword">null</span>;</span><br><span class="line">      &#125; <span class="keyword">else</span> <span class="keyword">if</span> (typeHandlerRegistry.hasTypeHandler(parameterObject.getClass())) &#123;</span><br><span class="line">        value = parameterObject;</span><br><span class="line">      &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        MetaObject metaObject = configuration.newMetaObject(parameterObject);</span><br><span class="line">        value = metaObject.getValue(propertyName);</span><br><span class="line">      &#125;</span><br><span class="line">      cacheKey.update(value);</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">if</span> (configuration.getEnvironment() != <span class="keyword">null</span>) &#123;</span><br><span class="line">    <span class="comment">// issue #176</span></span><br><span class="line">    cacheKey.update(configuration.getEnvironment().getId());</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">return</span> cacheKey;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>接下来重点看CachingExecutor的另外一个query方法。</p>
-<p>CachingExecutor#query</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> &lt;E&gt; <span class="function">List&lt;E&gt; <span class="title">query</span><span class="params">(MappedStatement ms, Object parameterObject, RowBounds rowBounds, ResultHandler resultHandler, CacheKey key, BoundSql boundSql)</span></span></span><br><span class="line"><span class="function">      <span class="keyword">throws</span> SQLException </span>&#123;</span><br><span class="line">    Cache cache = ms.getCache();    <span class="comment">// @1</span></span><br><span class="line">    <span class="keyword">if</span> (cache != <span class="keyword">null</span>) &#123;</span><br><span class="line">      flushCacheIfRequired(ms);        <span class="comment">// @2</span></span><br><span class="line">      <span class="keyword">if</span> (ms.isUseCache() &amp;&amp; resultHandler == <span class="keyword">null</span>) &#123;</span><br><span class="line">        ensureNoOutParams(ms, boundSql);</span><br><span class="line">        <span class="meta">@SuppressWarnings(&quot;unchecked&quot;)</span></span><br><span class="line">        List&lt;E&gt; list = (List&lt;E&gt;) tcm.getObject(cache, key);      <span class="comment">// @3</span></span><br><span class="line">        <span class="keyword">if</span> (list == <span class="keyword">null</span>) &#123;                                                              <span class="comment">// @4</span></span><br><span class="line">          list = delegate.&lt;E&gt; query(ms, parameterObject, rowBounds, resultHandler, key, boundSql);    <span class="comment">//@5</span></span><br><span class="line">          tcm.putObject(cache, key, list); <span class="comment">// issue #578 and #116                                                               // @6</span></span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> list;</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> delegate.&lt;E&gt; query(ms, parameterObject, rowBounds, resultHandler, key, boundSql);  <span class="comment">//@7</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>代码@1：获取 MappedStatement 中的 Cache cache 属性。<br>代码@2：如果不为空，则尝试从缓存中获取，否则直接委托给具体的执行器执行，例如 SimpleExecutor (@7)。<br>代码@3：尝试从缓存中根据缓存 Key 查找。<br>代码@4：如果从缓存中获取的值不为空，则直接返回缓存中的值，否则先从数据库查询@5，将查询结果更新到缓存中。</p>
-<p>这里的缓存即 MappedStatement 中的 Cache 对象是一级缓存还是二级缓存？通常在 ORM 类框架中，Session 级别的缓存为一级缓存，即会话结束后就会失效，显然这里不会随着 Session 的失效而失效，因为 Cache 对象是存储在于 MappedStatement 对象中的，每一个 MappedStatement 对象代表一个 Dao(Mapper) 中的一个方法，即代表一条对应的 SQL 语句，是一个全局的概念。</p>
-<p>相信大家也会觉得，想继续深入了解 CachingExecutor 中使用的 Cache 是一级缓存还是二级缓存，了解 Cache 对象的创建至关重要。关于 MappedStatement 的创建流程，建议查阅笔者的另外一篇博文：<a target="_blank" rel="noopener" href="https://blog.csdn.net/prestigeding/article/details/90488395">源码分析Mybatis MappedStatement的创建流程</a>。</p>
-<p>本文只会关注 MappedStatement 对象流程中关于于缓存相关的部分。</p>
-<p>接下来将按照先二级缓存，再一级缓存的思路进行讲解。</p>
-<h4 id="1-2-1-二级缓存"><a href="#1-2-1-二级缓存" class="headerlink" title="1.2.1 二级缓存"></a>1.2.1 二级缓存</h4><h5 id="1-2-1-1-MappedStatement-cache属性创建机制"><a href="#1-2-1-1-MappedStatement-cache属性创建机制" class="headerlink" title="1.2.1.1 MappedStatement#cache属性创建机制"></a>1.2.1.1 MappedStatement#cache属性创建机制</h5><p>从上面看，如果 cacheEnable 为 true 并且 MappedStatement 对象的 cache 属性不为空，则能使用二级缓存。</p>
-<p>我们可以看到 MappedStatement 对象的 cache 属性赋值的地方为：MapperBuilderAssistant#addMappedStatement，从该方法的调用链可以得知是在解析 Mapper 定义的时候就会创建。<br><img src="https://img-blog.csdnimg.cn/20190826205429651.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>使用的 cache 属性为 MapperBuilderAssistant 的 currentCache,我们跟踪一下该属性的赋值方法：</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> Cache <span class="title">useCacheRef</span><span class="params">(String namespace)</span></span></span><br></pre></td></tr></table></figure>
-<p>其调用链如下：<br><img src="https://img-blog.csdnimg.cn/2019082620552683.png" alt="在这里插入图片描述"><br>可以看出是在解析 cacheRef 标签，即在解析 Mapper.xml 文件中的 cacheRef 标签时，即二级缓存的使用和 cacheRef 标签离不开关系，并且特别注意一点，其参数为 namespace，即每一个 namespace 对应一个 Cache 对象，在 Mybatis 的方法中，通常namespace 对一个 Mapper.java 对象，对应对数据库一张表的更新、新增操作。</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> Cache useNewCache</span><br></pre></td></tr></table></figure>
-<p>其调用链如下图所示：<br><img src="https://img-blog.csdnimg.cn/20190826205659301.png" alt="在这里插入图片描述">在解析 Mapper.xml 文件中的 cache 标签时被调用。</p>
-<h5 id="1-2-1-2-cache标签解析"><a href="#1-2-1-2-cache标签解析" class="headerlink" title="1.2.1.2 cache标签解析"></a>1.2.1.2 cache标签解析</h5><p>接下来我们根据 cache 标签简单看一下 cache 标签的解析，下面以 xml 配置方式为例展开，基于注解的解析，其原理类似，其代码 XMLMapperBuilder 的 cacheElement 方法。</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">cacheElement</span><span class="params">(XNode context)</span> <span class="keyword">throws</span> Exception </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (context != <span class="keyword">null</span>) &#123;</span><br><span class="line">      String type = context.getStringAttribute(<span class="string">&quot;type&quot;</span>, <span class="string">&quot;PERPETUAL&quot;</span>);                                                      </span><br><span class="line">      Class&lt;? extends Cache&gt; typeClass = typeAliasRegistry.resolveAlias(type);</span><br><span class="line">      String eviction = context.getStringAttribute(<span class="string">&quot;eviction&quot;</span>, <span class="string">&quot;LRU&quot;</span>);</span><br><span class="line">      Class&lt;? extends Cache&gt; evictionClass = typeAliasRegistry.resolveAlias(eviction);</span><br><span class="line">      Long flushInterval = context.getLongAttribute(<span class="string">&quot;flushInterval&quot;</span>);</span><br><span class="line">      Integer size = context.getIntAttribute(<span class="string">&quot;size&quot;</span>);</span><br><span class="line">      <span class="keyword">boolean</span> readWrite = !context.getBooleanAttribute(<span class="string">&quot;readOnly&quot;</span>, <span class="keyword">false</span>);</span><br><span class="line">      <span class="keyword">boolean</span> blocking = context.getBooleanAttribute(<span class="string">&quot;blocking&quot;</span>, <span class="keyword">false</span>);</span><br><span class="line">      Properties props = context.getChildrenAsProperties();</span><br><span class="line">      builderAssistant.useNewCache(typeClass, evictionClass, flushInterval, size, readWrite, blocking, props);</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure>
-<p>从上面 cache 标签的核心属性如下：</p>
+<h2 id="2、寻找入口"><a href="#2、寻找入口" class="headerlink" title="2、寻找入口"></a>2、寻找入口</h2><p>我们首先从 guava 的测试用例中尝试寻找一下 RateLimiterTest。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">testSimple</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    RateLimiter limiter = RateLimiter.create(stopwatch, <span class="number">5.0</span>);</span><br><span class="line">    limiter.acquire(); <span class="comment">// R0.00, since it&#x27;s the first request</span></span><br><span class="line">    limiter.acquire(); <span class="comment">// R0.20</span></span><br><span class="line">    limiter.acquire(); <span class="comment">// R0.20</span></span><br><span class="line">    assertEvents(<span class="string">&quot;R0.00&quot;</span>, <span class="string">&quot;R0.20&quot;</span>, <span class="string">&quot;R0.20&quot;</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>从这里基本可以看出，首先通过 RateLimiter.create 的静态方法创建一个限流器，然后应用程序在执行业务逻辑之前先调研限流器的 acquire 方法申请许可，接下来我们将循着这个流程来探讨其实现思路。</p>
+<h2 id="3、探究-SmoothBursty-实现原理"><a href="#3、探究-SmoothBursty-实现原理" class="headerlink" title="3、探究 SmoothBursty 实现原理"></a>3、探究 SmoothBursty 实现原理</h2><h4 id="3-1-SmoothBursty-创建流程"><a href="#3-1-SmoothBursty-创建流程" class="headerlink" title="3.1 SmoothBursty 创建流程"></a>3.1 SmoothBursty 创建流程</h4><p>从上面的示例来看，应用程序首先通过 RateLimiter 的静态方法创建一个限流器，其代码如下：<br>RateLimiter#create</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> RateLimiter <span class="title">create</span><span class="params">(SleepingStopwatch stopwatch, <span class="keyword">double</span> permitsPerSecond)</span> </span>&#123; <span class="comment">// @1</span></span><br><span class="line">    RateLimiter rateLimiter = <span class="keyword">new</span> SmoothBursty(stopwatch, <span class="number">1.0</span>);                                  <span class="comment">// @2</span></span><br><span class="line">    rateLimiter.setRate(permitsPerSecond);                                                                    <span class="comment">// @3</span></span><br><span class="line">    <span class="keyword">return</span> rateLimiter;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>代码@1：首先先介绍方法的参数：</p>
 <ul>
-<li>type<br>缓存实现类，可选择值：PERPETUAL、LRU 等，Mybatis 中所有的缓存实现类如下：<br><img src="https://img-blog.csdnimg.cn/2019082620593518.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"></li>
-<li>eviction<br>移除算法，默认为 LRU。</li>
-<li>flushInterval<br>缓存过期时间。</li>
-<li>size<br>缓存在内存中的缓存个数。</li>
-<li>readOnly<br>是否是只读。</li>
-<li>blocking<br>是否阻塞，具体实现请看 BlockingCache。</li>
+<li>SleepingStopwatch stopwatch<br>秒表，主要是实现当前从启动开始已消耗的时间，有点类似计算一个操作耗时，实现精度纳秒。</li>
+<li>double permitsPerSecond<br>每秒的许可数，即通常我们说的限流TPS。</li>
 </ul>
-<h5 id="1-2-1-3-cacheRef"><a href="#1-2-1-3-cacheRef" class="headerlink" title="1.2.1.3 cacheRef"></a>1.2.1.3 cacheRef</h5><p><img src="https://img-blog.csdnimg.cn/20190826210042752.png" alt="在这里插入图片描述"><br>cacheRef 只有一个属性，就是 namespace，就是引用其他 namespace 中的 cache。</p>
-<p>Cache 的创建流程就讲解到这里，同一个 Namespace 只会定义一个 Cache。二级缓存的创建是在 *Mapper.xml 文件中使用了&lt; cache/&gt;、&lt; cacheRef/&gt;标签时创建，并且会按 NameSpace 为维度，为各个 MapperStatement 传入它所属的 Namespace 的二级缓存对象。</p>
-<p>二级缓存的查询逻辑就介绍到这里了，我们再次回成 CacheingExecutor 的查询方法：<br>CachingExecutor#query</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> &lt;E&gt; <span class="function">List&lt;E&gt; <span class="title">query</span><span class="params">(MappedStatement ms, Object parameterObject, RowBounds rowBounds, ResultHandler resultHandler, CacheKey key, BoundSql boundSql)</span></span></span><br><span class="line"><span class="function">      <span class="keyword">throws</span> SQLException </span>&#123;</span><br><span class="line">    Cache cache = ms.getCache();    <span class="comment">// @1</span></span><br><span class="line">    <span class="keyword">if</span> (cache != <span class="keyword">null</span>) &#123;</span><br><span class="line">      flushCacheIfRequired(ms);        <span class="comment">// @2</span></span><br><span class="line">      <span class="keyword">if</span> (ms.isUseCache() &amp;&amp; resultHandler == <span class="keyword">null</span>) &#123;</span><br><span class="line">        ensureNoOutParams(ms, boundSql);</span><br><span class="line">        <span class="meta">@SuppressWarnings(&quot;unchecked&quot;)</span></span><br><span class="line">        List&lt;E&gt; list = (List&lt;E&gt;) tcm.getObject(cache, key);      <span class="comment">// @3</span></span><br><span class="line">        <span class="keyword">if</span> (list == <span class="keyword">null</span>) &#123;                                                              <span class="comment">// @4</span></span><br><span class="line">          list = delegate.&lt;E&gt; query(ms, parameterObject, rowBounds, resultHandler, key, boundSql);    <span class="comment">//@5</span></span><br><span class="line">          tcm.putObject(cache, key, list); <span class="comment">// issue #578 and #116                                                               // @6</span></span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> list;</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> delegate.&lt;E&gt; query(ms, parameterObject, rowBounds, resultHandler, key, boundSql);  <span class="comment">//@7</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>如果 MappedStatement 的 cache 属性为空，则直接调用内部的 Executor 的查询方法。也就时如果在 *.Mapper.xm l文件中未定义&lt; cache/&gt;或&lt; cacheRef/&gt;，则 cache 属性会为空。</p>
-<h4 id="1-2-2-一级缓存"><a href="#1-2-2-一级缓存" class="headerlink" title="1.2.2 一级缓存"></a>1.2.2 一级缓存</h4><p>Mybatis 根据 SQL 的类型共有如下3种 Executor类型，分别是 SIMPLE,  REUSE, BATCH，本文将以 SimpleExecutor为 例来对一级缓存的介绍。</p>
-<p>BaseExecutor#query</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> &lt;E&gt; <span class="function">List&lt;E&gt; <span class="title">query</span><span class="params">(MappedStatement ms, Object parameter, RowBounds rowBounds, ResultHandler resultHandler, CacheKey key, BoundSql boundSql)</span> <span class="keyword">throws</span> SQLException </span>&#123;</span><br><span class="line">    ErrorContext.instance().resource(ms.getResource()).activity(<span class="string">&quot;executing a query&quot;</span>).object(ms.getId());</span><br><span class="line">    <span class="keyword">if</span> (closed) &#123;</span><br><span class="line">      <span class="keyword">throw</span> <span class="keyword">new</span> ExecutorException(<span class="string">&quot;Executor was closed.&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (queryStack == <span class="number">0</span> &amp;&amp; ms.isFlushCacheRequired()) &#123;   <span class="comment">// @1</span></span><br><span class="line">      clearLocalCache();</span><br><span class="line">    &#125;</span><br><span class="line">    List&lt;E&gt; list;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">      queryStack++;                                                              </span><br><span class="line">      list = resultHandler == <span class="keyword">null</span> ? (List&lt;E&gt;) localCache.getObject(key) : <span class="keyword">null</span>;     <span class="comment">// @2</span></span><br><span class="line">      <span class="keyword">if</span> (list != <span class="keyword">null</span>) &#123;</span><br><span class="line">        handleLocallyCachedOutputParameters(ms, key, parameter, boundSql);</span><br><span class="line">      &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        list = queryFromDatabase(ms, parameter, rowBounds, resultHandler, key, boundSql);   <span class="comment">// @3</span></span><br><span class="line">      &#125;</span><br><span class="line">    &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">      queryStack--;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (queryStack == <span class="number">0</span>) &#123;</span><br><span class="line">      <span class="keyword">for</span> (DeferredLoad deferredLoad : deferredLoads) &#123;</span><br><span class="line">        deferredLoad.load();</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="comment">// issue #601</span></span><br><span class="line">      deferredLoads.clear();</span><br><span class="line">      <span class="keyword">if</span> (configuration.getLocalCacheScope() == LocalCacheScope.STATEMENT) &#123;</span><br><span class="line">        <span class="comment">// issue #482</span></span><br><span class="line">        clearLocalCache();</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> list;</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure>
-<p>代码@1：queryStack：查询栈，每次查询之前，加一，查询返回结果后减一，如果为1，表示整个会会话中没有执行的查询语句，并根据 MappedStatement 是否需要执行清除缓存，如果是查询类的请求，无需清除缓存，如果是更新类操作的MappedStatemt，每次执行之前都需要清除缓存。<br>代码@2：如果缓存中存在，直接返回缓存中的数据。<br>代码@3：如果缓存未命中，则调用 queryFromDatabase 从数据中查询。</p>
-<p>我们顺便看一下 queryFromDatabase 方法，再来看一下一级缓存的实现类。</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> &lt;E&gt; <span class="function">List&lt;E&gt; <span class="title">queryFromDatabase</span><span class="params">(MappedStatement ms, Object parameter, RowBounds rowBounds, ResultHandler resultHandler, CacheKey key, BoundSql boundSql)</span> <span class="keyword">throws</span> SQLException </span>&#123;</span><br><span class="line">   List&lt;E&gt; list;</span><br><span class="line">   localCache.putObject(key, EXECUTION_PLACEHOLDER);   <span class="comment">//@!</span></span><br><span class="line">   <span class="keyword">try</span> &#123;</span><br><span class="line">     list = doQuery(ms, parameter, rowBounds, resultHandler, boundSql);   <span class="comment">// @2</span></span><br><span class="line">   &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">     localCache.removeObject(key);                                                            <span class="comment">// @3</span></span><br><span class="line">   &#125;</span><br><span class="line">   localCache.putObject(key, list);                                                              <span class="comment">// @4</span></span><br><span class="line">   <span class="keyword">if</span> (ms.getStatementType() == StatementType.CALLABLE) &#123;</span><br><span class="line">     localOutputParameterCache.putObject(key, parameter);</span><br><span class="line">   &#125;</span><br><span class="line">   <span class="keyword">return</span> list;</span><br><span class="line"> &#125;</span><br></pre></td></tr></table></figure>
-<p>代码@1：先往本地遍历存储一个厂里，表示正在执行中。<br>代码@2：从数据中查询数据。<br>代码@3：先移除正在执行中的标记。<br>代码@4：将数据库中的值存储到一级缓存中。</p>
-<p>可以看出一级缓存的属性为 localCache，为 Executor 的属性。如果大家看过笔者发布的这个 Mybatis 系列就能轻易得出一个结论，每一个 SQL 会话对应一个 SqlSession 对象，每一个 SqlSession 会对应一个 Executor 对象，故 Executor 级别的缓存即为Session 级别的缓存，即为 Mybatis 的一级缓存。</p>
-<p>上面已经介绍了一二级缓存的查找与添加，在查询的时候，首先查询缓存，如果缓存未命中，则查询数据库，然后将查询到的结果存入缓存中。</p>
-<p>下面我们来简单看看缓存的更新。</p>
-<h2 id="2、从SQL更新流程看一二级缓存"><a href="#2、从SQL更新流程看一二级缓存" class="headerlink" title="2、从SQL更新流程看一二级缓存"></a>2、从SQL更新流程看一二级缓存</h2><p>从更新的角度，更加的是关注缓存的更新，即当数据发生变化后，如果清除对应的缓存。</p>
+<p>代码@2：创建 SmoothBursty 对象。</p>
+<p>代码@3：调用 setRate API 设置其速率器。<br>接下来我们对其进行展开。</p>
+<h5 id="3-1-1-SmoothBursty-构造函数"><a href="#3-1-1-SmoothBursty-构造函数" class="headerlink" title="3.1.1 SmoothBursty 构造函数"></a>3.1.1 SmoothBursty 构造函数</h5><p>SmoothBursty 构造函数</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">SmoothBursty(SleepingStopwatch stopwatch, <span class="keyword">double</span> maxBurstSeconds) &#123;</span><br><span class="line">    <span class="keyword">super</span>(stopwatch);</span><br><span class="line">    <span class="keyword">this</span>.maxBurstSeconds = maxBurstSeconds;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这里主要是为 stopWatch 与 maxBurstSeconds 赋值，其中 maxBurstSeconds 为允许的突发流量的时间，这里默认为 1.0，表示一秒，会影响最大可存储的许可数。</p>
+<h5 id="3-1-2-RateLimiter-setRate-方法详解"><a href="#3-1-2-RateLimiter-setRate-方法详解" class="headerlink" title="3.1.2 RateLimiter setRate 方法详解"></a>3.1.2 RateLimiter setRate 方法详解</h5><p>RateLimiter#setRate</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">final</span> <span class="keyword">void</span> <span class="title">setRate</span><span class="params">(<span class="keyword">double</span> permitsPerSecond)</span> </span>&#123;</span><br><span class="line">    checkArgument(</span><br><span class="line">        permitsPerSecond &gt; <span class="number">0.0</span> &amp;&amp; !Double.isNaN(permitsPerSecond), <span class="string">&quot;rate must be positive&quot;</span>);</span><br><span class="line">    <span class="keyword">synchronized</span> (mutex()) &#123; <span class="comment">// @1</span></span><br><span class="line">      doSetRate(permitsPerSecond, stopwatch.readMicros()); <span class="comment">// @2</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>代码@1：该方法需要获取该类的监视器，在同步代码块中执行，实现线程安全性。</p>
+<p>代码@2：调用 doSetRate 设置速率，将调用其具体实现类 SmoothRateLimiter 的 doSetRate 方法。</p>
+<p>SmoothRateLimiter#doSetRate</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">final</span> <span class="keyword">void</span> <span class="title">doSetRate</span><span class="params">(<span class="keyword">double</span> permitsPerSecond, <span class="keyword">long</span> nowMicros)</span> </span>&#123; <span class="comment">// @1</span></span><br><span class="line">    resync(nowMicros);   <span class="comment">// @2</span></span><br><span class="line">    <span class="keyword">double</span> stableIntervalMicros = SECONDS.toMicros(<span class="number">1L</span>) / permitsPerSecond;  <span class="comment">// @3</span></span><br><span class="line">    <span class="keyword">this</span>.stableIntervalMicros = stableIntervalMicros;                                              </span><br><span class="line">    doSetRate(permitsPerSecond, stableIntervalMicros);                                      <span class="comment">// @4</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>代码@1：先来介绍一下该方法的参数的含义：</p>
+<ul>
+<li>double permitsPerSecond<br>每秒的许可数，即TPS。</li>
+<li>long nowMicros<br>系统已运行时间。</li>
+</ul>
+<p>代码@2：基于当前时间重置 SmoothRateLimiter 内部的 storedPermits (已存储的许可数量) 与 nextFreeTicketMicros (下一次可以免费获取许可的时间) 值，所谓的免费指的是无需等待就可以获取设定速率的许可，该方法对理解限流许可的产生非常关键，稍后详细介绍。</p>
           <!--noindex-->
           <div class="post-button text-center">
-            <a class="btn" href="/posts/36b32da.html#more" rel="contents">
-              阅读全文 &raquo;
-            </a>
-          </div>
-          <!--/noindex-->
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="https://geekdingw.github.io/posts/3e30e205.html">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="中间件兴趣圈">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/posts/3e30e205.html" itemprop="url">源码分析Mybatis插件(Plugin)机制与实战</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-12-09T23:07:35+08:00">
-                2020-12-09
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/mybatis/" itemprop="url" rel="index">
-                    <span itemprop="name">mybatis</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/posts/3e30e205.html#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count valine-comment-count" data-xid="/posts/3e30e205.html" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-             <span id="/posts/3e30e205.html" class="leancloud_visitors" data-flag-title="源码分析Mybatis插件(Plugin)机制与实战">
-               <span class="post-meta-divider">|</span>
-               <span class="post-meta-item-icon">
-                 <i class="fa fa-eye"></i>
-               </span>
-               
-                 <span class="post-meta-item-text">阅读次数&#58;</span>
-               
-                 <span class="leancloud-visitors-count"></span>
-             </span>
-          
-
-          
-
-          
-            <div class="post-wordcount">
-              
-                
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-file-word-o"></i>
-                </span>
-                
-                  <span class="post-meta-item-text">字数统计&#58;</span>
-                
-                <span title="字数统计">
-                  2.8k 字
-                </span>
-              
-
-              
-                <span class="post-meta-divider">|</span>
-              
-
-              
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-clock-o"></i>
-                </span>
-                
-                  <span class="post-meta-item-text">阅读时长 &asymp;</span>
-                
-                <span title="阅读时长">
-                  11 分钟
-                </span>
-              
-            </div>
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          <blockquote>
-<p>温馨提示：本文也是以提问式阅读与探究源码的技巧展示。</p>
-</blockquote>
-<h2 id="1、回顾"><a href="#1、回顾" class="headerlink" title="1、回顾"></a>1、回顾</h2><p>从前面的文章我们已经知道，Mybatis在执行SQL语句的扩展点为Executor、StatementHandler、ParameterHandler与ResultSetHandler，我们本节将以Executor为入口，向大家展示Mybatis插件的扩展机制。</p>
-<p>我们先来看回顾一下Mybatis Executor的创建入口。</p>
-<h3 id="1-1-Configuration-newExecutor"><a href="#1-1-Configuration-newExecutor" class="headerlink" title="1.1 Configuration#newExecutor"></a>1.1 Configuration#newExecutor</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> Executor <span class="title">newExecutor</span><span class="params">(Transaction transaction, ExecutorType executorType)</span> </span>&#123;</span><br><span class="line">  executorType = executorType == <span class="keyword">null</span> ? defaultExecutorType : executorType;</span><br><span class="line">  executorType = executorType == <span class="keyword">null</span> ? ExecutorType.SIMPLE : executorType;</span><br><span class="line">  Executor executor;</span><br><span class="line">  <span class="keyword">if</span> (ExecutorType.BATCH == executorType) &#123;</span><br><span class="line">    executor = <span class="keyword">new</span> BatchExecutor(<span class="keyword">this</span>, transaction);</span><br><span class="line">  &#125; <span class="keyword">else</span> <span class="keyword">if</span> (ExecutorType.REUSE == executorType) &#123;</span><br><span class="line">    executor = <span class="keyword">new</span> ReuseExecutor(<span class="keyword">this</span>, transaction);</span><br><span class="line">  &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">    executor = <span class="keyword">new</span> SimpleExecutor(<span class="keyword">this</span>, transaction);</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">if</span> (cacheEnabled) &#123;</span><br><span class="line">    executor = <span class="keyword">new</span> CachingExecutor(executor);</span><br><span class="line">  &#125;</span><br><span class="line">  executor = (Executor) interceptorChain.pluginAll(executor);   <span class="comment">// @1</span></span><br><span class="line">  <span class="keyword">return</span> executor;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>代码@1,：使用InterceptorChain.pluginAll(executor)进行拆件化处理。</p>
-<p>思考：使用该方法调用后，会返回一个什么对象呢？如何自定义拆件，自定义插件如何执行呢？</p>
-<p>那接下来我们带着上述疑问，从InterceptorChain类开始进行深入学习。</p>
-<h2 id="2、InterceptorChain"><a href="#2、InterceptorChain" class="headerlink" title="2、InterceptorChain"></a>2、InterceptorChain</h2><p>从名字上看其大意为拦截器链。</p>
-<h3 id="2-1-类图"><a href="#2-1-类图" class="headerlink" title="2.1 类图"></a>2.1 类图</h3><p><img src="https://img-blog.csdnimg.cn/20190530205753805.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"></p>
-<ul>
-<li>InterceptorChain<br>拦截器链，其内部维护一个interceptors,表示拦截器链中所有的拦截器，并提供增加或获取拦截器链的方法，下面会重点分析pluginAll方法。</li>
-<li>Interceptor<br>拦截器接口，用户自定义的拦截器需要实现该接口。</li>
-<li>Invocation<br>拦截器执行时的上下文环境，其实就是目标方法的调用信息，包含目标对象、调用的方法信息、参数信息。其中包含一个非常重要的方法：proceed。<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> Object <span class="title">proceed</span><span class="params">()</span> <span class="keyword">throws</span> InvocationTargetException, IllegalAccessException </span>&#123;</span><br><span class="line">  <span class="keyword">return</span> method.invoke(target, args);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-该方法的主要目的就是进行处理链的传播，执行完拦截器的方法后，最终需要调用目标方法的invoke方法。</li>
-</ul>
-<p>记下来中先重点分析一下InterceptorChain方法的pluginAll方法，因为从开头也知道,Mybatis在创建对象时，是调用该方法，完成目标对象的包装。</p>
-          <!--noindex-->
-          <div class="post-button text-center">
-            <a class="btn" href="/posts/3e30e205.html#more" rel="contents">
+            <a class="btn" href="/posts/f4f9d0d8.html#more" rel="contents">
               阅读全文 &raquo;
             </a>
           </div>
@@ -2499,7 +2548,7 @@
               
                 <a href="/archives/">
               
-                  <span class="site-state-item-count">118</span>
+                  <span class="site-state-item-count">117</span>
                   <span class="site-state-item-name">日志</span>
                 </a>
               </div>
@@ -2592,7 +2641,7 @@
 
 
 
-  <div class="theme-info">主题 &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Pisces</a> v5.1.4</div>
+  <div class="theme-info">主题 &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Muse</a> v5.1.4</div>
 
 
 
@@ -2711,13 +2760,6 @@
 
   
   
-
-
-  <script type="text/javascript" src="/js/src/affix.js?v=5.1.4"></script>
-
-  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.1.4"></script>
-
-
 
   
 

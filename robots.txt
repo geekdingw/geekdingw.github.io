@@ -10,5 +10,5 @@ Disallow: /fonts/
 Disallow: /vendors/
 Disallow: /fancybox/
 
-Sitemap: https://geekdingw.github.io/sitemap.xml
-Sitemap: https://geekdingw.github.io/baidusitemap.xml
+Sitemap: https://www.codingw.net/sitemap.xml
+Sitemap: https://www.codingw.net/baidusitemap.xml
