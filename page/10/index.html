@@ -287,6 +287,250 @@
   
   
   <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="https://www.codingw.net/posts/e7bbdda0.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="中间件兴趣圈">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/posts/e7bbdda0.html" itemprop="url">Sentinel 调用上下文环境实现原理</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-09-21T22:45:35+08:00">
+                2020-09-21
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/sentinel/" itemprop="url" rel="index">
+                    <span itemprop="name">sentinel</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/posts/e7bbdda0.html#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count valine-comment-count" data-xid="/posts/e7bbdda0.html" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+             <span id="/posts/e7bbdda0.html" class="leancloud_visitors" data-flag-title="Sentinel 调用上下文环境实现原理">
+               <span class="post-meta-divider">|</span>
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               
+                 <span class="post-meta-item-text">阅读次数&#58;</span>
+               
+                 <span class="leancloud-visitors-count"></span>
+             </span>
+          
+
+          
+
+          
+            <div class="post-wordcount">
+              
+                
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-file-word-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">字数统计&#58;</span>
+                
+                <span title="字数统计">
+                  2.4k 字
+                </span>
+              
+
+              
+                <span class="post-meta-divider">|</span>
+              
+
+              
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-clock-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">阅读时长 &asymp;</span>
+                
+                <span title="阅读时长">
+                  9 分钟
+                </span>
+              
+            </div>
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          <p>用源码与图解的方式详细探究 Sentinel 调用上下文环境是如何管理的。</p>
+<p>本节将详细介绍 Sentienl 的上下文环境管理机制。</p>
+<h2 id="1、Sentinel-Context-调用上下文环境管理"><a href="#1、Sentinel-Context-调用上下文环境管理" class="headerlink" title="1、Sentinel Context 调用上下文环境管理"></a>1、Sentinel Context 调用上下文环境管理</h2><p>我们从  sentinel-apache-dubbo-adapter 模块的 SentinelDubboProviderFilter 的实现中不难看出，在其入口处会首先调用 ContextUtil.enter(resourceName, application) 。那我们就从该方法开始来探究上下文环境管理机制。</p>
+<p>说到 Sentinel 的调用上下文环境，那调用上下文环境中会保存哪些信息呢？我们先来看看 Context。</p>
+<h4 id="1-1-Context-详解"><a href="#1-1-Context-详解" class="headerlink" title="1.1 Context 详解"></a>1.1 Context 详解</h4><p>Context 类图如下：<br><img src="https://img-blog.csdnimg.cn/2020011209183558.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"></p>
+<ul>
+<li><p>Context<br>其核心属性与核心方法如下：</p>
+<ul>
+<li>String name<br>Sentinel 调用上下文环境的名称。</li>
+<li>DefaultNode entranceNode<br>调用链的入口节点信息。</li>
+<li>Entry curEntry<br>调用链中当前节点的信息。</li>
+<li>boolean async<br>是否是异步调用上下文环境。</li>
+<li>Entry<br>保存当前的调用信息，其主要核心属性：</li>
+<li>private long createTime<br>资源调用的时间戳。</li>
+<li>private Node curNode<br>该资源所对应的实时采集信息。</li>
+<li>protected ResourceWrapper resourceWrapper<br>资源对象。</li>
+</ul>
+</li>
+<li><p>CtEntry<br>同步调用调用信息封装对象。</p>
+</li>
+<li><p>AsyncEntry<br>异步调用调用信息的封装对象。</p>
+</li>
+</ul>
+<p>对应的核心方法将在下文具体用到时再详细介绍。</p>
+<h4 id="1-2-创建调用上下文环境"><a href="#1-2-创建调用上下文环境" class="headerlink" title="1.2 创建调用上下文环境"></a>1.2 创建调用上下文环境</h4><p>ContextUtil#enter</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> Context <span class="title">enter</span><span class="params">(String name, String origin)</span> </span>&#123;  <span class="comment">// @1</span></span><br><span class="line">	<span class="keyword">if</span> (Constants.CONTEXT_DEFAULT_NAME.equals(name)) &#123;</span><br><span class="line">            <span class="keyword">throw</span> <span class="keyword">new</span> ContextNameDefineException(</span><br><span class="line">                <span class="string">&quot;The &quot;</span> + Constants.CONTEXT_DEFAULT_NAME + <span class="string">&quot; can&#x27;t be permit to defined!&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> trueEnter(name, origin);   <span class="comment">// @2</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>代码@1：首先我们来看一下其参数：</p>
+<ul>
+<li>String name<br>上下文环境 Context 的名称。</li>
+<li>String origin<br>该参数的含义在介绍集群限流时会详细介绍，从 dubbo 模块的适配来看，通常该值会传入当前应用的 application 名称。</li>
+</ul>
+<p>代码@2：通过调用内部的 trueEnter 方法。</p>
+<p>在进入 trueEnter 方法之前，我们先来看一下 ContextUtil 中两个最核心的属性：<br><img src="https://img-blog.csdnimg.cn/20200112092204338.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>首先使用 ThreadLocal 对象来存储线程上下文环境对象 Context。Map&lt;String, DefaultNode&gt; contextNameNodeMap ，其键为 context 的名称，用来缓存其对应的 EntranceNode 。</p>
+<p>ContextUtil#trueEnter</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">protected</span> <span class="keyword">static</span> Context <span class="title">trueEnter</span><span class="params">(String name, String origin)</span> </span>&#123;</span><br><span class="line">    Context context = contextHolder.get();   <span class="comment">// @1 </span></span><br><span class="line">    <span class="keyword">if</span> (context == <span class="keyword">null</span>) &#123;</span><br><span class="line">	Map&lt;String, DefaultNode&gt; localCacheNameMap = contextNameNodeMap;</span><br><span class="line">        DefaultNode node = localCacheNameMap.get(name);   <span class="comment">// @2</span></span><br><span class="line">        <span class="keyword">if</span> (node == <span class="keyword">null</span>) &#123;</span><br><span class="line">		<span class="keyword">if</span> (localCacheNameMap.size() &gt; Constants.MAX_CONTEXT_NAME_SIZE) &#123;   <span class="comment">// @3</span></span><br><span class="line">                 	setNullContext();</span><br><span class="line">               	 	<span class="keyword">return</span> NULL_CONTEXT;</span><br><span class="line">           	 &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                	<span class="keyword">try</span> &#123;</span><br><span class="line">                    		LOCK.lock();</span><br><span class="line">                    		node = contextNameNodeMap.get(name);   <span class="comment">// @4</span></span><br><span class="line">                    		<span class="keyword">if</span> (node == <span class="keyword">null</span>) &#123;</span><br><span class="line">                        		<span class="keyword">if</span> (contextNameNodeMap.size() &gt; Constants.MAX_CONTEXT_NAME_SIZE) &#123;  </span><br><span class="line">                            			setNullContext();</span><br><span class="line">                            			<span class="keyword">return</span> NULL_CONTEXT;</span><br><span class="line">                        		&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                           			 node = <span class="keyword">new</span> EntranceNode(<span class="keyword">new</span> StringResourceWrapper(name, EntryType.IN), <span class="keyword">null</span>);  <span class="comment">// @5</span></span><br><span class="line">                            			<span class="comment">// Add entrance node.</span></span><br><span class="line">                            			Constant.ROOT.addChild(node);                                                                                     <span class="comment">// @6</span></span><br><span class="line">						Map&lt;String, DefaultNode&gt; newMap = <span class="keyword">new</span> HashMap&lt;&gt;(contextNameNodeMap.size() + <span class="number">1</span>);</span><br><span class="line">                            			newMap.putAll(contextNameNodeMap);</span><br><span class="line">                            			newMap.put(name, node);</span><br><span class="line">                            			contextNameNodeMap = newMap;</span><br><span class="line">                        		&#125;</span><br><span class="line">                    		&#125;</span><br><span class="line">                	&#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">                    		LOCK.unlock();</span><br><span class="line">               		&#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        context = <span class="keyword">new</span> Context(node, name);    <span class="comment">// @7</span></span><br><span class="line">        context.setOrigin(origin);</span><br><span class="line">        contextHolder.set(context);    <span class="comment">// @8</span></span><br><span class="line">   &#125;</span><br><span class="line">  <span class="keyword">return</span> context;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>代码@1：从 threadLocal 中获取 Context 对象，线程首次获取时为空。</p>
+<p>代码@2：根据 context 的名称尝试从缓存中去找对应的 Node，通常是 EntranceNode。即用来表示入口的节点Node 为 EntranceNode。</p>
+<p>代码@3：如果 localCacheNameMap 已缓存的对象容量默认超过2000，则不纳入 Sentinel 限流，熔断等机制中来，即一个应用，默认不能定义 2000个 资源统计入口，以 一个 Dubbo 服务为例，一个 Dubbo 服务应用，如果超过2000个服务，则超过的部分不会应用 Sentinel 限流与熔断机制。</p>
+<p>代码@4：锁应用的经典场景，dubbo check。</p>
+<p>代码@5：为该 context name 创建一个对应的 EntranceNode。</p>
+<p>代码@6：将创建的 EntranceNode 加入到根节点的子节点中，稍后重点讨论一下。</p>
+<p>代码@7：创建 Context 对象，将 Context 对象中的入口节点设置为 新创建的 EntranceNode。</p>
+<p>代码@8：将新创建的 Context 对象存入当前线程本地环境变量中(ThreadLocal)。</p>
+<p>接下来先来探讨代码@6 Constants.ROOT.addChild(node)。</p>
+<p>在 Sentinel 中，会定义一个固定根节点，其定义如下：<br><img src="https://img-blog.csdnimg.cn/20200112092324439.png" alt="在这里插入图片描述"><br>其资源名称为：machine-root。addChild 方法就是将节点添加到如下数据结构中：<br><img src="https://img-blog.csdnimg.cn/20200112092345428.png" alt="在这里插入图片描述"></p>
+<h4 id="1-3-移除调用上下文环境"><a href="#1-3-移除调用上下文环境" class="headerlink" title="1.3 移除调用上下文环境"></a>1.3 移除调用上下文环境</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">exit</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    Context context = contextHolder.get();</span><br><span class="line">    <span class="keyword">if</span> (context != <span class="keyword">null</span> &amp;&amp; context.getCurEntry() == <span class="keyword">null</span>) &#123;</span><br><span class="line">        contextHolder.set(<span class="keyword">null</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>退出当前上下文环境，这里有一个条件就是当前的上下文环境的当前调用节点已经退出，否则无法移除，故使用建议：ContextUtil . exit 一定要在持有的 Entry 退出之后再调用。</p>
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/posts/e7bbdda0.html#more" rel="contents">
+              阅读全文 &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
     <link itemprop="mainEntityOfPage" href="https://www.codingw.net/posts/a815ae71.html">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -2228,233 +2472,6 @@
 
 
     
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="https://www.codingw.net/posts/26a08b7d.html">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="中间件兴趣圈">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/posts/26a08b7d.html" itemprop="url">Lambda表达式语法与函数式编程接口</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-09-10T22:23:35+08:00">
-                2020-09-10
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/java8/" itemprop="url" rel="index">
-                    <span itemprop="name">java8</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/posts/26a08b7d.html#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count valine-comment-count" data-xid="/posts/26a08b7d.html" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-             <span id="/posts/26a08b7d.html" class="leancloud_visitors" data-flag-title="Lambda表达式语法与函数式编程接口">
-               <span class="post-meta-divider">|</span>
-               <span class="post-meta-item-icon">
-                 <i class="fa fa-eye"></i>
-               </span>
-               
-                 <span class="post-meta-item-text">阅读次数&#58;</span>
-               
-                 <span class="leancloud-visitors-count"></span>
-             </span>
-          
-
-          
-
-          
-            <div class="post-wordcount">
-              
-                
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-file-word-o"></i>
-                </span>
-                
-                  <span class="post-meta-item-text">字数统计&#58;</span>
-                
-                <span title="字数统计">
-                  3.8k 字
-                </span>
-              
-
-              
-                <span class="post-meta-divider">|</span>
-              
-
-              
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-clock-o"></i>
-                </span>
-                
-                  <span class="post-meta-item-text">阅读时长 &asymp;</span>
-                
-                <span title="阅读时长">
-                  16 分钟
-                </span>
-              
-            </div>
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          <h2 id="1、lambda语法初探"><a href="#1、lambda语法初探" class="headerlink" title="1、lambda语法初探"></a>1、lambda语法初探</h2><p>java8 lambda表达式语法的两种格式：</p>
-<ul>
-<li>(parameters)  -&gt;  expression</li>
-<li>(parameters) -&gt; {statements;}</li>
-</ul>
-<p>语法解读：</p>
-<ol>
-<li>(parameters)，lambda表达式的参数列表，其定义方法为JAVA普通的方法相同，例如(Object a, Object b)。</li>
-<li>-&gt; 箭头，是参数列表与lambda表达式主题部分的分隔符号。</li>
-<li>expression 单表达式</li>
-<li>{statements; } 语句。</li>
-</ol>
-<p>测试：如下语句是否是正确的lambda表达式。<br>(1)  () -&gt; {}<br>(2)  () -&gt; “Raoul”<br>(3)  () -&gt; {return “Mario”;}<br>(4)  (Integer i) -&gt; return “Alan” + i;<br>(5)  (String s) -&gt; {“IronMan”;}</p>
-<p>正解：<br>(1) 正确。如果使用匿名类(接口名统一使用IDemoLambda)表示如下：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"> new IDemoLambda() &#123;</span><br><span class="line">     public void test() &#123;</span><br><span class="line">     &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>(2)正确。如果使用匿名类(接口名统一使用IDemoLambda)表示如下：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"> new IDemoLambda() &#123;</span><br><span class="line">     public String test() &#123;</span><br><span class="line">           return &quot;Raoul&quot;;  &#x2F;&#x2F; 如果直接接一个值，表示返回该值</span><br><span class="line">     &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>(3)正确。如果使用匿名类(接口名统一使用IDemoLambda)表示如下：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"> new IDemoLambda() &#123;</span><br><span class="line">     public String test() &#123;</span><br><span class="line">          return &quot;Mario&quot;;</span><br><span class="line">     &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>(4)错误。因为return是流程控制语句，表示返回，不是一个表达式，故不符合lambda语法，正确的表示方法应该是 (Integer i) -&gt;{ return “Alan” + i;}。如果使用匿名类(接口名统一使用IDemoLambda)表示如下：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"> new IDemoLambda() &#123;</span><br><span class="line">     public String test(Integer i) &#123;</span><br><span class="line">          return &quot;Alan&quot; + i;</span><br><span class="line">     &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>(5)错误。因为”IronMan”是一个表达式，并不是一个语句，故不能使用{}修饰，应修改为 (String s) -&gt; “IronMan”。如果使用匿名类(接口名统一使用IDemoLambda)表示如下：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"> new IDemoLambda() &#123;</span><br><span class="line">     public String test(String s) &#123;</span><br><span class="line">          return &quot;IronMan&quot;;</span><br><span class="line">     &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<h2 id="2、初步接触函数式接口"><a href="#2、初步接触函数式接口" class="headerlink" title="2、初步接触函数式接口"></a>2、初步接触函数式接口</h2><p>在java8中，一个接口如果只定义了一个抽象方法，那这个接口就可以称为函数式接口，就可以使用lambda表达式来简化程序代码。Lambda表达式可以直接赋值给变量，也可以直接作为参数传递给函数，示例如下：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">public static void startThread(Runnable a) &#123;</span><br><span class="line">    (new Thread(a)).start();</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">public static void main(String[] args) &#123;</span><br><span class="line">    &#x2F;&#x2F; lambda表达式可以直接赋值给变量，也可以直接以参数的形式传递给方法、</span><br><span class="line">    Runnable a &#x3D; () -&gt; &#123;</span><br><span class="line">        System.out.println(&quot;Hello World,Lambda...&quot;);</span><br><span class="line">    &#125;;</span><br><span class="line">    &#x2F;&#x2F; JDK8之前使用匿名类来实现</span><br><span class="line">    Runnable b &#x3D; new Runnable() &#123;</span><br><span class="line">        @Override</span><br><span class="line">        public void run() &#123;</span><br><span class="line">            System.out.println(&quot;Hello World,Lambda...&quot;);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;;</span><br><span class="line">    startThread(a);</span><br><span class="line">    startThread(() -&gt; &#123;</span><br><span class="line">        System.out.println(&quot;Hello World,Lambda...&quot;);</span><br><span class="line">    &#125;);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>那能将(int a) -&gt; {System.out.println(“Hello World, Lambda…”);}表达式赋值给Runnable a变量吗？答案是不能，因为该表达式不符合函数式编程接口(Runnable)唯一抽象方法的函数签名列表。<br>Runnable的函数式签名列表为public abstract void run();</p>
-<blockquote>
-<p>温馨提示：如果我们有留意JDK8的Runnable接口的定义，你会发现给接口相对JDK8之前的版本多了一个注解：@FunctionalInterface，该注解是一个标识注解，用来标识这个接口是一个函数式接口。如果我们人为在一个不满足函数式定义的接口上增加@FunctionalInterface，则会在编译时提示错误。</p>
-</blockquote>
-          <!--noindex-->
-          <div class="post-button text-center">
-            <a class="btn" href="/posts/26a08b7d.html#more" rel="contents">
-              阅读全文 &raquo;
-            </a>
-          </div>
-          <!--/noindex-->
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
   </section>
 
   
@@ -2505,7 +2522,7 @@
               
                 <a href="/archives/">
               
-                  <span class="site-state-item-count">118</span>
+                  <span class="site-state-item-count">119</span>
                   <span class="site-state-item-name">日志</span>
                 </a>
               </div>
@@ -2527,7 +2544,7 @@
               
               <div class="site-state-item site-state-tags">
                 <a href="/tags/index.html">
-                  <span class="site-state-item-count">190</span>
+                  <span class="site-state-item-count">193</span>
                   <span class="site-state-item-name">标签</span>
                 </a>
               </div>
@@ -2585,7 +2602,7 @@
     
       <span class="post-meta-item-text">Site words total count&#58;</span>
     
-    <span title="Site words total count">309.8k</span>
+    <span title="Site words total count">313.2k</span>
   
 </div>
 
