@@ -81,15 +81,31 @@
 
 
 
-<meta name="description" content="关注微信公众号「中间件兴趣圈」，第一时间获取最新干货！">
-<meta property="og:type" content="website">
-<meta property="og:title" content="中间件兴趣圈">
-<meta property="og:url" content="https://www.codingw.net/archives/index.html">
+<meta name="description" content="上一篇详细介绍了Netty的编解码的基本实现原理，本节将重点探讨网络编程中一种非常通用的协议设计方法论：协议头 + 消息体。 所谓的通信协议就是通信双方共同遵循的一种“约定”，用于通信发送方将内容按照“通信协议”所规定的格式组装成“二进制流”，通信接收方按照“通信协议”所规定的格式正确的从二进制流中解码出一个个原始请求。 那通信协议如何设计呢？">
+<meta property="og:type" content="article">
+<meta property="og:title" content="一文揭晓通信协议设计的奥妙，直接“秒杀“面试官">
+<meta property="og:url" content="https://www.codingw.net/posts/ff6cd24b.html">
 <meta property="og:site_name" content="中间件兴趣圈">
-<meta property="og:description" content="关注微信公众号「中间件兴趣圈」，第一时间获取最新干货！">
+<meta property="og:description" content="上一篇详细介绍了Netty的编解码的基本实现原理，本节将重点探讨网络编程中一种非常通用的协议设计方法论：协议头 + 消息体。 所谓的通信协议就是通信双方共同遵循的一种“约定”，用于通信发送方将内容按照“通信协议”所规定的格式组装成“二进制流”，通信接收方按照“通信协议”所规定的格式正确的从二进制流中解码出一个个原始请求。 那通信协议如何设计呢？">
 <meta property="og:locale">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/2021010315133342.png#pic_center">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/2021010315383066.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/20210103161101564.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/20210103162758778.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/20210103163914626.png">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/20210103164503153.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/2021010316591174.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/20210103173012169.png#pic_center">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/20210103174100193.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/20210103210634448.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/20210103211439214.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/20210103212109895.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/20201231115902671.jpg?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center">
+<meta property="article:published_time" content="2021-01-03T14:20:39.000Z">
+<meta property="article:modified_time" content="2021-01-03T14:28:07.640Z">
 <meta property="article:author" content="中间件兴趣圈">
 <meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://img-blog.csdnimg.cn/2021010315133342.png#pic_center">
 
 
 
@@ -119,13 +135,13 @@
 
 
 
-  <link rel="canonical" href="https://www.codingw.net/archives/"/>
+  <link rel="canonical" href="https://www.codingw.net/posts/ff6cd24b.html"/>
 
 
 
 
 
-  <title>归档 | 中间件兴趣圈</title>
+  <title>一文揭晓通信协议设计的奥妙，直接“秒杀“面试官 | 中间件兴趣圈</title>
   
 
 
@@ -144,7 +160,7 @@
     
   
 
-  <div class="container sidebar-position-left page-archive">
+  <div class="container sidebar-position-left page-post-detail">
     <div class="headband"></div>
 
     <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
@@ -272,415 +288,307 @@
           <div id="content" class="content">
             
 
+  <div id="posts" class="posts-expand">
+    
+
+  
+
   
   
   
-  <div class="post-block archive">
-    <div id="posts" class="posts-collapse">
-      <span class="archive-move-on"></span>
 
-      <span class="archive-page-counter">
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="https://www.codingw.net/posts/ff6cd24b.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="中间件兴趣圈">
+    </span>
+
+    
+      <header class="post-header">
+
         
         
-         
+          <h1 class="post-title" itemprop="name headline">一文揭晓通信协议设计的奥妙，直接“秒杀“面试官</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2021-01-03T22:20:39+08:00">
+                2021-01-03
+              </time>
+            
+
+            
+
+            
+          </span>
+
           
-        很好! 目前共计 120 篇日志。 继续努力。
-      </span>
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/netty/" itemprop="url" rel="index">
+                    <span itemprop="name">netty</span>
+                  </a>
+                </span>
 
-      
+                
+                
+                  ， 
+                
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/netty/%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B/" itemprop="url" rel="index">
+                    <span itemprop="name">网络编程</span>
+                  </a>
+                </span>
 
-        
-        
-        
+                
+                
+                  ， 
+                
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/netty/%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B/%E9%80%9A%E8%AE%AF%E5%8D%8F%E8%AE%AE/" itemprop="url" rel="index">
+                    <span itemprop="name">通讯协议</span>
+                  </a>
+                </span>
 
-        
+                
+                
+              
+            </span>
           
-          <div class="collection-title">
-            <h1 class="archive-year" id="archive-year-2021">2021</h1>
-          </div>
-        
-        
 
-        
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-    <header class="post-header">
-
-      <h2 class="post-title">
-        
-            <a class="post-title-link" href="/posts/ff6cd24b.html" itemprop="url">
-              
-                <span itemprop="name">一文揭晓通信协议设计的奥妙，直接“秒杀“面试官</span>
-              
-            </a>
-        
-      </h2>
-
-      <div class="post-meta">
-        <time class="post-time" itemprop="dateCreated"
-              datetime="2021-01-03T22:20:39+08:00"
-              content="2021-01-03" >
-          01-03
-        </time>
-      </div>
-
-    </header>
-  </article>
-
-
-
-      
-
-        
-        
-        
-
-        
           
-          <div class="collection-title">
-            <h1 class="archive-year" id="archive-year-2020">2020</h1>
-          </div>
-        
-        
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/posts/ff6cd24b.html#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count valine-comment-count" data-xid="/posts/ff6cd24b.html" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
 
-        
+          
+          
+             <span id="/posts/ff6cd24b.html" class="leancloud_visitors" data-flag-title="一文揭晓通信协议设计的奥妙，直接“秒杀“面试官">
+               <span class="post-meta-divider">|</span>
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               
+                 <span class="post-meta-item-text">阅读次数&#58;</span>
+               
+                 <span class="leancloud-visitors-count"></span>
+             </span>
+          
 
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-    <header class="post-header">
+          
+            <span class="post-meta-divider">|</span>
+            <span class="page-pv"><i class="fa fa-file-o"></i>
+            <span class="busuanzi-value" id="busuanzi_value_page_pv" ></span>
+            </span>
+          
 
-      <h2 class="post-title">
-        
-            <a class="post-title-link" href="/posts/cd43c662.html" itemprop="url">
+          
+            <div class="post-wordcount">
               
-                <span itemprop="name">图文并茂剖析Netty编解码以及背后的设计理念</span>
+                
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-file-word-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">字数统计&#58;</span>
+                
+                <span title="字数统计">
+                  2.1k 字
+                </span>
               
-            </a>
-        
-      </h2>
 
-      <div class="post-meta">
-        <time class="post-time" itemprop="dateCreated"
-              datetime="2020-12-31T12:06:35+08:00"
-              content="2020-12-31" >
-          12-31
-        </time>
-      </div>
+              
+                <span class="post-meta-divider">|</span>
+              
 
-    </header>
-  </article>
+              
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-clock-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">阅读时长 &asymp;</span>
+                
+                <span title="阅读时长">
+                  7 分钟
+                </span>
+              
+            </div>
+          
 
+          
 
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
 
       
-
-        
-        
-        
-
-        
-        
-
-        
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-    <header class="post-header">
-
-      <h2 class="post-title">
-        
-            <a class="post-title-link" href="/posts/8956924f.html" itemprop="url">
-              
-                <span itemprop="name">从年末生产故障解锁RocketMQ集群部署最佳实践</span>
-              
-            </a>
-        
-      </h2>
-
-      <div class="post-meta">
-        <time class="post-time" itemprop="dateCreated"
-              datetime="2020-12-27T10:06:35+08:00"
-              content="2020-12-27" >
-          12-27
-        </time>
-      </div>
-
-    </header>
-  </article>
-
-
-
       
 
-        
-        
-        
-
-        
-        
-
-        
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-    <header class="post-header">
-
-      <h2 class="post-title">
-        
-            <a class="post-title-link" href="/posts/5cfc78e.html" itemprop="url">
-              
-                <span itemprop="name">源码阅读方法、误区与三种境界</span>
-              
-            </a>
-        
-      </h2>
-
-      <div class="post-meta">
-        <time class="post-time" itemprop="dateCreated"
-              datetime="2020-12-20T18:31:26+08:00"
-              content="2020-12-20" >
-          12-20
-        </time>
-      </div>
-
-    </header>
-  </article>
-
-
-
       
+        <div id="vip-container"><p>上一篇详细介绍了Netty的编解码的基本实现原理，本节将重点探讨网络编程中一种非常通用的协议设计方法论：<strong>协议头 + 消息体</strong>。</p>
+<p>所谓的通信协议就是通信双方共同遵循的一种“约定”，用于通信发送方将内容按照“通信协议”所规定的格式组装成<strong>“二进制流”</strong>，通信接收方按照“通信协议”所规定的格式正确的从二进制流中解码出一个个原始请求。</p>
+<p><strong>那通信协议如何设计呢？</strong></p>
+<a id="more"></a>
 
-        
-        
-        
+<h2 id="1、通用的协议设计方法论"><a href="#1、通用的协议设计方法论" class="headerlink" title="1、通用的协议设计方法论"></a>1、通用的协议设计方法论</h2><p>在网络编程中，流行这一种经典的协议设计方法论：协议头 + 消息体。<br><img src="https://img-blog.csdnimg.cn/2021010315133342.png#pic_center" alt="在这里插入图片描述">其设计的关键点如下：</p>
+<ul>
+<li><strong>协议头的长度是固定的</strong>，通常为<strong>识别</strong>出<strong>一个业务的最小长度</strong>。</li>
+<li>协议头中会包含一个<strong>长度字段</strong>，用来标识一个完整包的长度，用来表示长度字段的字节位数直接决定了一个包的最大长度，长度字段通常被设计为4个字节。</li>
+<li>消息体中存储业务数据，例如如果是一个Dubbo协议，那消息体中可能会包含请求参数、调用的服务名等，而且字符串类的存储通常会采取字段长度、字段内容的组织方式。</li>
+</ul>
+<p>为了有一个更直观的展示，我以一个简单的RPC通信场景为例，实现类似Dubbo服务的远程服务调用，其通信协议可以简单设置成下图所示：<br><img src="https://img-blog.csdnimg.cn/2021010315383066.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br>基于 Header + Boby 的通信协议设计模式后，通信接受方就能很好的从二进制流中非常容易的解码出一条一条原始的请求数据包，解码的基本套路如下(<strong>在面试中面试官非常喜欢问的“粘包”问题的破解之道</strong>)</p>
+<ul>
+<li>首先判断<strong>累积缓存区</strong>中是否存在一个<strong>完整的Head头部</strong>，例如上述示例中，一个包的Header的长度为6个字节，那首先判断累积缓存中可读字节数是否大于等于6，<strong>如果不足6个字节，跳过本次处理，等待更多数据到达累积缓存区</strong>。</li>
+<li>尝试将头部6个字节读取，并且<strong>提取长度字段中存储的数值</strong>，即包长度，然后判断累积缓存区中可读字节数大于等于整个包的长度，<strong>如果累积缓存区不包含一个完整的数据包，则跳过本次处理，等待更多数据到达累积缓存区。</strong></li>
+<li>如果包含一个完整的包，则按照通信协议的格式按序读取相关的内容。</li>
+</ul>
+<p>正是因为这种设计理念非常通用，Netty 对上述协议设计进行了统一封装：LengthFieldBasedFrameDecoder 闪亮登场了，<strong>接下来我们来看看Netty是如何进行封装的，揭晓更多的实现细节，让大家做到理论与实践相结合。</strong></p>
+<h2 id="2、LengthFieldBasedFrameDecoder-详解"><a href="#2、LengthFieldBasedFrameDecoder-详解" class="headerlink" title="2、LengthFieldBasedFrameDecoder 详解"></a>2、LengthFieldBasedFrameDecoder 详解</h2><h4 id="2-1-概述"><a href="#2-1-概述" class="headerlink" title="2.1 概述"></a>2.1 概述</h4><p><img src="https://img-blog.csdnimg.cn/20210103161101564.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br>接下来对其核心属性进行一个详细的解读：</p>
+<ul>
+<li>ByteOrder byteOrder<br>字节序列，Netty默认使用大端序列（主要是针对int、long等数值类型），所谓的大端序列，通常可以这样理解，接收端收到的字节流的顺序是从数值类型的高字节。</li>
+<li>int maxFrameLength<br>一条消息最大的长度。</li>
+<li>int lengthFieldOffset<br>代表长度字段的开始偏移量。</li>
+<li>int lengthFieldLength<br>代表长度字段占用的字节长度。</li>
+<li>int lengthFieldEndOffset<br>代表长度字段的结束偏移量，等于lengthFieldOffset + lengthFieldLength。</li>
+<li>int lengthAdjustment<br>长度适配适配值。该值表示协议中长度字段与消息体字段直接的距离。</li>
+<li>int initialBytesToStrip<br>跳过一个包中前面多少个字节不处理，<strong>通常是将协议头部跳过，只将消息体中内容传输到下游时使用</strong>。</li>
+<li>boolean failFast<br>是否快速失败。</li>
+<li> boolean discardingTooLongFrame<br>是否吞没（跳过）大帧包。</li>
+<li>long tooLongFrameLength<br>当前在处理吞没大包的实际大小。</li>
+<li>long bytesToDiscard</li>
+</ul>
+<p><strong>下一次解码之前，需要先忽略的字节数</strong>，当遇到超过maxFrameLength的包时使用。</p>
+<p>上面的属性如果不太好理解，没关系，**因为本节的最后会有两张图勾画出协议的全貌(用图示的方式勾画出各个属性的位置与含义)**。</p>
+<h4 id="2-2-decode-方法详解"><a href="#2-2-decode-方法详解" class="headerlink" title="2.2 decode 方法详解"></a>2.2 decode 方法详解</h4><p>接下来我们来看一下其decode方法，通过阅读源码的方法来理解其内部的工作原理。</p>
+<p>LengthFieldBasedFrameDecoder#decode<br><img src="https://img-blog.csdnimg.cn/20210103162758778.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br>Step1：跳过无效数据包的处理逻辑。如果<strong>discardingTooLongFrame</strong>为true，表示正在处理<strong>大于**</strong>maxFrameLength<strong>的包，需要跳过这个超长的包，不对其解码，由于数据是陆续到达累积缓存区，并不能一次跳过整个无效包，故需引入 bytesToDiscard 变量，用于记录本次能跳过的字节，当 bytesToDiscard 为 0后表示一个无效包已全部跳过，需要处理正常数据包，此时discardingTooLongFrame 会重置为 false。<br><img src="https://img-blog.csdnimg.cn/20210103163914626.png" alt="LengthFieldBasedFrameDecoder#decode"><br>Step2：</strong>如果累积缓冲区的可读字节大小小于length字段的结束偏移量<strong>，返回null，结束解码，说明该累积缓存区中的数据还不完整。<br><img src="https://img-blog.csdnimg.cn/20210103164503153.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>Step3：尝试从累积缓存区中获取包的长度。其中表示 lengthFiedlOffset 表示长度字段的其实偏移量，在结合长度字段的长度 lengthFieldLength ，再结合字节序列</strong>（大端序列、小端序列）**。<br><img src="https://img-blog.csdnimg.cn/2021010316591174.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>Step4：这里是包长度超过协议允许的最大包长度时的处理逻辑，再这里大家先姑且跳过 lengthAdjustment 属性的含义。</p>
+<ul>
+<li>如果当前累积缓存区中的可读字节大于 frameLength，大于当前包的长度，可以通过调用 skipBytes 方法跳过这包。</li>
+<li>如果当前累积缓存区的可读自己小于 frmaeLength，需要分多次跳过，故先将累积区中的数据全部跳过，然后通过 bytesToDiscard 记录还需要跳过的字节数。</li>
+</ul>
+<p><img src="https://img-blog.csdnimg.cn/20210103173012169.png#pic_center" alt="在这里插入图片描述"><br>Step5：<strong>如果累积缓存区中的数据不包含一个完整的包，返回null，结束本次解码，等待更多的数据包到到来。</strong><br><img src="https://img-blog.csdnimg.cn/20210103174100193.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>Step6：通过 ByteBuf 的 slince 方法，提取一个完整的包长度，解码出完整的数据包，完成一个数据包解码。</p>
+<h4 id="2-3-图解-LengthFieldBasedFrame-协议"><a href="#2-3-图解-LengthFieldBasedFrame-协议" class="headerlink" title="2.3 图解 LengthFieldBasedFrame 协议"></a>2.3 图解 LengthFieldBasedFrame 协议</h4><p>在Netty 的 LengthFieldBasedFrameDecoder 中有一个 lengthAdjustment 属性，可以是正数，也可以是负数，其使用的代码片段如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">frameLength += lengthAdjustment + lengthFieldEndOffset</span><br></pre></td></tr></table></figure>
+<p>lengthAdjustment 长度调整字段，可以为正数，也可以为负数，主要的作用是 长度字段中的值是否包含 Header 长度本身，严格意义上来说应该是包含 长度字段之前的字节序列。</p>
+<p>1、lengthAdjustment &gt; 0<br><img src="https://img-blog.csdnimg.cn/20210103210634448.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br>2、lengthAdjustment &lt; 0<br>在大多数情况下，length字段表示消息正文的长度，但是有些协议，其长度表示的是整个消息的长度，故Netty为了适配这种情况，可以通过 lengthAdjustment 设置为负数，来调节数据帧的大小。<br><img src="https://img-blog.csdnimg.cn/20210103211439214.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br><strong>总结</strong>：lengthAdjustment 的出现是Netty<strong>为了适配现有的协议而设计出来的字段</strong>，即 Netty LengthFieldBasedFrameDecoder 是为了i给 header + body ，并且基于长度字段的协议一种通用的解决方案，可以通过 lengthAdjustment 来准确表示数据帧(业务数据的长度)，这里是一种<strong>逆向思维</strong>。</p>
+<h2 id="3、协议设计子类的最佳实践"><a href="#3、协议设计子类的最佳实践" class="headerlink" title="3、协议设计子类的最佳实践"></a>3、协议设计子类的最佳实践</h2><p><strong>最佳实践：</strong> LengthFieldBasedFrameDecoder 的 decode 方法的职责是从二进制流中解码出一个完整的数据包，其返回类型还是 ByteBuf，故自定义的编码解码器的 decode 方法就是先调用父类的 decode 方法 得到 ByteBuf ，然后对 ByteBuf 中的数据解码出对象。</p>
+<p>即 LengthFieldBasedFrameDecoder 并不负责将 ByteBuf 转换为协议对象，而是从二进制流中解码出一个数据帧，而将ByteBuf 转换为协议对象的职责由其子类实现，通常的编码风格如下：<br><img src="https://img-blog.csdnimg.cn/20210103212109895.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"></p>
+<hr>
+<p>更多文章建议关注『中间件兴趣圈』，回复【专栏】获取12个JAVA主流中间件源码剖析，并包含大量实战案例、架构设计理念；回复【PDF】可获取海量学习资料，助力突破职场瓶颈。</p>
+<p><img src="https://img-blog.csdnimg.cn/20201231115902671.jpg?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"></p>
+</div>
 
-        
-        
-
-        
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-    <header class="post-header">
-
-      <h2 class="post-title">
-        
-            <a class="post-title-link" href="/posts/be152999.html" itemprop="url">
-              
-                <span itemprop="name">Netty4 事件处理传播机制</span>
-              
-            </a>
-        
-      </h2>
-
-      <div class="post-meta">
-        <time class="post-time" itemprop="dateCreated"
-              datetime="2020-12-19T22:11:01+08:00"
-              content="2020-12-19" >
-          12-19
-        </time>
-      </div>
-
-    </header>
-  </article>
-
-
-
+			<script src="https://my.openwrite.cn/js/readmore.js" type="text/javascript"></script>
+			<script>
+			var isMobile = navigator.userAgent.match(/(phone|pad|pod|iPhone|iPod|ios|iPad|Android|Mobile|BlackBerry|IEMobile|MQQBrowser|JUC|Fennec|wOSBrowser|BrowserNG|WebOS|Symbian|Windows Phone)/i);
+			if (!isMobile) {
+			    var btw = new BTWPlugin();
+			    btw.init({
+			        "id": "vip-container",
+			        "blogId": "18019-1573088808868-542",
+			        "name": "中间件兴趣圈",
+			        "qrcode": "https://img-blog.csdnimg.cn/20190314214003962.jpg",
+			        "keyword": "more"
+			    });
+			}
+			</script>
+		
       
-
-        
-        
-        
-
-        
-        
-
-        
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-    <header class="post-header">
-
-      <h2 class="post-title">
-        
-            <a class="post-title-link" href="/posts/6c0cb4a9.html" itemprop="url">
-              
-                <span itemprop="name">源码分析RateLimiter SmoothWarmingUp 实现原理(文末附流程图)</span>
-              
-            </a>
-        
-      </h2>
-
-      <div class="post-meta">
-        <time class="post-time" itemprop="dateCreated"
-              datetime="2020-12-18T22:53:35+08:00"
-              content="2020-12-18" >
-          12-18
-        </time>
-      </div>
-
-    </header>
-  </article>
-
-
-
-      
-
-        
-        
-        
-
-        
-        
-
-        
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-    <header class="post-header">
-
-      <h2 class="post-title">
-        
-            <a class="post-title-link" href="/posts/a6ee7996.html" itemprop="url">
-              
-                <span itemprop="name">源码分析RocketMQ ACL实现机制</span>
-              
-            </a>
-        
-      </h2>
-
-      <div class="post-meta">
-        <time class="post-time" itemprop="dateCreated"
-              datetime="2020-12-17T22:20:35+08:00"
-              content="2020-12-17" >
-          12-17
-        </time>
-      </div>
-
-    </header>
-  </article>
-
-
-
-      
-
-        
-        
-        
-
-        
-        
-
-        
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-    <header class="post-header">
-
-      <h2 class="post-title">
-        
-            <a class="post-title-link" href="/posts/e8f03b64.html" itemprop="url">
-              
-                <span itemprop="name">源码分析RocketMQ消息轨迹</span>
-              
-            </a>
-        
-      </h2>
-
-      <div class="post-meta">
-        <time class="post-time" itemprop="dateCreated"
-              datetime="2020-12-15T22:01:35+08:00"
-              content="2020-12-15" >
-          12-15
-        </time>
-      </div>
-
-    </header>
-  </article>
-
-
-
-      
-
-        
-        
-        
-
-        
-        
-
-        
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-    <header class="post-header">
-
-      <h2 class="post-title">
-        
-            <a class="post-title-link" href="/posts/e3c7511d.html" itemprop="url">
-              
-                <span itemprop="name">AtomicIntegerArray源码分析与感悟.</span>
-              
-            </a>
-        
-      </h2>
-
-      <div class="post-meta">
-        <time class="post-time" itemprop="dateCreated"
-              datetime="2020-12-14T19:53:01+08:00"
-              content="2020-12-14" >
-          12-14
-        </time>
-      </div>
-
-    </header>
-  </article>
-
-
-
-      
-
-        
-        
-        
-
-        
-        
-
-        
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-    <header class="post-header">
-
-      <h2 class="post-title">
-        
-            <a class="post-title-link" href="/posts/a061d56c.html" itemprop="url">
-              
-                <span itemprop="name">Dubbo Filter机制概述</span>
-              
-            </a>
-        
-      </h2>
-
-      <div class="post-meta">
-        <time class="post-time" itemprop="dateCreated"
-              datetime="2020-12-12T19:10:01+08:00"
-              content="2020-12-12" >
-          12-12
-        </time>
-      </div>
-
-    </header>
-  </article>
-
-
-
-      
-
     </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/posts/cd43c662.html" rel="next" title="图文并茂剖析Netty编解码以及背后的设计理念">
+                <i class="fa fa-chevron-left"></i> 图文并茂剖析Netty编解码以及背后的设计理念
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
   </div>
   
   
   
-
-  
-  <nav class="pagination">
-    <span class="page-number current">1</span><a class="page-number" href="/archives/page/2/">2</a><span class="space">&hellip;</span><a class="page-number" href="/archives/page/12/">12</a><a class="extend next" rel="next" href="/archives/page/2/">下一页</a>
-  </nav>
+  </article>
 
 
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
 
 
           </div>
@@ -688,6 +596,13 @@
 
 
           
+
+  
+    <div class="comments" id="comments">
+    </div>
+  
+
+
 
         </div>
         
@@ -708,8 +623,17 @@
       
 
       
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
 
-      <section class="site-overview-wrap sidebar-panel sidebar-panel-active">
+      <section class="site-overview-wrap sidebar-panel">
         <div class="site-overview">
           <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
             
@@ -776,6 +700,22 @@
         </div>
       </section>
 
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#1%E3%80%81%E9%80%9A%E7%94%A8%E7%9A%84%E5%8D%8F%E8%AE%AE%E8%AE%BE%E8%AE%A1%E6%96%B9%E6%B3%95%E8%AE%BA"><span class="nav-number">1.</span> <span class="nav-text">1、通用的协议设计方法论</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2%E3%80%81LengthFieldBasedFrameDecoder-%E8%AF%A6%E8%A7%A3"><span class="nav-number">2.</span> <span class="nav-text">2、LengthFieldBasedFrameDecoder 详解</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#2-1-%E6%A6%82%E8%BF%B0"><span class="nav-number">2.0.1.</span> <span class="nav-text">2.1 概述</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-2-decode-%E6%96%B9%E6%B3%95%E8%AF%A6%E8%A7%A3"><span class="nav-number">2.0.2.</span> <span class="nav-text">2.2 decode 方法详解</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-3-%E5%9B%BE%E8%A7%A3-LengthFieldBasedFrame-%E5%8D%8F%E8%AE%AE"><span class="nav-number">2.0.3.</span> <span class="nav-text">2.3 图解 LengthFieldBasedFrame 协议</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3%E3%80%81%E5%8D%8F%E8%AE%AE%E8%AE%BE%E8%AE%A1%E5%AD%90%E7%B1%BB%E7%9A%84%E6%9C%80%E4%BD%B3%E5%AE%9E%E8%B7%B5"><span class="nav-number">3.</span> <span class="nav-text">3、协议设计子类的最佳实践</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
       
 
       
@@ -938,6 +878,10 @@
   
 
   
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.4"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.4"></script>
+
+
 
   
 
