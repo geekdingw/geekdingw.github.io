@@ -287,6 +287,215 @@
   
   
   <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="https://www.codingw.net/posts/3c69fbc4.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="中间件兴趣圈">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/posts/3c69fbc4.html" itemprop="url">java Reference 引用学习总结</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-09-11T23:12:35+08:00">
+                2020-09-11
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/java/" itemprop="url" rel="index">
+                    <span itemprop="name">java</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/posts/3c69fbc4.html#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count valine-comment-count" data-xid="/posts/3c69fbc4.html" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+             <span id="/posts/3c69fbc4.html" class="leancloud_visitors" data-flag-title="java Reference 引用学习总结">
+               <span class="post-meta-divider">|</span>
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               
+                 <span class="post-meta-item-text">阅读次数&#58;</span>
+               
+                 <span class="leancloud-visitors-count"></span>
+             </span>
+          
+
+          
+
+          
+            <div class="post-wordcount">
+              
+                
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-file-word-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">字数统计&#58;</span>
+                
+                <span title="字数统计">
+                  2.1k 字
+                </span>
+              
+
+              
+                <span class="post-meta-divider">|</span>
+              
+
+              
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-clock-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">阅读时长 &asymp;</span>
+                
+                <span title="阅读时长">
+                  8 分钟
+                </span>
+              
+            </div>
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          <h2 id="1、Java引用的类型"><a href="#1、Java引用的类型" class="headerlink" title="1、Java引用的类型"></a>1、Java引用的类型</h2><p>强引用、软引用(java.lang.ref.SoftReference)、弱引用(java.lang.ref.WeakReference)、虚引用(　java.lang.ref.PhantomReference　)。</p>
+<p>java默认的引用类型为强引用，比如 Object a = new Object();其中 a 为强引用，new Object()为一个具体的对象。</p>
+<p>至于软应用，弱引用，虚引用，就是 JAVA 虚拟机管理对象的范畴了，可以这样理解，SoftReference、WeakReference、PlantomReference 只是一种标记，JAVA 虚拟机在垃圾回收时，对上述不同的标记【引用的对象】采取不同的措施。采取措施如下：</p>
+<ul>
+<li><p>软引用(SoftReference)：当内存足够时，该引用【引用的对象】不会被回收，那什么是内存足够呢？进行年轻代的垃圾回收不会触发SoftReference所指向对象的回收,如果触发Full GC，那SoftReference所指向的对象将被回收。</p>
+</li>
+<li><p>弱引用(WeakReference) :当进行年轻代垃圾回收时，该引用指向的对象，就会被回收。</p>
+</li>
+<li><p>虚引用(PhantomeReference) 该引用指向的对象，无法对垃圾收集器收集对象时产生任何影响，唯一有用的是，如果被垃圾收集器收集的对象，被PhantomeReference标记，垃圾收集器会通过注册在PhantomeReference上的队列来通知应用程序，该引用指向的对象，已经被垃圾收集器回收。</p>
+</li>
+</ul>
+<p>从上文的描述，也清楚的知道，上述应用是直接JVM打交道，更直接的说是与垃圾回收器直接的交互。</p>
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/posts/3c69fbc4.html#more" rel="contents">
+              阅读全文 &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
     <link itemprop="mainEntityOfPage" href="https://www.codingw.net/posts/26a08b7d.html">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -2244,209 +2453,6 @@
 
 
     
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="https://www.codingw.net/posts/be0ab616.html">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="中间件兴趣圈">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/posts/be0ab616.html" itemprop="url">RocketMQ 消息发送system busy、broker busy原因分析与解决方案</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-09-01T22:23:35+08:00">
-                2020-09-01
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/rocketmq/" itemprop="url" rel="index">
-                    <span itemprop="name">rocketmq</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/posts/be0ab616.html#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count valine-comment-count" data-xid="/posts/be0ab616.html" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-             <span id="/posts/be0ab616.html" class="leancloud_visitors" data-flag-title="RocketMQ 消息发送system busy、broker busy原因分析与解决方案">
-               <span class="post-meta-divider">|</span>
-               <span class="post-meta-item-icon">
-                 <i class="fa fa-eye"></i>
-               </span>
-               
-                 <span class="post-meta-item-text">阅读次数&#58;</span>
-               
-                 <span class="leancloud-visitors-count"></span>
-             </span>
-          
-
-          
-
-          
-            <div class="post-wordcount">
-              
-                
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-file-word-o"></i>
-                </span>
-                
-                  <span class="post-meta-item-text">字数统计&#58;</span>
-                
-                <span title="字数统计">
-                  3.4k 字
-                </span>
-              
-
-              
-                <span class="post-meta-divider">|</span>
-              
-
-              
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-clock-o"></i>
-                </span>
-                
-                  <span class="post-meta-item-text">阅读时长 &asymp;</span>
-                
-                <span title="阅读时长">
-                  12 分钟
-                </span>
-              
-            </div>
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          <h2 id="1、现象"><a href="#1、现象" class="headerlink" title="1、现象"></a>1、现象</h2><p>最近收到很多RocketMQ使用者，反馈生产环境中在消息发送过程中偶尔会出现如下4个错误信息之一：<br>1）[REJECTREQUEST]system busy, start flow control for a while<br>2）too many requests and system thread pool busy, RejectedExecutionException<br>3）[PC_SYNCHRONIZED]broker busy, start flow control for a while<br>4）[PCBUSY_CLEAN_QUEUE]broker busy, start flow control for a while, period in queue: %sms, size of queue: %d</p>
-<h2 id="2、原理解读"><a href="#2、原理解读" class="headerlink" title="2、原理解读"></a>2、原理解读</h2><p>在进行消息中间件的选型时，如果待选中间件在功能上、性能上都能满足业务的情况下，建议把中间件的实现语言这个因素也考虑进去，毕竟选择一门用自己擅长的语言实现的中间件会更具掌控性。在出现异常的情况下，我们可以根据自己的经验提取错误信息关键字system busy，在RocketMQ源码中直接搜索，得到抛出上述错误信息的代码如下：<br><img src="https://img-blog.csdnimg.cn/20190618213541816.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>其代码入口为：org.apache.rocketmq.remoting.netty.NettyRemotingAbstract#processRequestCommand。从图中可以看出，抛出上述错误的关键原因是：pair.getObject1().rejectRequest()和抛出RejectedExecutionException异常。</p>
-<blockquote>
-<p>备注：本文偏实战，源码只是作为分析的重点证据，故本文只会点出关键源码，并不会详细跟踪其整个实现流程，如果想详细了解其实现，可以查阅笔者编著的《RocketMQ技术内幕》。</p>
-</blockquote>
-<h3 id="2-1-RocketMQ-网络处理机制概述"><a href="#2-1-RocketMQ-网络处理机制概述" class="headerlink" title="2.1 RocketMQ 网络处理机制概述"></a>2.1 RocketMQ 网络处理机制概述</h3><p>RocketMQ的网络设计非常值得我们学习与借鉴，首先在客户端端将不同的请求定义不同的请求命令CODE，服务端会将客户端请求进行分类，每个命令或每类请求命令定义一个处理器(NettyRequestProcessor)，然后每一个NettyRequestProcessor绑定到一个单独的线程池，进行命令处理，不同类型的请求将使用不同的线程池进行处理，实现线程隔离。</p>
-          <!--noindex-->
-          <div class="post-button text-center">
-            <a class="btn" href="/posts/be0ab616.html#more" rel="contents">
-              阅读全文 &raquo;
-            </a>
-          </div>
-          <!--/noindex-->
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
   </section>
 
   
@@ -2497,7 +2503,7 @@
               
                 <a href="/archives/">
               
-                  <span class="site-state-item-count">119</span>
+                  <span class="site-state-item-count">120</span>
                   <span class="site-state-item-name">日志</span>
                 </a>
               </div>
@@ -2508,7 +2514,7 @@
               
               <div class="site-state-item site-state-categories">
                 <a href="/categories/index.html">
-                  <span class="site-state-item-count">16</span>
+                  <span class="site-state-item-count">19</span>
                   <span class="site-state-item-name">分类</span>
                 </a>
               </div>
@@ -2563,7 +2569,7 @@
 
     <footer id="footer" class="footer">
       <div class="footer-inner">
-        <div class="copyright">&copy; <span itemprop="copyrightYear">2020</span>
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2021</span>
   <span class="with-love">
     <i class="fa fa-user"></i>
   </span>
@@ -2577,7 +2583,7 @@
     
       <span class="post-meta-item-text">Site words total count&#58;</span>
     
-    <span title="Site words total count">313.2k</span>
+    <span title="Site words total count">315.3k</span>
   
 </div>
 
