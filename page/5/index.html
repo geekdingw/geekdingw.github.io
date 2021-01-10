@@ -287,6 +287,233 @@
   
   
   <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="https://www.codingw.net/posts/5b656c60.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="中间件兴趣圈">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/posts/5b656c60.html" itemprop="url">MySQL技术内幕-InnoDB存储引擎读写笔记(性能调优)</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-11-14T22:35:01+08:00">
+                2020-11-14
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/mysql/" itemprop="url" rel="index">
+                    <span itemprop="name">mysql</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/posts/5b656c60.html#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count valine-comment-count" data-xid="/posts/5b656c60.html" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+             <span id="/posts/5b656c60.html" class="leancloud_visitors" data-flag-title="MySQL技术内幕-InnoDB存储引擎读写笔记(性能调优)">
+               <span class="post-meta-divider">|</span>
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               
+                 <span class="post-meta-item-text">阅读次数&#58;</span>
+               
+                 <span class="leancloud-visitors-count"></span>
+             </span>
+          
+
+          
+
+          
+            <div class="post-wordcount">
+              
+                
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-file-word-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">字数统计&#58;</span>
+                
+                <span title="字数统计">
+                  2.1k 字
+                </span>
+              
+
+              
+                <span class="post-meta-divider">|</span>
+              
+
+              
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-clock-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">阅读时长 &asymp;</span>
+                
+                <span title="阅读时长">
+                  7 分钟
+                </span>
+              
+            </div>
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          <h2 id="1、CPU"><a href="#1、CPU" class="headerlink" title="1、CPU"></a>1、CPU</h2><p>数据库一般是IO密集型的，其性能瓶颈在于IO。数据库服务器的选购偏内存，CPU可以适当降低其要求。</p>
+<p>InnoDB存储引擎相关后台线程：</p>
+<p>show engine innodb status\G;</p>
+<p>  <img src="https://img-blog.csdn.net/20170717201302449?watermark/2/text/aHR0cDovL2Jsb2cuY3Nkbi5uZXQvcHJlc3RpZ2VkaW5n/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70/gravity/Center" alt="img"><img src="data:image/gif;base64,R0lGODlhAQABAPABAP///wAAACH5BAEKAAAALAAAAAABAAEAAAICRAEAOw==" alt="点击并拖拽以移动"></p>
+<ul>
+<li><p>插入缓冲区线程 <a target="_blank" rel="noopener" href="http://www.cnblogs.com/yuyue2014/p/3802779.html">http://www.cnblogs.com/yuyue2014/p/3802779.html</a><br>InnoDB insert buffer thread 线程主要是更新非唯一索引的索引数据，避免频繁随机的读写索引文件。（索引数据存放在表默认表空间中）</p>
+</li>
+<li><p>log thread : InnoDB的默认指的就是redo日志,log thread 就是写 redo 日志的线程。</p>
+</li>
+<li><p>read thread | write thread 读、写日志线程（文件 《—-》内存）</p>
+<p>根据CPU适当调节innodb_read_io_threads与innodb_write_io_threads</p>
+</li>
+</ul>
+<h2 id="2、内存"><a href="#2、内存" class="headerlink" title="2、内存"></a>2、内存</h2><p>内存的大小最能直接反应数据库的性能。InnoDB存储引擎既缓存数据，又缓存索引（存放在数据文件中，表空间），并放入一个很大的缓冲池中(InnoDB Buffer Pool)。</p>
+<p>innodb_buffer_pool的大小如果能等于数据文件的大小，则能缓存所有的数据文件，性能会得到极高的提升（innodb_buffer_pool_size）,如何判断当前数据库的内存是否达到了瓶颈了呢。</p>
+<p>mysql提供  show global status 命令查看系统运行状况监控，（INFORMATION_SCHEMA GLOBAL_STATUS临时表）。</p>
+<p><img src="https://img-blog.csdn.net/20170717201359777?watermark/2/text/aHR0cDovL2Jsb2cuY3Nkbi5uZXQvcHJlc3RpZ2VkaW5n/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70/gravity/Center" alt="img"><img src="data:image/gif;base64,R0lGODlhAQABAPABAP///wAAACH5BAEKAAAALAAAAAABAAEAAAICRAEAOw==" alt="点击并拖拽以移动"></p>
+<p>关注如下参数：</p>
+<ul>
+<li><p>innodb_buffer_pool_reads: 从物理磁盘读取页的次数</p>
+</li>
+<li><p>innodb_buffer_pool_read_ahead:预读的次数</p>
+</li>
+<li><p>innodb_buffer_pool_read_ahead_evicted:预读的页，但没有被读取就从缓冲区被替换的也的数量，一般用来判断预读的效率。</p>
+</li>
+<li><p>innodb_buffer_pool_read_requests:从缓冲池中读取页的次数（可以理解为缓冲命中次数）</p>
+</li>
+<li><p>innodb_data_read:总共读入的字节数</p>
+</li>
+<li><p>innodb_data_reads:发起读请求的次数</p>
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/posts/5b656c60.html#more" rel="contents">
+              阅读全文 &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
     <link itemprop="mainEntityOfPage" href="https://www.codingw.net/posts/4d11b991.html">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -2178,219 +2405,11 @@
 
 
     
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="https://www.codingw.net/posts/398539d9.html">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="中间件兴趣圈">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/posts/398539d9.html" itemprop="url">源码分析Dubbo负载算法</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-11-03T23:31:01+08:00">
-                2020-11-03
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/dubbo/" itemprop="url" rel="index">
-                    <span itemprop="name">dubbo</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/posts/398539d9.html#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count valine-comment-count" data-xid="/posts/398539d9.html" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-             <span id="/posts/398539d9.html" class="leancloud_visitors" data-flag-title="源码分析Dubbo负载算法">
-               <span class="post-meta-divider">|</span>
-               <span class="post-meta-item-icon">
-                 <i class="fa fa-eye"></i>
-               </span>
-               
-                 <span class="post-meta-item-text">阅读次数&#58;</span>
-               
-                 <span class="leancloud-visitors-count"></span>
-             </span>
-          
-
-          
-
-          
-            <div class="post-wordcount">
-              
-                
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-file-word-o"></i>
-                </span>
-                
-                  <span class="post-meta-item-text">字数统计&#58;</span>
-                
-                <span title="字数统计">
-                  4.2k 字
-                </span>
-              
-
-              
-                <span class="post-meta-divider">|</span>
-              
-
-              
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-clock-o"></i>
-                </span>
-                
-                  <span class="post-meta-item-text">阅读时长 &asymp;</span>
-                
-                <span title="阅读时长">
-                  20 分钟
-                </span>
-              
-            </div>
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          <p>Dubbo支持在服务调用方对服务提供者采用负载均衡算法，LoadBalance 接口定义如下：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">@SPI(RandomLoadBalance.NAME)</span><br><span class="line">public interface LoadBalance &#123;</span><br><span class="line"></span><br><span class="line">	&#x2F;**</span><br><span class="line">	 * select one invoker in list.</span><br><span class="line">	 * </span><br><span class="line">	 * @param invokers invokers.</span><br><span class="line">	 * @param url refer url</span><br><span class="line">	 * @param invocation invocation.</span><br><span class="line">	 * @return selected invoker.</span><br><span class="line">	 *&#x2F;</span><br><span class="line">    @Adaptive(&quot;loadbalance&quot;)</span><br><span class="line">	&lt;T&gt; Invoker&lt;T&gt; select(List&lt;Invoker&lt;T&gt;&gt; invokers, URL url, Invocation invocation) throws RpcException;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>从中透露出如下几个信息：默认如果不配置，使用RandomLoadBalance策略(加权随机负载算法）。整个Dubbo的负载均衡类图如下所示：<br><img src="https://img-blog.csdn.net/20180706123312775?watermark/2/text/aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70" alt="这里写图片描述"><br>上述各种路由负载策略，对应的配置值如下：dubbo-cluster\src\main\resources\META-INF\dubbo\internal\com.alibaba.dubbo.rpc.cluster.LoadBalance</p>
-<ul>
-<li>random<br> random=com.alibaba.dubbo.rpc.cluster.loadbalance.RandomLoadBalance</li>
-<li>roundrobin<br> roundrobin=com.alibaba.dubbo.rpc.cluster.loadbalance.RoundRobinLoadBalance</li>
-<li>leastactive<br> leastactive=com.alibaba.dubbo.rpc.cluster.loadbalance.LeastActiveLoadBalance</li>
-<li>consistenthash<br>consistenthash=com.alibaba.dubbo.rpc.cluster.loadbalance.ConsistentHashLoadBalance<br>其配置使用，通常一般在&lt; dubbo:consumer/&gt;、&lt; dubbo:service /&gt;、&lt; dubbo:reference /&gt;的loadbalance属性配置，通常&lt; dubbo:consumer/&gt;这个属性指定消费端的默认策略，某些服务需要指定特殊负载均衡策略的话，一般通过&lt; dubbo:reference /&gt;来指定。<br>如果各位对其源码实现比较有兴趣的话，可以看接下来的部分，源码分析各种负载算法的具体实现细节。</li>
-</ul>
-<h2 id="1、源码分析ConsistentHashLoadBalance（一致性Hash算法）"><a href="#1、源码分析ConsistentHashLoadBalance（一致性Hash算法）" class="headerlink" title="1、源码分析ConsistentHashLoadBalance（一致性Hash算法）"></a>1、源码分析ConsistentHashLoadBalance（一致性Hash算法）</h2><p><img src="https://img-blog.csdn.net/20180706123621108?watermark/2/text/aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70" alt="这里写图片描述"><br>一致Hash算法，通常用在缓存领域，主要解决的问题是当数据节点数量发送变化后，尽量减少数据的迁移，在负责算法领域，个人不建议使用。Dubbo一致性Hash算法的实现逻辑主要分布在ConsistentHashLoadBalance$ConsistentHashSelector中。</p>
-<h3 id="1-1-核心属性与构造方法"><a href="#1-1-核心属性与构造方法" class="headerlink" title="1.1 核心属性与构造方法"></a>1.1 核心属性与构造方法</h3>
-          <!--noindex-->
-          <div class="post-button text-center">
-            <a class="btn" href="/posts/398539d9.html#more" rel="contents">
-              阅读全文 &raquo;
-            </a>
-          </div>
-          <!--/noindex-->
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
   </section>
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/page/4/">上一页</a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/4/">4</a><span class="page-number current">5</span><a class="page-number" href="/page/6/">6</a><span class="space">&hellip;</span><a class="page-number" href="/page/12/">12</a><a class="extend next" rel="next" href="/page/6/">下一页</a>
+    <a class="extend prev" rel="prev" href="/page/4/">上一页</a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/4/">4</a><span class="page-number current">5</span><a class="page-number" href="/page/6/">6</a><span class="space">&hellip;</span><a class="page-number" href="/page/13/">13</a><a class="extend next" rel="next" href="/page/6/">下一页</a>
   </nav>
 
 
@@ -2436,7 +2455,7 @@
               
                 <a href="/archives/">
               
-                  <span class="site-state-item-count">120</span>
+                  <span class="site-state-item-count">121</span>
                   <span class="site-state-item-name">日志</span>
                 </a>
               </div>
@@ -2458,7 +2477,7 @@
               
               <div class="site-state-item site-state-tags">
                 <a href="/tags/index.html">
-                  <span class="site-state-item-count">193</span>
+                  <span class="site-state-item-count">195</span>
                   <span class="site-state-item-name">标签</span>
                 </a>
               </div>
@@ -2516,7 +2535,7 @@
     
       <span class="post-meta-item-text">Site words total count&#58;</span>
     
-    <span title="Site words total count">315.3k</span>
+    <span title="Site words total count">317.3k</span>
   
 </div>
 
