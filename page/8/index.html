@@ -287,6 +287,217 @@
   
   
   <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="https://www.codingw.net/posts/18c7756d.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="中间件兴趣圈">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/posts/18c7756d.html" itemprop="url">源码分析Mybatis MappedStatement的创建流程</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-10-14T22:51:35+08:00">
+                2020-10-14
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/mybatis/" itemprop="url" rel="index">
+                    <span itemprop="name">mybatis</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/posts/18c7756d.html#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count valine-comment-count" data-xid="/posts/18c7756d.html" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+             <span id="/posts/18c7756d.html" class="leancloud_visitors" data-flag-title="源码分析Mybatis MappedStatement的创建流程">
+               <span class="post-meta-divider">|</span>
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               
+                 <span class="post-meta-item-text">阅读次数&#58;</span>
+               
+                 <span class="leancloud-visitors-count"></span>
+             </span>
+          
+
+          
+
+          
+            <div class="post-wordcount">
+              
+                
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-file-word-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">字数统计&#58;</span>
+                
+                <span title="字数统计">
+                  2.2k 字
+                </span>
+              
+
+              
+                <span class="post-meta-divider">|</span>
+              
+
+              
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-clock-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">阅读时长 &asymp;</span>
+                
+                <span title="阅读时长">
+                  10 分钟
+                </span>
+              
+            </div>
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          <p>上文<a target="_blank" rel="noopener" href="https://blog.csdn.net/prestigeding/article/details/90415680">源码分析Mybatis MapperProxy创建流程</a>重点阐述MapperProxy的创建流程，但并没有介绍*.Mapper.java(UserMapper.java)是如何与*Mapper.xml文件中的SQL语句是如何建立关联的。本文将重点接开这个谜团。</p>
+<p>接下来重点从源码的角度分析Mybatis MappedStatement的创建流程。</p>
+<h2 id="1、上节回顾"><a href="#1、上节回顾" class="headerlink" title="1、上节回顾"></a>1、上节回顾</h2><p>我们注意到这里有两三个与Mapper相关的配置：</p>
+<ol>
+<li>SqlSessionFactory#mapperLocations，指定xml文件的配置路径。</li>
+<li>SqlSessionFactory#configLocation，指定mybaits的配置文件，该配置文件也可以配置mapper.xml的配置路径信息。</li>
+<li>MapperScannerConfigurer，扫描Mapper的java类(DAO)。</li>
+</ol>
+<p>我们已经详细介绍了Mybatis Mapper对象的扫描与构建，那接下来我们将重点介绍MaperProxy与mapper.xml文件是如何建立关联关系的。</p>
+<p>根据上面的罗列以及上文的讲述，Mapper.xml与Mapper建立联系主要的入口有三：<br>1）MapperScannerConfigurer扫描Bean流程中，在调用MapperReigistry#addMapper时如果Mapper对应的映射文件(Mapper.xml)未加载到内存，会触发加载。<br>2）实例化SqlSessionFactory时，如果配置了mapperLocations。<br>3）示例化SqlSessionFactory时，如果配置了configLocation。</p>
+<p>本节的行文思路：从SqlSessionFacotry的初始化开始讲起，因为mapperLocations、configLocation都是是SqlSessionFactory的属性。</p>
+<blockquote>
+<p>温馨提示：下面开始从源码的角度对其进行介绍，大家可以先跳到文末看看其调用序列图。</p>
+</blockquote>
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/posts/18c7756d.html#more" rel="contents">
+              阅读全文 &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
     <link itemprop="mainEntityOfPage" href="https://www.codingw.net/posts/47c4bb93.html">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -2220,225 +2431,6 @@
 
 
     
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="https://www.codingw.net/posts/6a2393aa.html">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="中间件兴趣圈">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/posts/6a2393aa.html" itemprop="url">RocketMQ消息发送常见错误与解决方案</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-10-04T22:46:57+08:00">
-                2020-10-04
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/rocketmq/" itemprop="url" rel="index">
-                    <span itemprop="name">rocketmq</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/posts/6a2393aa.html#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count valine-comment-count" data-xid="/posts/6a2393aa.html" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-             <span id="/posts/6a2393aa.html" class="leancloud_visitors" data-flag-title="RocketMQ消息发送常见错误与解决方案">
-               <span class="post-meta-divider">|</span>
-               <span class="post-meta-item-icon">
-                 <i class="fa fa-eye"></i>
-               </span>
-               
-                 <span class="post-meta-item-text">阅读次数&#58;</span>
-               
-                 <span class="leancloud-visitors-count"></span>
-             </span>
-          
-
-          
-
-          
-            <div class="post-wordcount">
-              
-                
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-file-word-o"></i>
-                </span>
-                
-                  <span class="post-meta-item-text">字数统计&#58;</span>
-                
-                <span title="字数统计">
-                  2.8k 字
-                </span>
-              
-
-              
-                <span class="post-meta-divider">|</span>
-              
-
-              
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-clock-o"></i>
-                </span>
-                
-                  <span class="post-meta-item-text">阅读时长 &asymp;</span>
-                
-                <span title="阅读时长">
-                  10 分钟
-                </span>
-              
-            </div>
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          <p>本文将结合自己使用RocketMQ的经验，对消息发送常见的问题进行分享，基本会遵循出现问题，分析问题、解决问题。</p>
-<h2 id="1、No-route-info-of-this-topic"><a href="#1、No-route-info-of-this-topic" class="headerlink" title="1、No route info of this topic"></a>1、No route info of this topic</h2><p>无法找到路由信息，其完整的错误堆栈信息如下：<br><img src="https://img-blog.csdnimg.cn/20200927212104148.png#pic_center" alt="在这里插入图片描述">而且很多读者朋友会说Broker端开启了自动创建主题也会出现上述问题。</p>
-<p>RocketMQ的路由寻找流程如下图所示：<br><img src="https://img-blog.csdnimg.cn/2020092721214148.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述">上面的核心关键点如下：</p>
-<ul>
-<li>如果Broker开启了自动创建Topic，在启动的时候会默认创建主题：TBW102，并会随着Broker发送到Nameserver的心跳包汇报给Nameserver，继而从Nameserver查询路由信息时能返回路由信息。</li>
-<li>消息发送者在消息发送时首先会查本地缓存，如果本地缓存中存在，直接返回路由信息。</li>
-<li>如果缓存不存在，则向Nameserver查询路由信息，如果Nameserver存在该路由信息，就直接返回。</li>
-<li>如果Nameserver不存在该topic的路由信息，如果没有开启自动创建主题，则抛出 No route info of this topic。</li>
-<li>如果开启了自动创建主题，则使用默认主题向Nameserver查询路由信息，并使用默认Topic的路由信息为自己的路由信息，将不会抛出 No route info of this topic。</li>
-</ul>
-<p>通常情况下 No route info of this topic 这个错误一般是在刚搭建RocketMQ，刚入门 RocketMQ遇到的比较多，通常的排查思路如下：</p>
-<ul>
-<li><p>可以通过rocketmq-console查询路由信息是否存在，或使用如下命令查询路由信息：</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">cd $&#123;ROCKETMQ_HOME&#125;/bin</span><br><span class="line">sh ./mqadmin topicRoute -n 127.0.0.1:9876 -t dw_test_0003</span><br></pre></td></tr></table></figure>
-<p>其输出结果如下所示：<br><img src="https://img-blog.csdnimg.cn/20200927212234119.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"></p>
-</li>
-<li><p>如果通过命令无法查询到路由信息，则查看Broker是否开启了自动创建topic，参数为：autoCreateTopicEnable,该参数默认为true。但在生产环境不建议开启。</p>
-</li>
-<li><p>如果开启了自动创建路由信息，但还是抛出这个错误，这个时候请检查客户端(Producer)连接的Nameserver地址是否与Broker中配置的nameserver地址是否一致。</p>
-</li>
-</ul>
-<p>经过上面的步骤，基本就能解决该错误。</p>
-          <!--noindex-->
-          <div class="post-button text-center">
-            <a class="btn" href="/posts/6a2393aa.html#more" rel="contents">
-              阅读全文 &raquo;
-            </a>
-          </div>
-          <!--/noindex-->
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
   </section>
 
   
@@ -2489,7 +2481,7 @@
               
                 <a href="/archives/">
               
-                  <span class="site-state-item-count">121</span>
+                  <span class="site-state-item-count">122</span>
                   <span class="site-state-item-name">日志</span>
                 </a>
               </div>
@@ -2500,7 +2492,7 @@
               
               <div class="site-state-item site-state-categories">
                 <a href="/categories/index.html">
-                  <span class="site-state-item-count">19</span>
+                  <span class="site-state-item-count">20</span>
                   <span class="site-state-item-name">分类</span>
                 </a>
               </div>
@@ -2569,7 +2561,7 @@
     
       <span class="post-meta-item-text">Site words total count&#58;</span>
     
-    <span title="Site words total count">317.3k</span>
+    <span title="Site words total count">320.1k</span>
   
 </div>
 

@@ -287,6 +287,229 @@
   
   
   <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="https://www.codingw.net/posts/bfa9fca1.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="中间件兴趣圈">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/posts/bfa9fca1.html" itemprop="url">探究java8流收集数据原理</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-08-24T22:43:35+08:00">
+                2020-08-24
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/java8/" itemprop="url" rel="index">
+                    <span itemprop="name">java8</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/posts/bfa9fca1.html#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count valine-comment-count" data-xid="/posts/bfa9fca1.html" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+             <span id="/posts/bfa9fca1.html" class="leancloud_visitors" data-flag-title="探究java8流收集数据原理">
+               <span class="post-meta-divider">|</span>
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               
+                 <span class="post-meta-item-text">阅读次数&#58;</span>
+               
+                 <span class="leancloud-visitors-count"></span>
+             </span>
+          
+
+          
+
+          
+            <div class="post-wordcount">
+              
+                
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-file-word-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">字数统计&#58;</span>
+                
+                <span title="字数统计">
+                  1.7k 字
+                </span>
+              
+
+              
+                <span class="post-meta-divider">|</span>
+              
+
+              
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-clock-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">阅读时长 &asymp;</span>
+                
+                <span title="阅读时长">
+                  6 分钟
+                </span>
+              
+            </div>
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          <p>本文揭示如何学习一门新技术，从示例入手，重点阐述Stream#collect方法的实现原理，为更好的使用java8中流来收集数据。</p>
+<p>我们在前面的文章中反复使用的场景：获取菜单中所有菜品的名称，返回一个集合，其代码如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">test_toList</span><span class="params">(List&lt;Dish&gt; menu)</span> </span>&#123;</span><br><span class="line">    List&lt;String&gt; names = menu.stream().map(Dish::getName)</span><br><span class="line">                        .collect(Collectors.toList()); <span class="comment">// @1</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span>(String s : names) &#123;</span><br><span class="line">        System.out.println(s);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>通过Stream.collect这个终端操作进行数据收集，至于如何收集，则由该方法的参数来决定(Collector)，即行为参数化。</p>
+<p>代码@1：collect(Collectors.toList()) 的意思就是返回List，这里涉及到两个关键，一个是Stream#collect方法，另外一个就是其参数Collectors.toList()。</p>
+<p>接下来我们将以上述两个突破点来揭开如何使用java8的流来收集数据。</p>
+<h2 id="1、Stream-collect"><a href="#1、Stream-collect" class="headerlink" title="1、Stream#collect"></a>1、Stream#collect</h2><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">ReferencePipeline#collect</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">final</span> &lt;R, A&gt; <span class="function">R <span class="title">collect</span><span class="params">(Collector&lt;? <span class="keyword">super</span> P_OUT, A, R&gt; collector)</span> </span>&#123;   <span class="comment">// @1</span></span><br><span class="line">    A container;</span><br><span class="line">    <span class="keyword">if</span> (isParallel()</span><br><span class="line">            &amp;&amp; (collector.characteristics().contains(Collector.Characteristics.CONCURRENT))</span><br><span class="line">            &amp;&amp; (!isOrdered() || collector.characteristics().contains(Collector.Characteristics.UNORDERED))) &#123;   <span class="comment">// @2</span></span><br><span class="line">        container = collector.supplier().get();                                                                 <span class="comment">// @3</span></span><br><span class="line">        BiConsumer&lt;A, ? <span class="keyword">super</span> P_OUT&gt; accumulator = collector.accumulator();</span><br><span class="line">        forEach(u -&gt; accumulator.accept(container, u));</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">else</span> &#123;                                                                                                     <span class="comment">// @4</span></span><br><span class="line">        container = evaluate(ReduceOps.makeRef(collector));                                                                                              </span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> collector.characteristics().contains(Collector.Characteristics.IDENTITY_FINISH)                    <span class="comment">// @5</span></span><br><span class="line">           ? (R) container</span><br><span class="line">           : collector.finisher().apply(container);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>代码@1：函数声明，该方法返回的结果类型为R，传入的行为参数接口为Collector。<br>代码@2：判断是否符合并行化累积与规约的条件。</p>
+<ul>
+<li>是否是并行流，例如上例中创建流的代码为menu.stream()，该方法的流是非并行化流，如果要支持并行化执行，需要满足的第一个条件就是需要使用menu.parallelStream()方法返回的流。</li>
+<li>Collector(收集器，行为化参数)中收集器行为集合中是否包含Characteristics.CONCURRENT(并行执行)，如果不包含该行为，则不支持并行执行。</li>
+<li>原始流是否有顺序 或 者 收集器的行为集合中明确包含Characteristics.UNORDERED(不要求顺序性)。<br>上述三个条件必须同时满足，才能并行执行，否则串行执行。</li>
+</ul>
+<p>代码@3：并行执行收集动作。</p>
+<p>代码@4：串行执行收集动作。</p>
+<p>代码@5：如果收集器收集行为集合中包含Characteristics.IDENTITY_FINISH，则直接返回原始值，否则使用Collector.finishier()方式对计算的值进行函数式计算。</p>
+<p>通过上面的代码，我们应该对Characteristics枚举类型中的3个值不难得出如下类型：</p>
+<ul>
+<li>CONCURRENT<br>收集器行为，表示收集其中的累积函数是否支持并行执行。</li>
+<li>Characteristics.UNORDERED<br>收集器行为，表示整个收集期间，没有顺序要求。</li>
+<li>Characteristics.IDENTITY_FINISH<br>收集器行为，表示可以忽略Collector.finsher()定义的最终转换函数，直接返回累积之后的结果即可。</li>
+</ul>
+<blockquote>
+<p>疑问？代码@3,这段代码不是很好理解，该怎么继续往下深入呢？</p>
+</blockquote>
+<p>针对上面看不太懂的代码，我的处理办法是先转移思路，看一下Collector接口以及示例中Collectos.toList()返回的收集器是什么(重点关注返回的Collector中具体属性)。</p>
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/posts/bfa9fca1.html#more" rel="contents">
+              阅读全文 &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
     <link itemprop="mainEntityOfPage" href="https://www.codingw.net/posts/8b1a2fc4.html">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -554,7 +777,7 @@
               
                 <a href="/archives/">
               
-                  <span class="site-state-item-count">121</span>
+                  <span class="site-state-item-count">122</span>
                   <span class="site-state-item-name">日志</span>
                 </a>
               </div>
@@ -565,7 +788,7 @@
               
               <div class="site-state-item site-state-categories">
                 <a href="/categories/index.html">
-                  <span class="site-state-item-count">19</span>
+                  <span class="site-state-item-count">20</span>
                   <span class="site-state-item-name">分类</span>
                 </a>
               </div>
@@ -634,7 +857,7 @@
     
       <span class="post-meta-item-text">Site words total count&#58;</span>
     
-    <span title="Site words total count">317.3k</span>
+    <span title="Site words total count">320.1k</span>
   
 </div>
 

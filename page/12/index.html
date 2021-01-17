@@ -287,6 +287,216 @@
   
   
   <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="https://www.codingw.net/posts/d198d6eb.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="中间件兴趣圈">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/posts/d198d6eb.html" itemprop="url">RocketMQ 多副本前置篇：初探raft协议</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-09-03T23:40:01+08:00">
+                2020-09-03
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/rocketmq/" itemprop="url" rel="index">
+                    <span itemprop="name">rocketmq</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/posts/d198d6eb.html#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count valine-comment-count" data-xid="/posts/d198d6eb.html" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+             <span id="/posts/d198d6eb.html" class="leancloud_visitors" data-flag-title="RocketMQ 多副本前置篇：初探raft协议">
+               <span class="post-meta-divider">|</span>
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               
+                 <span class="post-meta-item-text">阅读次数&#58;</span>
+               
+                 <span class="leancloud-visitors-count"></span>
+             </span>
+          
+
+          
+
+          
+            <div class="post-wordcount">
+              
+                
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-file-word-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">字数统计&#58;</span>
+                
+                <span title="字数统计">
+                  2.2k 字
+                </span>
+              
+
+              
+                <span class="post-meta-divider">|</span>
+              
+
+              
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-clock-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">阅读时长 &asymp;</span>
+                
+                <span title="阅读时长">
+                  7 分钟
+                </span>
+              
+            </div>
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          <p>Raft协议是分布式领域解决一致性的又一著名协议，主要包含Leader选举、日志复制两个部分。</p>
+<blockquote>
+<p>温馨提示：<br>本文根据raft官方给出的raft动画进行学习，其动画展示地址：<a target="_blank" rel="noopener" href="http://thesecretlivesofdata.com/raft/">http://thesecretlivesofdata.com/raft/</a></p>
+</blockquote>
+<h2 id="1、Leader选举"><a href="#1、Leader选举" class="headerlink" title="1、Leader选举"></a>1、Leader选举</h2><h3 id="1-1-一轮投票中，只有一个节点发起投票的情况"><a href="#1-1-一轮投票中，只有一个节点发起投票的情况" class="headerlink" title="1.1  一轮投票中，只有一个节点发起投票的情况"></a>1.1  一轮投票中，只有一个节点发起投票的情况</h3><p><img src="https://img-blog.csdnimg.cn/20190810192221312.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>Raft协议中节点有3种状态（角色）：</p>
+<ul>
+<li>Follower<br>跟随者。</li>
+<li>Candidate<br>候选者。</li>
+<li>Leader<br>领导者(Leader)，通常我们所说的的主节点。</li>
+</ul>
+<p>首先3个节点初始状态为 Follower，每个节点会有一个超时时间(计时器)，其时间设置为150ms~300ms之间的随机值。当计时器到期后，节点状态从 Follower 变成 Candidate，如下图所示：<br><img src="https://img-blog.csdnimg.cn/20190810193027410.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>通常情况下，三个节点中会有一个节点的计时器率先到期，节点状态变为 Candidate ，候选者状态下的节点会发起选举投票。我们先来考虑只有一个节点变为Candidate时是如何进行选主的。</p>
+<p>当节点状态为Candidate，将发起一轮投票，由于是第一轮投票，设置本轮投票轮次为1，并首先为自己投上一票，正如上图所示的NodeA节点，Team为1，Vote Count为1.<br><img src="https://img-blog.csdnimg.cn/20190810193206869.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>当一个节点的定时器超时后，首先为自己投上一票，然后向该组内其他的节点发起投票(用拉票更加合适)，发送投票请求。<br><img src="https://img-blog.csdnimg.cn/20190810193241874.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>当集群内的节点收到投票请求外，如果本轮未进行过投票，则赞同，否则反对，然后将结果返回，并重置计时器。<br><img src="https://img-blog.csdnimg.cn/2019081019345071.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>当节点A收到的赞同票大于一半时，则升级为该集群的 Leader，然后定时向集群内的其他节点发送心跳，以便确定自己的领导地位，正如下图所示。<br><img src="https://img-blog.csdnimg.cn/20190810193534746.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>Node A，集群中的 Leader正在向其他节点发送心跳包。<br><img src="https://img-blog.csdnimg.cn/20190810193603638.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>节点在收到 Leader 的心跳包后，返回响应结果，并重置自身的计时器，如果 Flower 状态的节点在计时时间超时内没有收到Leader 的心跳包，就会从 Flower 节点变成 Candidate,该节点就会发起下一轮投票。</p>
+<p>例如NodeA节点宕机，停止向它的从发送心跳，我们来看一下集群如何重新选主。</p>
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/posts/d198d6eb.html#more" rel="contents">
+              阅读全文 &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
     <link itemprop="mainEntityOfPage" href="https://www.codingw.net/posts/e0ec5d91.html">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -2211,229 +2421,6 @@
 
 
     
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="https://www.codingw.net/posts/bfa9fca1.html">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="中间件兴趣圈">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/posts/bfa9fca1.html" itemprop="url">探究java8流收集数据原理</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-08-24T22:43:35+08:00">
-                2020-08-24
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/java8/" itemprop="url" rel="index">
-                    <span itemprop="name">java8</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/posts/bfa9fca1.html#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count valine-comment-count" data-xid="/posts/bfa9fca1.html" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-             <span id="/posts/bfa9fca1.html" class="leancloud_visitors" data-flag-title="探究java8流收集数据原理">
-               <span class="post-meta-divider">|</span>
-               <span class="post-meta-item-icon">
-                 <i class="fa fa-eye"></i>
-               </span>
-               
-                 <span class="post-meta-item-text">阅读次数&#58;</span>
-               
-                 <span class="leancloud-visitors-count"></span>
-             </span>
-          
-
-          
-
-          
-            <div class="post-wordcount">
-              
-                
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-file-word-o"></i>
-                </span>
-                
-                  <span class="post-meta-item-text">字数统计&#58;</span>
-                
-                <span title="字数统计">
-                  1.7k 字
-                </span>
-              
-
-              
-                <span class="post-meta-divider">|</span>
-              
-
-              
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-clock-o"></i>
-                </span>
-                
-                  <span class="post-meta-item-text">阅读时长 &asymp;</span>
-                
-                <span title="阅读时长">
-                  6 分钟
-                </span>
-              
-            </div>
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          <p>本文揭示如何学习一门新技术，从示例入手，重点阐述Stream#collect方法的实现原理，为更好的使用java8中流来收集数据。</p>
-<p>我们在前面的文章中反复使用的场景：获取菜单中所有菜品的名称，返回一个集合，其代码如下：</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">test_toList</span><span class="params">(List&lt;Dish&gt; menu)</span> </span>&#123;</span><br><span class="line">    List&lt;String&gt; names = menu.stream().map(Dish::getName)</span><br><span class="line">                        .collect(Collectors.toList()); <span class="comment">// @1</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span>(String s : names) &#123;</span><br><span class="line">        System.out.println(s);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>通过Stream.collect这个终端操作进行数据收集，至于如何收集，则由该方法的参数来决定(Collector)，即行为参数化。</p>
-<p>代码@1：collect(Collectors.toList()) 的意思就是返回List，这里涉及到两个关键，一个是Stream#collect方法，另外一个就是其参数Collectors.toList()。</p>
-<p>接下来我们将以上述两个突破点来揭开如何使用java8的流来收集数据。</p>
-<h2 id="1、Stream-collect"><a href="#1、Stream-collect" class="headerlink" title="1、Stream#collect"></a>1、Stream#collect</h2><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">ReferencePipeline#collect</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">final</span> &lt;R, A&gt; <span class="function">R <span class="title">collect</span><span class="params">(Collector&lt;? <span class="keyword">super</span> P_OUT, A, R&gt; collector)</span> </span>&#123;   <span class="comment">// @1</span></span><br><span class="line">    A container;</span><br><span class="line">    <span class="keyword">if</span> (isParallel()</span><br><span class="line">            &amp;&amp; (collector.characteristics().contains(Collector.Characteristics.CONCURRENT))</span><br><span class="line">            &amp;&amp; (!isOrdered() || collector.characteristics().contains(Collector.Characteristics.UNORDERED))) &#123;   <span class="comment">// @2</span></span><br><span class="line">        container = collector.supplier().get();                                                                 <span class="comment">// @3</span></span><br><span class="line">        BiConsumer&lt;A, ? <span class="keyword">super</span> P_OUT&gt; accumulator = collector.accumulator();</span><br><span class="line">        forEach(u -&gt; accumulator.accept(container, u));</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">else</span> &#123;                                                                                                     <span class="comment">// @4</span></span><br><span class="line">        container = evaluate(ReduceOps.makeRef(collector));                                                                                              </span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> collector.characteristics().contains(Collector.Characteristics.IDENTITY_FINISH)                    <span class="comment">// @5</span></span><br><span class="line">           ? (R) container</span><br><span class="line">           : collector.finisher().apply(container);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>代码@1：函数声明，该方法返回的结果类型为R，传入的行为参数接口为Collector。<br>代码@2：判断是否符合并行化累积与规约的条件。</p>
-<ul>
-<li>是否是并行流，例如上例中创建流的代码为menu.stream()，该方法的流是非并行化流，如果要支持并行化执行，需要满足的第一个条件就是需要使用menu.parallelStream()方法返回的流。</li>
-<li>Collector(收集器，行为化参数)中收集器行为集合中是否包含Characteristics.CONCURRENT(并行执行)，如果不包含该行为，则不支持并行执行。</li>
-<li>原始流是否有顺序 或 者 收集器的行为集合中明确包含Characteristics.UNORDERED(不要求顺序性)。<br>上述三个条件必须同时满足，才能并行执行，否则串行执行。</li>
-</ul>
-<p>代码@3：并行执行收集动作。</p>
-<p>代码@4：串行执行收集动作。</p>
-<p>代码@5：如果收集器收集行为集合中包含Characteristics.IDENTITY_FINISH，则直接返回原始值，否则使用Collector.finishier()方式对计算的值进行函数式计算。</p>
-<p>通过上面的代码，我们应该对Characteristics枚举类型中的3个值不难得出如下类型：</p>
-<ul>
-<li>CONCURRENT<br>收集器行为，表示收集其中的累积函数是否支持并行执行。</li>
-<li>Characteristics.UNORDERED<br>收集器行为，表示整个收集期间，没有顺序要求。</li>
-<li>Characteristics.IDENTITY_FINISH<br>收集器行为，表示可以忽略Collector.finsher()定义的最终转换函数，直接返回累积之后的结果即可。</li>
-</ul>
-<blockquote>
-<p>疑问？代码@3,这段代码不是很好理解，该怎么继续往下深入呢？</p>
-</blockquote>
-<p>针对上面看不太懂的代码，我的处理办法是先转移思路，看一下Collector接口以及示例中Collectos.toList()返回的收集器是什么(重点关注返回的Collector中具体属性)。</p>
-          <!--noindex-->
-          <div class="post-button text-center">
-            <a class="btn" href="/posts/bfa9fca1.html#more" rel="contents">
-              阅读全文 &raquo;
-            </a>
-          </div>
-          <!--/noindex-->
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
   </section>
 
   
@@ -2484,7 +2471,7 @@
               
                 <a href="/archives/">
               
-                  <span class="site-state-item-count">121</span>
+                  <span class="site-state-item-count">122</span>
                   <span class="site-state-item-name">日志</span>
                 </a>
               </div>
@@ -2495,7 +2482,7 @@
               
               <div class="site-state-item site-state-categories">
                 <a href="/categories/index.html">
-                  <span class="site-state-item-count">19</span>
+                  <span class="site-state-item-count">20</span>
                   <span class="site-state-item-name">分类</span>
                 </a>
               </div>
@@ -2564,7 +2551,7 @@
     
       <span class="post-meta-item-text">Site words total count&#58;</span>
     
-    <span title="Site words total count">317.3k</span>
+    <span title="Site words total count">320.1k</span>
   
 </div>
 
