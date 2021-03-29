@@ -84,7 +84,7 @@
 <meta name="description" content="关注微信公众号「中间件兴趣圈」，第一时间获取最新干货！">
 <meta property="og:type" content="website">
 <meta property="og:title" content="中间件兴趣圈">
-<meta property="og:url" content="https://www.codingw.net/tags/netty4/index.html">
+<meta property="og:url" content="https://www.codingw.net/tags/Netty4/index.html">
 <meta property="og:site_name" content="中间件兴趣圈">
 <meta property="og:description" content="关注微信公众号「中间件兴趣圈」，第一时间获取最新干货！">
 <meta property="og:locale">
@@ -119,13 +119,13 @@
 
 
 
-  <link rel="canonical" href="https://www.codingw.net/tags/netty4/"/>
+  <link rel="canonical" href="https://www.codingw.net/tags/Netty4/"/>
 
 
 
 
 
-  <title>标签: netty4 | 中间件兴趣圈</title>
+  <title>标签: Netty4 | 中间件兴趣圈</title>
   
 
 
@@ -279,7 +279,7 @@
 
     <div id="posts" class="posts-collapse">
       <div class="collection-title">
-        <h1>netty4<small>标签</small>
+        <h1>Netty4<small>标签</small>
         </h1>
       </div>
 
@@ -291,9 +291,9 @@
 
       <h2 class="post-title">
         
-            <a class="post-title-link" href="/posts/be152999.html" itemprop="url">
+            <a class="post-title-link" href="/posts/381d8256.html" itemprop="url">
               
-                <span itemprop="name">Netty4 事件处理传播机制</span>
+                <span itemprop="name">Netty进阶：手把手教你如何编写一个NIO服务端</span>
               
             </a>
         
@@ -301,9 +301,9 @@
 
       <div class="post-meta">
         <time class="post-time" itemprop="dateCreated"
-              datetime="2020-12-19T22:11:01+08:00"
-              content="2020-12-19" >
-          12-19
+              datetime="2021-02-24T22:01:59+08:00"
+              content="2021-02-24" >
+          02-24
         </time>
       </div>
 
@@ -319,37 +319,9 @@
 
       <h2 class="post-title">
         
-            <a class="post-title-link" href="/posts/a79560fc.html" itemprop="url">
+            <a class="post-title-link" href="/posts/76ab8a6b.html" itemprop="url">
               
-                <span itemprop="name">Netty4 Channel 概述</span>
-              
-            </a>
-        
-      </h2>
-
-      <div class="post-meta">
-        <time class="post-time" itemprop="dateCreated"
-              datetime="2020-10-26T22:53:01+08:00"
-              content="2020-10-26" >
-          10-26
-        </time>
-      </div>
-
-    </header>
-  </article>
-
-
-      
-        
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-    <header class="post-header">
-
-      <h2 class="post-title">
-        
-            <a class="post-title-link" href="/posts/eab70bff.html" itemprop="url">
-              
-                <span itemprop="name">Netty4 ChannelHandler 概述</span>
+                <span itemprop="name">Netty进阶：手把手教你如何编写一个NIO客户端</span>
               
             </a>
         
@@ -357,9 +329,9 @@
 
       <div class="post-meta">
         <time class="post-time" itemprop="dateCreated"
-              datetime="2020-10-25T22:54:01+08:00"
-              content="2020-10-25" >
-          10-25
+              datetime="2021-01-27T22:47:09+08:00"
+              content="2021-01-27" >
+          01-27
         </time>
       </div>
 
@@ -419,7 +391,7 @@
               
                 <a href="/archives/">
               
-                  <span class="site-state-item-count">122</span>
+                  <span class="site-state-item-count">130</span>
                   <span class="site-state-item-name">日志</span>
                 </a>
               </div>
@@ -430,7 +402,7 @@
               
               <div class="site-state-item site-state-categories">
                 <a href="/categories/index.html">
-                  <span class="site-state-item-count">20</span>
+                  <span class="site-state-item-count">23</span>
                   <span class="site-state-item-name">分类</span>
                 </a>
               </div>
@@ -441,7 +413,7 @@
               
               <div class="site-state-item site-state-tags">
                 <a href="/tags/index.html">
-                  <span class="site-state-item-count">195</span>
+                  <span class="site-state-item-count">201</span>
                   <span class="site-state-item-name">标签</span>
                 </a>
               </div>
@@ -499,7 +471,7 @@
     
       <span class="post-meta-item-text">Site words total count&#58;</span>
     
-    <span title="Site words total count">320.1k</span>
+    <span title="Site words total count">334.3k</span>
   
 </div>
 
@@ -1104,6 +1076,46 @@
                 var $element = $(document.getElementById(url));
                 $element.find('.leancloud-visitors-count').text(newcounter.get('time'));
               },
+              error: function(newcounter, error) {
+                console.log('Failed to create');
+              }
+            });
+          }
+        },
+        error: function(error) {
+          console.log('Error:' + error.code + " " + error.message);
+        }
+      });
+    }
+
+    $(function() {
+      var Counter = AV.Object.extend("Counter");
+      if ($('.leancloud_visitors').length == 1) {
+        addCount(Counter);
+      } else if ($('.post-title-link').length > 1) {
+        showTime(Counter);
+      }
+    });
+  </script>
+
+
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>
+  },
               error: function(newcounter, error) {
                 console.log('Failed to create');
               }

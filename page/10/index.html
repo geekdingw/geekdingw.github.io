@@ -287,6 +287,1813 @@
   
   
   <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="https://www.codingw.net/posts/3f6db0.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="中间件兴趣圈">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/posts/3f6db0.html" itemprop="url">RocketMQ学习环境搭建(RocketMQ安装与IDEA Debug环境搭建)</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-10-02T22:42:28+08:00">
+                2020-10-02
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/rocketmq/" itemprop="url" rel="index">
+                    <span itemprop="name">rocketmq</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/posts/3f6db0.html#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count valine-comment-count" data-xid="/posts/3f6db0.html" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+             <span id="/posts/3f6db0.html" class="leancloud_visitors" data-flag-title="RocketMQ学习环境搭建(RocketMQ安装与IDEA Debug环境搭建)">
+               <span class="post-meta-divider">|</span>
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               
+                 <span class="post-meta-item-text">阅读次数&#58;</span>
+               
+                 <span class="leancloud-visitors-count"></span>
+             </span>
+          
+
+          
+
+          
+            <div class="post-wordcount">
+              
+                
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-file-word-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">字数统计&#58;</span>
+                
+                <span title="字数统计">
+                  1.7k 字
+                </span>
+              
+
+              
+                <span class="post-meta-divider">|</span>
+              
+
+              
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-clock-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">阅读时长 &asymp;</span>
+                
+                <span title="阅读时长">
+                  7 分钟
+                </span>
+              
+            </div>
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          <p>本文主要分如下几个部分展开：</p>
+<ul>
+<li>Linux服务器安装RocketMQ、RocketMQ-Console</li>
+<li>IDEA中搭建可调试环境</li>
+</ul>
+<h2 id="1、Linux安装RocketMQ、RocketMQ-Console"><a href="#1、Linux安装RocketMQ、RocketMQ-Console" class="headerlink" title="1、Linux安装RocketMQ、RocketMQ-Console"></a>1、Linux安装RocketMQ、RocketMQ-Console</h2><h3 id="1-1安装RocketMQ"><a href="#1-1安装RocketMQ" class="headerlink" title="1.1安装RocketMQ"></a>1.1安装RocketMQ</h3><p>Step1：从如下地址下载RocketMQ安装包</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">cd /opt/application</span><br><span class="line">wget https://mirrors.tuna.tsinghua.edu.cn/apache/rocketmq/4.7.1/rocketmq-all-4.7.1-bin-release.zip</span><br></pre></td></tr></table></figure>
+
+<p>Step2：解压安装包</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">unzip rocketmq-all-4.7.1-bin-release.zip</span><br><span class="line">ls -l</span><br></pre></td></tr></table></figure>
+
+<p>解压后的文件如下图所示：<br><img src="https://img-blog.csdnimg.cn/20201011210742646.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br>其中 conf 文件夹存放的是RocketMQ的配置文件，提供了各种部署结构的示例配置。例如2m-2s-async是2主2从异步复制的配置示例；2m-noslave是2主的示例配置。由于本文主要是搭建一个学习环境，故采取的部署架构为1主的部署架构，关于生产环境下如何搭建RocketMQ集群、如何调优参数将在该专栏的后续文章中专门介绍。</p>
+<p>Step3：修改Nameserver jvm参数</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">cd bin</span><br><span class="line">vi runserver.sh</span><br><span class="line"></span><br><span class="line"><span class="meta">#</span><span class="bash"> 定位到如下代码</span></span><br><span class="line">JAVA_OPT=&quot;$&#123;JAVA_OPT&#125; -server -Xms4g -Xmx4g -Xmn2g -XX:MetaspaceSize=128m -XX:MaxMetaspaceSize=320m&quot;</span><br><span class="line"></span><br><span class="line"><span class="meta">#</span><span class="bash"> 修改　<span class="string">&quot;-Xms -Xmx -Xmn&quot;</span>　参数</span></span><br><span class="line">JAVA_OPT=&quot;$&#123;JAVA_OPT&#125; -server -Xms512M -Xmx512M -Xmn256M -XX:MetaspaceSize=128m -XX:MaxMetaspaceSize=320m&quot;</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>温馨提示：这里修改JVM参数主要目的是个人学习电脑内存不够，默认NameServer 会占用4G。</p>
+</blockquote>
+<p>Step4：启动nameserver</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nohup ./mqnamesrv &amp;</span><br></pre></td></tr></table></figure>
+
+<p>查看${user_home}/logs/rocketmqlogs/namesrv.log日志文件，如果输出结果如下图所示即表示启动成功。<br><img src="https://img-blog.csdnimg.cn/20201011210817888.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"></p>
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/posts/3f6db0.html#more" rel="contents">
+              阅读全文 &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="https://www.codingw.net/posts/b9e3e3ee.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="中间件兴趣圈">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/posts/b9e3e3ee.html" itemprop="url">Kafka与RocketMQ性能对比大揭秘</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-10-01T22:37:01+08:00">
+                2020-10-01
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/kafka/" itemprop="url" rel="index">
+                    <span itemprop="name">kafka</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/posts/b9e3e3ee.html#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count valine-comment-count" data-xid="/posts/b9e3e3ee.html" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+             <span id="/posts/b9e3e3ee.html" class="leancloud_visitors" data-flag-title="Kafka与RocketMQ性能对比大揭秘">
+               <span class="post-meta-divider">|</span>
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               
+                 <span class="post-meta-item-text">阅读次数&#58;</span>
+               
+                 <span class="leancloud-visitors-count"></span>
+             </span>
+          
+
+          
+
+          
+            <div class="post-wordcount">
+              
+                
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-file-word-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">字数统计&#58;</span>
+                
+                <span title="字数统计">
+                  2.4k 字
+                </span>
+              
+
+              
+                <span class="post-meta-divider">|</span>
+              
+
+              
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-clock-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">阅读时长 &asymp;</span>
+                
+                <span title="阅读时长">
+                  8 分钟
+                </span>
+              
+            </div>
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          <p>在双十一过程中投入同样的硬件资源，Kafka 搭建的日志集群单个Topic可以达到几百万的TPS，而使用RocketMQ组件的核心业务集群，集群TPS只能达到几十万TPS，这样的现象激发了我对两者性能方面的思考。</p>
+<blockquote>
+<p>温馨提示：TPS只是众多性能指标中的一个，我们在做技术选型方面要从多方面考虑，本文并不打算就消息中间件选型方面投入太多笔墨，重点想尝试剖析两者在性能方面的设计思想。</p>
+</blockquote>
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/posts/b9e3e3ee.html#more" rel="contents">
+              阅读全文 &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="https://www.codingw.net/posts/f03d9942.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="中间件兴趣圈">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/posts/f03d9942.html" itemprop="url">源码分析 RocketMQ DLedger 多副本存储实现</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-09-30T23:47:01+08:00">
+                2020-09-30
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/rocketmq/" itemprop="url" rel="index">
+                    <span itemprop="name">rocketmq</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/posts/f03d9942.html#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count valine-comment-count" data-xid="/posts/f03d9942.html" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+             <span id="/posts/f03d9942.html" class="leancloud_visitors" data-flag-title="源码分析 RocketMQ DLedger 多副本存储实现">
+               <span class="post-meta-divider">|</span>
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               
+                 <span class="post-meta-item-text">阅读次数&#58;</span>
+               
+                 <span class="leancloud-visitors-count"></span>
+             </span>
+          
+
+          
+
+          
+            <div class="post-wordcount">
+              
+                
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-file-word-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">字数统计&#58;</span>
+                
+                <span title="字数统计">
+                  1.3k 字
+                </span>
+              
+
+              
+                <span class="post-meta-divider">|</span>
+              
+
+              
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-clock-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">阅读时长 &asymp;</span>
+                
+                <span title="阅读时长">
+                  5 分钟
+                </span>
+              
+            </div>
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          <p>RocketMQ DLedger 的存储实现思路与 RocketMQ 的存储实现思路相似，本文就不再从源码角度详细剖析其实现，只是点出其实现关键点。我们不妨简单回顾一下 CommitLog 文件、ConsumeQueue 文件设计思想。</p>
+<p>其文件组成形式如下：<br><img src="https://img-blog.csdnimg.cn/20190831215052708.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>正如上图所示，多个 commitlog 文件组成一个逻辑上的连续文件，使用 MappedFileQueue 表示，单个 commitlog 文件使用 MappedFile 表示。</p>
+<blockquote>
+<p>温馨提示：如果想详细了解 RocketMQ 关于存储部分的讲解，可以关注笔者的《RocketMQ 技术内幕》一书。</p>
+</blockquote>
+<h2 id="1、DLedger-存储相关类图"><a href="#1、DLedger-存储相关类图" class="headerlink" title="1、DLedger 存储相关类图"></a>1、DLedger 存储相关类图</h2><p><img src="https://img-blog.csdnimg.cn/20190831215151796.jpg?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"></p>
+<h3 id="1-1-DLedgerStore"><a href="#1-1-DLedgerStore" class="headerlink" title="1.1 DLedgerStore"></a>1.1 DLedgerStore</h3><p>存储抽象类，定义如下核心方法：</p>
+<ul>
+<li>public abstract DLedgerEntry appendAsLeader(DLedgerEntry entry)<br>向主节点追加日志(数据)。</li>
+<li>public abstract DLedgerEntry appendAsFollower(DLedgerEntry entry, long leaderTerm, String leaderId)<br>向从节点同步日志。</li>
+<li>public abstract DLedgerEntry get(Long index)<br>根据日志下标查找日志。</li>
+<li>public abstract long getCommittedIndex()<br>获取已提交的下标。</li>
+<li>public abstract long getLedgerEndTerm()<br>获取 Leader 当前最大的投票轮次。</li>
+<li>public abstract long getLedgerEndIndex()<br>获取 Leader 下一条日志写入的下标（最新日志的下标）。</li>
+<li>public abstract long getLedgerBeginIndex()<br>获取 Leader 第一条消息的下标。</li>
+<li>public void updateCommittedIndex(long term, long committedIndex)<br>更新commitedIndex的值，为空实现，由具体的存储子类实现。</li>
+<li>protected void updateLedgerEndIndexAndTerm()<br>更新 Leader 维护的 ledgerEndIndex 和 ledgerEndTerm 。</li>
+<li>public void flush()<br>刷写，空方法，由具体子类实现。</li>
+<li>public long truncate(DLedgerEntry entry, long leaderTerm, String leaderId)<br>删除日志，空方法，由具体子类实现。</li>
+<li>public void startup()<br>启动存储管理器，空方法，由具体子类实现。</li>
+<li>public void shutdown()<br>关闭存储管理器，空方法，由具体子类实现。</li>
+</ul>
+<h3 id="1-2-DLedgerMemoryStore"><a href="#1-2-DLedgerMemoryStore" class="headerlink" title="1.2 DLedgerMemoryStore"></a>1.2 DLedgerMemoryStore</h3><p>Dledger 基于内存实现的日志存储。</p>
+<h3 id="1-3-DLedgerMmapFileStore"><a href="#1-3-DLedgerMmapFileStore" class="headerlink" title="1.3  DLedgerMmapFileStore"></a>1.3  DLedgerMmapFileStore</h3><p>基于文件内存映射机制的存储实现。其核心属性如下：</p>
+<ul>
+<li>long ledgerBeginIndex =  -1<br>日志的起始索引，默认为 -1。<br>l- ong ledgerEndIndex = -1<br>下一条日志下标，默认为 -1。</li>
+<li>long committedIndex = -1<br>已提交的日志索引。</li>
+<li>long ledgerEndTerm<br>当前最大的投票轮次。</li>
+<li>DLedgerConfig dLedgerConfig<br>DLedger 的配置信息。</li>
+<li>MemberState memberState<br>状态机。</li>
+<li>MmapFileList dataFileList<br>日志文件(数据文件)的内存映射Queue。</li>
+<li>MmapFileList indexFileList<br>索引文件的内存映射文件集合。（可对标 RocketMQ MappedFIleQueue )。</li>
+<li>ThreadLocal&lt; ByteBuffer&gt; localIndexBuffer<br>本地线程变量，用来缓存索引ByteBuffer。</li>
+<li>ThreadLocal&lt; ByteBuffer&gt; localEntryBuffer<br>本地线程变量，用来缓存数据索引ByteBuffer。</li>
+<li>FlushDataService flushDataService<br>数据文件刷盘线程。</li>
+<li>CleanSpaceService cleanSpaceService<br>清除过期日志文件线程。</li>
+<li>boolean isDiskFull = false<br>磁盘是否已满。</li>
+<li>long lastCheckPointTimeMs<br>上一次检测点（时间戳）。</li>
+<li>AtomicBoolean hasLoaded<br>是否已经加载，主要用来避免重复加载(初始化)日志文件。</li>
+<li>AtomicBoolean hasRecovered<br> ​    是否已恢复。</li>
+</ul>
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/posts/f03d9942.html#more" rel="contents">
+              阅读全文 &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="https://www.codingw.net/posts/57908f75.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="中间件兴趣圈">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/posts/57908f75.html" itemprop="url">基于 Flink 实现解决数据库分库分表任务拆分</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-09-29T22:32:35+08:00">
+                2020-09-29
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/flink/" itemprop="url" rel="index">
+                    <span itemprop="name">flink</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/posts/57908f75.html#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count valine-comment-count" data-xid="/posts/57908f75.html" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+             <span id="/posts/57908f75.html" class="leancloud_visitors" data-flag-title="基于 Flink 实现解决数据库分库分表任务拆分">
+               <span class="post-meta-divider">|</span>
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               
+                 <span class="post-meta-item-text">阅读次数&#58;</span>
+               
+                 <span class="leancloud-visitors-count"></span>
+             </span>
+          
+
+          
+
+          
+            <div class="post-wordcount">
+              
+                
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-file-word-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">字数统计&#58;</span>
+                
+                <span title="字数统计">
+                  1.5k 字
+                </span>
+              
+
+              
+                <span class="post-meta-divider">|</span>
+              
+
+              
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-clock-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">阅读时长 &asymp;</span>
+                
+                <span title="阅读时长">
+                  5 分钟
+                </span>
+              
+            </div>
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          <h2 id="1、场景描述"><a href="#1、场景描述" class="headerlink" title="1、场景描述"></a>1、场景描述</h2><p>例如订单库进行了分库分表，其示例如下图所示：<br><img src="https://img-blog.csdnimg.cn/20201115203825639.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br>现在的需求是希望创建一个任务就将数据同步到MQ集群，而不是为每一个数据库实例单独创建一个任务，将其数据导入到MQ集群，因为同步任务除了库不同之外，表的结构、数据映射规则都是一致的。</p>
+<h2 id="2、flinkx-的解决方案详解"><a href="#2、flinkx-的解决方案详解" class="headerlink" title="2、flinkx 的解决方案详解"></a>2、flinkx 的解决方案详解</h2><h4 id="2-1-fink-Stream-API-开发基本流程"><a href="#2-1-fink-Stream-API-开发基本流程" class="headerlink" title="2.1 fink Stream API 开发基本流程"></a>2.1 fink Stream API 开发基本流程</h4><p>使用 Flink Stream API 编程的通用步骤如下图所示：<br><img src="https://img-blog.csdnimg.cn/20201115203839996.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"></p>
+<blockquote>
+<p>温馨提示：有关 Stream API 的详细内容将在后续的文章中展开，本文主要是关注 InputFormatSourceFunction，重点关注数据源的拆分。</p>
+</blockquote>
+<h4 id="2-2-flinkx-Reader-数据源-核心类图"><a href="#2-2-flinkx-Reader-数据源-核心类图" class="headerlink" title="2.2 flinkx Reader(数据源)核心类图"></a>2.2 flinkx Reader(数据源)核心类图</h4><p><img src="https://img-blog.csdnimg.cn/20201115203855115.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br>在 flinkx 中将不同的数据源封装成一个个 Reader，其基类为 BaseDataReader，上图中主要罗列了如下几个关键的类体系：</p>
+<ul>
+<li><p>InputFormat<br>flink 核心API，主要是对输入源进行数据切分、读取数据的抽象，其核心接口说明如下：</p>
+<ul>
+<li><p>void configure(Configuration parameters)<br>对输入源进行额外的配置，该方法在 Input 的生命周期中只需调用一次。</p>
+</li>
+<li><p>BaseStatistics getStatistics(BaseStatistics cachedStatistics)<br>返回 input 的统计数据，如果不需要统计，在实现的时候可以直接返回 null。</p>
+</li>
+<li><p>T[] createInputSplits(int minNumSplits)<br>对输入数据进行数据切片，使之支持并行处理，数据切片相关类体系见：InputSplit。</p>
+</li>
+<li><p>InputSplitAssigner getInputSplitAssigner(T[] inputSplits)<br>获取 InputSplit 分配器，主要是在具体执行任务时如何获取下一个 InputSplit，其声明如下图所示：<br><img src="https://img-blog.csdnimg.cn/20201115204001187.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_right#pic_center" alt="在这里插入图片描述"></p>
+</li>
+<li><p>void open(T split)<br>根据指定的数据分片 (InputSplit) 打开数据通道。为了加深对该方法的理解，下面看一下 Flinkx 关于 jdbc、es 的写入示例：<br><img src="https://img-blog.csdnimg.cn/20201115203933977.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_right#pic_center" alt="在这里插入图片描述"></p>
+</li>
+</ul>
+</li>
+</ul>
+<ul>
+<li><p>boolean reachedEnd()<br>数据是否已结束，在 Flink 中通常 InputFormat 的数据源通常表示有界数据 (DataSet)。</p>
+</li>
+<li><p>OT nextRecord(OT reuse)</p>
+<p>从通道中获取下一条记录。</p>
+</li>
+<li><p>void close()<br>关闭。</p>
+</li>
+<li><p>InputSplit<br>数据分片根接口，只定义了如下方法：</p>
+<ul>
+<li>int getSplitNumber()<br>获取当前分片所在所有分片中的序号。</li>
+</ul>
+<p>本文先简单介绍一下其通用实现子类：GenericInputSplit。</p>
+<ul>
+<li>int partitionNumber<br>当前 split 所在的序号</li>
+<li>int totalNumberOfPartitions<br>总分片数</li>
+</ul>
+<p>为了方便理解我们可以思考一下如下场景，对于一个数据量超过千万级别的表，在进行数据切分时可以考虑使用10个线程，即切割成 10分，那每一个数据线程查询数据时可以 id % totalNumberOfPartitions = partitionNumber，进行数据读取。</p>
+</li>
+<li><p>SourceFunction<br>Flink 源的抽象定义。</p>
+<ul>
+<li><p>RichFunction<br>富函数，定义了生命周期、可获取运行时环境上下文。</p>
+</li>
+<li><p>ParallelSourceFunction<br>支持并行的 source function。</p>
+</li>
+<li><p>RichParallelSourceFunction</p>
+<p>并行的富函数</p>
+</li>
+<li><p>InputFormatSourceFunction</p>
+<p>Flink 默认提供的 RichParallelSourceFunction 实现类，可以当成是RichParallelSourceFunction 的通用写法，其内部的数据读取逻辑由 InputFormat 实现。</p>
+</li>
+</ul>
+</li>
+<li><p>BaseDataReader</p>
+<p>flinkx 数据读取基类，在 flinkx 中将所有的数据读取源封装成 Reader 。</p>
+</li>
+</ul>
+<h4 id="2-3-flinkx-Reader构建-DataStream-流程"><a href="#2-3-flinkx-Reader构建-DataStream-流程" class="headerlink" title="2.3 flinkx Reader构建 DataStream 流程"></a>2.3 flinkx Reader构建 DataStream 流程</h4><p>经过了上面类图的梳理，大家应该 flink 中提到的上述类的含义有了一个大概的理解，但如何运用呢？接下来将通过查阅 flinkx 的 DistributedJdbcDataReader(BaseDataReader的子类)的 readData 调用流程，体会一下其使用方法。<br><img src="https://img-blog.csdnimg.cn/20201115204021519.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br>基本遵循创建 InputFormat、从而创建对应的 SourceFunction，然后通过 StreamExecutionEnvironment 的 addSource 方法将 SourceFunction 创建对应的 DataStreamSource。</p>
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/posts/57908f75.html#more" rel="contents">
+              阅读全文 &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="https://www.codingw.net/posts/12736650.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="中间件兴趣圈">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/posts/12736650.html" itemprop="url">源码阅读技巧篇：RocketMQ DLedger 多副本即主从切换专栏回顾</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-09-28T21:55:35+08:00">
+                2020-09-28
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/rocketmq/" itemprop="url" rel="index">
+                    <span itemprop="name">rocketmq</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/posts/12736650.html#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count valine-comment-count" data-xid="/posts/12736650.html" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+             <span id="/posts/12736650.html" class="leancloud_visitors" data-flag-title="源码阅读技巧篇：RocketMQ DLedger 多副本即主从切换专栏回顾">
+               <span class="post-meta-divider">|</span>
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               
+                 <span class="post-meta-item-text">阅读次数&#58;</span>
+               
+                 <span class="leancloud-visitors-count"></span>
+             </span>
+          
+
+          
+
+          
+            <div class="post-wordcount">
+              
+                
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-file-word-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">字数统计&#58;</span>
+                
+                <span title="字数统计">
+                  1.6k 字
+                </span>
+              
+
+              
+                <span class="post-meta-divider">|</span>
+              
+
+              
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-clock-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">阅读时长 &asymp;</span>
+                
+                <span title="阅读时长">
+                  5 分钟
+                </span>
+              
+            </div>
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          <p>RocketMQ DLedger 多副本即主从切换专栏总共包含9篇文章，时间跨度大概为2个月的时间，笔者觉得授人以鱼不如授人以渔，借以这个系列来展示该系列的创作始末，展示笔者阅读源码的技巧。</p>
+<p>首先在下决心研读  RocketMQ DLedger 多副本(主从切换)的源码之前，首先还是要通过官方的分享、百度等途径对该功能进行一些基本的了解。</p>
+<p>我们了解到 RocketMQ 在 4.5.0 之前提供了主从同步功能，即当主节点宕机后，消费端可以继续从从节点上消费消息，但无法继续向该复制组发送消息。RocketMQ 4.5.0版本引入了多副本机制，即 DLedger，支持主从切换，即当一个复制组内的主节点宕机后，会在该复制组内触发重新选主，选主完成后即可继续提供消息写功能。同时还了解到 rocketmq 主从切换是基于 raft 协议的。</p>
+<p>raft 协议是何许人也，我猜想大部分读者对这个名词并不陌生，但像笔者一样只是听过其大体作用但并未详细学习的应该也不在少数，故我觉得看 RocketMQ DLedger 多副本即主从切换之前应该重点了解 raft 协议。</p>
+<p>1、<a target="_blank" rel="noopener" href="https://blog.csdn.net/prestigeding/article/details/99101912">RocketMQ 多副本前置篇：初探raft协议</a></p>
+<p>本文主要根据 raft 官方提供的动画来学习了解 raft 协议，从本文基本得知了 raft 协议主要包含两个重要部分：选主 以及 日志复制。在了解了 raft 协议的选主、日志复制的基本实现后，然后就可以步入到 RocketMQ DLedger 多副本即主从切换的源码研究了，以探究大神是如何实现 raft 协议的。同时在了解到了 raft 协议的选主部分内容后，自己也可以简单的思考，如果自己去实现 raft 协议，应该要实现哪些关键点，当时我的思考如下：<br><img src="https://img-blog.csdnimg.cn/20191020212502611.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>这样在看源码时更加有针对性，不至于在阅读源码过程中“迷失”。</p>
+<p>2、<a target="_blank" rel="noopener" href="https://blog.csdn.net/prestigeding/article/details/99697323">源码分析 RocketMQ DLedger 多副本之 Leader 选主</a></p>
+<p>本文按照上一篇的思路，重点对 DLedgerLeaderElector 的实现进行了详细分析，特别是其内部的状态机流转，最后也给出一张流程图对选主过程进行一个简单的梳理与总结。</p>
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/posts/12736650.html#more" rel="contents">
+              阅读全文 &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="https://www.codingw.net/posts/550fbf45.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="中间件兴趣圈">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/posts/550fbf45.html" itemprop="url">寻找一把进入 Alibaba Sentinel 的钥匙(文末附流程图)</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-09-27T22:43:35+08:00">
+                2020-09-27
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/sentinel/" itemprop="url" rel="index">
+                    <span itemprop="name">sentinel</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/posts/550fbf45.html#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count valine-comment-count" data-xid="/posts/550fbf45.html" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+             <span id="/posts/550fbf45.html" class="leancloud_visitors" data-flag-title="寻找一把进入 Alibaba Sentinel 的钥匙(文末附流程图)">
+               <span class="post-meta-divider">|</span>
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               
+                 <span class="post-meta-item-text">阅读次数&#58;</span>
+               
+                 <span class="leancloud-visitors-count"></span>
+             </span>
+          
+
+          
+
+          
+            <div class="post-wordcount">
+              
+                
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-file-word-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">字数统计&#58;</span>
+                
+                <span title="字数统计">
+                  1.9k 字
+                </span>
+              
+
+              
+                <span class="post-meta-divider">|</span>
+              
+
+              
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-clock-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">阅读时长 &asymp;</span>
+                
+                <span title="阅读时长">
+                  8 分钟
+                </span>
+              
+            </div>
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          <p>经过前面几篇文章的铺垫，我们正式来探讨 Sentinel 的 entry 方法的实现流程。</p>
+<p>即探究进入 Alibaba Sentinel 核心的一把钥匙。<br>无论是从 Sentinel 适配 Dubbo 也好，还是 SphU 源码中的注释中能看出，对一个资源进行限流或熔断，通常需要调用 SphU 的 entry 方法，例如如下示例代码。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">foo</span><span class="params">()</span> </span>&#123;</span><br><span class="line">	Entry entry = <span class="keyword">null</span>;</span><br><span class="line">	<span class="keyword">try</span> &#123;</span><br><span class="line">		entry = SphU.entry(<span class="string">&quot;abc&quot;</span>);</span><br><span class="line">	&#125; <span class="keyword">catch</span> (BlockException blockException) &#123;</span><br><span class="line">		<span class="comment">// when goes there, it is blocked</span></span><br><span class="line">		<span class="comment">// add blocked handle logic here</span></span><br><span class="line">	&#125; <span class="keyword">catch</span> (Throwable bizException) &#123;</span><br><span class="line">		<span class="comment">// business exception</span></span><br><span class="line">		Tracer.trace(bizException);</span><br><span class="line">	&#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">		<span class="comment">// ensure finally be executed</span></span><br><span class="line">		<span class="keyword">if</span> (entry != <span class="keyword">null</span>)&#123;</span><br><span class="line">			entry.exit();</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>那本文将来探讨 SphU.entry 的实现原理。SphU 类定义了很多 entry 重载方法，我们就以下面这个方法为例来探究其实现原理。</p>
+<h2 id="1、SphU-entry-流程分析"><a href="#1、SphU-entry-流程分析" class="headerlink" title="1、SphU.entry 流程分析"></a>1、SphU.entry 流程分析</h2><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> Entry <span class="title">entry</span><span class="params">(String name, EntryType type, <span class="keyword">int</span> count, Object... args)</span> <span class="keyword">throws</span>  BlockException </span>&#123;  <span class="comment">// @1</span></span><br><span class="line">	<span class="keyword">return</span> Env.sph.entry(name, type, count, args);  <span class="comment">// @2</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>代码@1：我们先来简单介绍其核心参数的含义：</p>
+<ul>
+<li>String name<br>资源的名称。</li>
+<li>EntryType type<br>进入资源的方式，主要包含 EntryType.IN、EntryType.OUT。</li>
+<li>int count<br>可以理解为本次进入需要消耗的“令牌数”。</li>
+<li>Object… args<br>其他参数。</li>
+</ul>
+<p>代码@2：调用 Env.sph.entry 的方法，其最终会调用 CtSph 的 entry 方法。</p>
+<p>接下来我们将重点查看 CtSph 的 entry 方法。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> Entry <span class="title">entry</span><span class="params">(String name, EntryType type, <span class="keyword">int</span> count, Object... args)</span> <span class="keyword">throws</span> BlockException </span>&#123;</span><br><span class="line">    StringResourceWrapper resource = <span class="keyword">new</span> StringResourceWrapper(name, type); <span class="comment">// @1</span></span><br><span class="line">    <span class="keyword">return</span> entry(resource, count, args);  <span class="comment">// @2</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>代码@1：由于该方法用来表示资源的方式为一个字符串，故创建一个 StringResourceWrapper  对象来表示一个 Sentinel 中的资源，另外一个实现为 MethodResourceWrapper，用来表示方法类的资源。</p>
+<p>代码@2：继续调用 CtSph 的另外一个 entry 重载方法，最终会调用 entryWithPriority 方法。</p>
+<p>CtSph#entryWithPriority </p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> Entry <span class="title">entryWithPriority</span><span class="params">(ResourceWrapper resourceWrapper, <span class="keyword">int</span> count, <span class="keyword">boolean</span> prioritized, Object... args)</span> <span class="comment">// @1</span></span></span><br><span class="line"><span class="function">        <span class="keyword">throws</span> BlockException </span>&#123;</span><br><span class="line">    Context context = ContextUtil.getContext();  <span class="comment">// @2</span></span><br><span class="line">    <span class="keyword">if</span> (context <span class="keyword">instanceof</span> NullContext) &#123;</span><br><span class="line">      <span class="keyword">return</span> <span class="keyword">new</span> CtEntry(resourceWrapper, <span class="keyword">null</span>, context); </span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (context == <span class="keyword">null</span>) &#123;</span><br><span class="line">        <span class="comment">// Using default context.</span></span><br><span class="line">        context = InternalContextUtil.internalEnter(Constants.CONTEXT_DEFAULT_NAME);</span><br><span class="line">    &#125;</span><br><span class="line">   <span class="keyword">if</span> (!Constants.ON) &#123;   <span class="comment">// @3</span></span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">new</span> CtEntry(resourceWrapper, <span class="keyword">null</span>, context);</span><br><span class="line">    &#125;</span><br><span class="line">   </span><br><span class="line">    ProcessorSlot&lt;Object&gt; chain = lookProcessChain(resourceWrapper);   <span class="comment">// @4</span></span><br><span class="line">    <span class="keyword">if</span> (chain == <span class="keyword">null</span>) &#123;</span><br><span class="line">	    <span class="keyword">return</span> <span class="keyword">new</span> CtEntry(resourceWrapper, <span class="keyword">null</span>, context);</span><br><span class="line">    &#125;</span><br><span class="line">    Entry e = <span class="keyword">new</span> CtEntry(resourceWrapper, chain, context);     <span class="comment">// @5</span></span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">	    chain.entry(context, resourceWrapper, <span class="keyword">null</span>, count, prioritized, args);   <span class="comment">// @6</span></span><br><span class="line">    &#125; <span class="keyword">catch</span> (BlockException e1) &#123;                                                                    <span class="comment">// @7</span></span><br><span class="line">	    e.exit(count, args);</span><br><span class="line">        <span class="keyword">throw</span> e1;</span><br><span class="line">    &#125; <span class="keyword">catch</span> (Throwable e1) &#123;</span><br><span class="line">        RecordLog.info(<span class="string">&quot;Sentinel unexpected exception&quot;</span>, e1);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> e;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>代码@1：我们先来介绍一下该方法的参数：</p>
+<ul>
+<li>ResourceWrapper resourceWrapper<br>资源的包装类型，可以是字符串类型的资源描述，也可以是方法类的。</li>
+<li>int count<br>此次需要消耗的令牌。</li>
+<li>boolean prioritized<br>是否注重优先级。</li>
+<li>Object… args<br>额外参数。</li>
+</ul>
+<p>代码@2：获取方法调用的上下文环境，上下环境对象存储在线程本地变量：ThreadLocal 中，这里先“剧透”一下，上下文环境中存储的是整个调用链，后续文章会重点介绍。</p>
+<p>代码@3：Sentinel 提供一个全局关闭的开关，如果关闭，返回的 CtEntry 中的 chain 为空，从这里可以看出，如果 chain 为空，则不会触发 Sentinel 流控相关的逻辑，从侧面也反应了该属性的重要性。</p>
+<p>代码@4：为该资源加载处理链链，这里是最最重要的方法，将在下文详细介绍。</p>
+<p>代码@5：根据资源ID、处理器链、上下文环境构建 CtEntry 对象。</p>
+<p>代码@6：调用 chain 的 entry 方法。</p>
+<p>代码@7：如果出现 BlockException ，调用 CtEntry 的 exit 方法。</p>
+<h2 id="2、Sentienl-ProcessorSlot-处理链"><a href="#2、Sentienl-ProcessorSlot-处理链" class="headerlink" title="2、Sentienl ProcessorSlot 处理链"></a>2、Sentienl ProcessorSlot 处理链</h2><p>我们接下来重点看一下 lookProcessChain 方法的实现细节。<br>CtSph#lookProcessChain</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="function">ProcessorSlot&lt;Object&gt; <span class="title">lookProcessChain</span><span class="params">(ResourceWrapper resourceWrapper)</span> </span>&#123;</span><br><span class="line">    ProcessorSlotChain chain = chainMap.get(resourceWrapper);  <span class="comment">// @1</span></span><br><span class="line">    <span class="keyword">if</span> (chain == <span class="keyword">null</span>) &#123;</span><br><span class="line">        <span class="keyword">synchronized</span> (LOCK) &#123;</span><br><span class="line">	    chain = chainMap.get(resourceWrapper);</span><br><span class="line">            <span class="keyword">if</span> (chain == <span class="keyword">null</span>) &#123;</span><br><span class="line">                <span class="comment">// Entry size limit.</span></span><br><span class="line">                <span class="keyword">if</span> (chainMap.size() &gt;= Constants.MAX_SLOT_CHAIN_SIZE) &#123;        <span class="comment">// @2</span></span><br><span class="line">		    <span class="keyword">return</span> <span class="keyword">null</span>;</span><br><span class="line">                &#125;</span><br><span class="line">                chain = SlotChainProvider.newSlotChain();                                      <span class="comment">// @3</span></span><br><span class="line">                Map&lt;ResourceWrapper, ProcessorSlotChain&gt; newMap = <span class="keyword">new</span> HashMap&lt;ResourceWrapper, ProcessorSlotChain&gt;(</span><br><span class="line">                        chainMap.size() + <span class="number">1</span>);</span><br><span class="line">                newMap.putAll(chainMap);</span><br><span class="line">                newMap.put(resourceWrapper, chain);</span><br><span class="line">                chainMap = newMap;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> chain;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>代码@1：chainMap 一个全局的缓存表，即同一个资源 ResourceWrapper (同一个资源名称) 会共同使用同一个 ProcessorSlotChain ，即不同的线程在访问同一个资源保护的代码时，这些线程将共同使用 ProcessorSlotChain  中的各个 ProcessorSlot 。注意留意 ResourceWrapper 的 equals 方法与 hashCode 方法。</p>
+<p>代码@2：这里重点想突出，如果同时在进入的资源个数超过 MAX_SLOT_CHAIN_SIZE，默认为 6000，会返回 null，则不对本次请求执行限流，熔断计算，而是直接跳过，这个点还是值得我们注意的。</p>
+<p>代码@3：通过 SlotChainProvider 创建对应的处理链。</p>
+<p>SlotChainProvider#newSlotChain</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> ProcessorSlotChain <span class="title">newSlotChain</span><span class="params">()</span> </span>&#123;</span><br><span class="line">	<span class="keyword">if</span> (slotChainBuilder != <span class="keyword">null</span>) &#123;     <span class="comment">// @1</span></span><br><span class="line">		<span class="keyword">return</span> slotChainBuilder.build();</span><br><span class="line">        &#125;</span><br><span class="line">	slotChainBuilder = SpiLoader.loadFirstInstanceOrDefault(SlotChainBuilder.class, DefaultSlotChainBuilder.class);   <span class="comment">// @2</span></span><br><span class="line">	<span class="keyword">if</span> (slotChainBuilder == <span class="keyword">null</span>) &#123;                                                                                                                                        <span class="comment">// @3</span></span><br><span class="line">		RecordLog.warn(<span class="string">&quot;[SlotChainProvider] Wrong state when resolving slot chain builder, using default&quot;</span>);</span><br><span class="line">                slotChainBuilder = <span class="keyword">new</span> DefaultSlotChainBuilder();</span><br><span class="line">         &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">		RecordLog.info(<span class="string">&quot;[SlotChainProvider] Global slot chain builder resolved: &quot;</span></span><br><span class="line">                + slotChainBuilder.getClass().getCanonicalName());</span><br><span class="line">         &#125;</span><br><span class="line">         <span class="keyword">return</span> slotChainBuilder.build();                                                                                                                                   <span class="comment">// @4</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>代码@1：如果 slotChainBuilder 不为空，则直接调用其 build 方法构建处理器链。</p>
+<p>代码@2：如果为空，首先通过 JAVA 的 SPI 机制，尝试加载自定义的 Slot Chain 构建器实现类。如果需要实现自定义的 Chain 构建器，只需实现  SlotChainBuilder 接口，然后将其放在 classpath 下即可，如果存在多个，以找到的第一个为准。</p>
+<p>代码@3：如果从 SPI 机制中加载失败，则使用默认的构建器：DefaultSlotChainBuilder。</p>
+<p>代码@4：调用其 build 方法构造 Slot Chain。</p>
+<p>那接下来我们先来看看 Sentinel 的 SlotChainBuilder 类体系，然后看看 DefaultSlotChainBuilder 的 build 方法。</p>
+<h4 id="2-1-SlotChainBuilder-类体系"><a href="#2-1-SlotChainBuilder-类体系" class="headerlink" title="2.1 SlotChainBuilder  类体系"></a>2.1 SlotChainBuilder  类体系</h4><p><img src="https://img-blog.csdnimg.cn/2020010513491784.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>主要有三个实现类，对应热点、接口网关以及普通场景。我们接下来将重点介绍 DefaultSlotChainBuilder ，关于热点限流与网关限流将在后面的文章中详细探讨。</p>
+<h4 id="2-2-DefaultSlotChainBuilder-build-方法"><a href="#2-2-DefaultSlotChainBuilder-build-方法" class="headerlink" title="2.2 DefaultSlotChainBuilder build 方法"></a>2.2 DefaultSlotChainBuilder build 方法</h4><p>DefaultSlotChainBuilder#build</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">DefaultSlotChainBuilder</span> <span class="keyword">implements</span> <span class="title">SlotChainBuilder</span> </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> ProcessorSlotChain <span class="title">build</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        ProcessorSlotChain chain = <span class="keyword">new</span> DefaultProcessorSlotChain();</span><br><span class="line">        chain.addLast(<span class="keyword">new</span> NodeSelectorSlot());</span><br><span class="line">        chain.addLast(<span class="keyword">new</span> ClusterBuilderSlot());</span><br><span class="line">        chain.addLast(<span class="keyword">new</span> LogSlot());</span><br><span class="line">        chain.addLast(<span class="keyword">new</span> StatisticSlot());</span><br><span class="line">        chain.addLast(<span class="keyword">new</span> AuthoritySlot());</span><br><span class="line">        chain.addLast(<span class="keyword">new</span> SystemSlot());</span><br><span class="line">        chain.addLast(<span class="keyword">new</span> FlowSlot());</span><br><span class="line">        chain.addLast(<span class="keyword">new</span> DegradeSlot());</span><br><span class="line">        <span class="keyword">return</span> chain;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>就问大家激不激动，开不开心，从这些 Slot 的名字基本就能得出其含义。</p>
+<ul>
+<li>NodeSelectorSlot<br>主要用于构建调用链。</li>
+<li>ClusterBuilderSlot<br>用于集群限流、熔断。</li>
+<li>LogSlot<br>用于记录日志。</li>
+<li>StatisticSlot<br>用于实时收集实时消息。</li>
+<li>AuthoritySlot<br>用于权限校验的。</li>
+<li>SystemSlot<br>用于验证系统级别的规则。</li>
+<li>FlowSlot<br>实现限流机制。</li>
+<li>DegradeSlot<br>实现熔断机制。</li>
+</ul>
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/posts/550fbf45.html#more" rel="contents">
+              阅读全文 &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="https://www.codingw.net/posts/9ef855bf.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="中间件兴趣圈">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/posts/9ef855bf.html" itemprop="url">基于 raft 协议的 RocketMQ DLedger 多副本日志复制设计原理</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-09-26T20:14:35+08:00">
+                2020-09-26
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/rocketmq/" itemprop="url" rel="index">
+                    <span itemprop="name">rocketmq</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/posts/9ef855bf.html#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count valine-comment-count" data-xid="/posts/9ef855bf.html" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+             <span id="/posts/9ef855bf.html" class="leancloud_visitors" data-flag-title="基于 raft 协议的 RocketMQ DLedger 多副本日志复制设计原理">
+               <span class="post-meta-divider">|</span>
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               
+                 <span class="post-meta-item-text">阅读次数&#58;</span>
+               
+                 <span class="leancloud-visitors-count"></span>
+             </span>
+          
+
+          
+
+          
+            <div class="post-wordcount">
+              
+                
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-file-word-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">字数统计&#58;</span>
+                
+                <span title="字数统计">
+                  1.3k 字
+                </span>
+              
+
+              
+                <span class="post-meta-divider">|</span>
+              
+
+              
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-clock-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">阅读时长 &asymp;</span>
+                
+                <span title="阅读时长">
+                  4 分钟
+                </span>
+              
+            </div>
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          <h2 id="1、RocketMQ-DLedger-多副本日志复制流程图"><a href="#1、RocketMQ-DLedger-多副本日志复制流程图" class="headerlink" title="1、RocketMQ DLedger 多副本日志复制流程图"></a>1、RocketMQ DLedger 多副本日志复制流程图</h2><h3 id="1-1-RocketMQ-DLedger-日志转发-append-请求流程图"><a href="#1-1-RocketMQ-DLedger-日志转发-append-请求流程图" class="headerlink" title="1.1 RocketMQ DLedger 日志转发(append) 请求流程图"></a>1.1 RocketMQ DLedger 日志转发(append) 请求流程图</h3><p><img src="https://img-blog.csdnimg.cn/20190928183406295.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"></p>
+<h3 id="1-2-RocketMQ-DLedger-日志仲裁流程图"><a href="#1-2-RocketMQ-DLedger-日志仲裁流程图" class="headerlink" title="1.2 RocketMQ DLedger 日志仲裁流程图"></a>1.2 RocketMQ DLedger 日志仲裁流程图</h3><p><img src="https://img-blog.csdnimg.cn/20190928183709529.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"></p>
+<h3 id="1-3-RocketMQ-DLedger-从节点日志复制流程图"><a href="#1-3-RocketMQ-DLedger-从节点日志复制流程图" class="headerlink" title="1.3 RocketMQ DLedger 从节点日志复制流程图"></a>1.3 RocketMQ DLedger 从节点日志复制流程图</h3><p><img src="https://img-blog.csdnimg.cn/20190928183733569.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"></p>
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/posts/9ef855bf.html#more" rel="contents">
+              阅读全文 &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="https://www.codingw.net/posts/b9d8cad7.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="中间件兴趣圈">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/posts/b9d8cad7.html" itemprop="url">结合 Sentinel 专栏谈谈我的源码阅读技巧</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-09-25T23:05:35+08:00">
+                2020-09-25
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/sentinel/" itemprop="url" rel="index">
+                    <span itemprop="name">sentinel</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/posts/b9d8cad7.html#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count valine-comment-count" data-xid="/posts/b9d8cad7.html" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+             <span id="/posts/b9d8cad7.html" class="leancloud_visitors" data-flag-title="结合 Sentinel 专栏谈谈我的源码阅读技巧">
+               <span class="post-meta-divider">|</span>
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               
+                 <span class="post-meta-item-text">阅读次数&#58;</span>
+               
+                 <span class="leancloud-visitors-count"></span>
+             </span>
+          
+
+          
+
+          
+            <div class="post-wordcount">
+              
+                
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-file-word-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">字数统计&#58;</span>
+                
+                <span title="字数统计">
+                  2.7k 字
+                </span>
+              
+
+              
+                <span class="post-meta-divider">|</span>
+              
+
+              
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-clock-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">阅读时长 &asymp;</span>
+                
+                <span title="阅读时长">
+                  9 分钟
+                </span>
+              
+            </div>
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          <blockquote>
+<p>本文行文思路：先抛出源码阅读方法，然后结合Sentinel创作过程谈谈具体是如何运用这些技巧，最后解答几个源码阅读的误区。</p>
+</blockquote>
+<p>Sentinel 系列共包含15篇文章，主要以源码分析为手段，图文并茂的方式对 Sentinel 的架构设计理念、核心实现要点进行了一一剖析，并加以实战分析与思考。</p>
+<p><strong>很多朋友都在询我是如何阅读源码的。对此可归纳为如下几个要点，然后结合 Sentienl 源码分析专栏对各个要点进行拆解，对源码阅读方法进行一次“实战”。</strong></p>
+<ul>
+<li>阅读官方文档，从全局了解待学习框架能解决什么样的问题，整体架构设计与思想是什么，主要包含哪些要点。</li>
+<li>从官方提供的 Demo 程序开始，学习基本的使用方法，进一步加深其理解，并伺机寻找入口（突破口）。</li>
+<li>寻找突破口，逐一突破，先主干再旁支，适度分解，各个击破。</li>
+</ul>
+<p>接下来将展示我是如何使用这套方法论来学习 Sentinel 的。</p>
+<p>在准备深入学习 Sentinel 之前，首先认真看了一遍 Sentinel 的官方文档，从而形成了对 Sentinel 的基本认识，我们可以从官方文档了解到 Sentinel 主要涉及的核心内容，正如下图所示：<br><img src="https://img-blog.csdnimg.cn/2020053015083815.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述">这些内容可以简单的当成一个学习的提纲，可以从里面挑选自己感兴趣的进行重点学习。</p>
+<p>在看完官方文档后，我就踏上创作 Sentinel 系列的征途。</p>
+<blockquote>
+<p>本文不会再详细介绍每一个知识点的细节，有关各个知识点的具体讲解，大家可以点击感兴趣的链接中进行深入研究，本文主要是点到为止，重在介绍笔者是如何学习源码的。</p>
+</blockquote>
+<p>1、<a target="_blank" rel="noopener" href="https://blog.csdn.net/prestigeding/article/details/103544443">Alibaba Sentinel 限流与熔断初探</a><br>该文章主要从如下几个点进行展开：</p>
+<ul>
+<li>Sentinel 是什么 ？主要能解决什么问题？</li>
+<li>限流与熔断的使用场景</li>
+<li>Sentinel 源码结构</li>
+<li>在 IntelliJ IDEA 中运行 Sentine Demo</li>
+</ul>
+<p>其实第三点并不是特别必须，不过要得出这些结论也并不难，因为对 Sentinel 有了全局的认识后并根据各个模块的命名很容易能得出该模块的作用。这里第四点非常关键，通常一个优秀的开源框架都会提供完备的演示 Demo，大家可以看到 Sentinel 的演示 demo 非常丰富，在本文中我特意选择了 Dubbo 来做示例，主要是我们公司大量使用 dubbo 来实现公司的微服务，这样会更加贴近实战，更有利于寻找突破口。</p>
+<p>通过跑通 Demo 的主要目的有三个：</p>
+<ul>
+<li>通过运行 Demo，了解框架的基本使用方法。</li>
+<li>搭建一个可 Debug 的环境，为后续看不懂代码的情况下进行调试，根据运行时数据，可加快代码的理解速度，但千万不要一开始就 debug。</li>
+<li>寻找源码阅读的入口。</li>
+</ul>
+<p>2、<a target="_blank" rel="noopener" href="https://blog.csdn.net/prestigeding/article/details/103654590">源码分析 Sentinel 之 Dubbo 适配原理</a><br>紧跟第一篇文章，既然使用的是 Dubbo 作为其示例代码，自然而然的思考 Sentinel 是如何做到对 Dubbo 的适配并对业务无侵入性。</p>
+<p>通过该篇文章的学习我们了解到可以通过 Dubbo 的扩展机制实现对 Dubbo 的适配，在 Dubbo Filter 中我们能看到了与 Sentinel 相关的核心 API SphU.entry，从而找到深入学习 Sentinel 的核心入口，也就是后续文章会通过对该方法的研究，从而打开进入 Sentinel 内核世界的大门。</p>
+<blockquote>
+<p>备注：在阅读这篇文章的时候，我觉得 Dubbo 的适配感觉非常简单，但随着我对这个系列的深入学习，发现了该方法没有那么简单，当时很多点都没有理解到位，这个在后续会有重点阐述，这也是不断学习、不断思考带来的好处。</p>
+</blockquote>
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/posts/b9d8cad7.html#more" rel="contents">
+              阅读全文 &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
     <link itemprop="mainEntityOfPage" href="https://www.codingw.net/posts/97996927.html">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -765,1803 +2572,6 @@
 
 
     
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="https://www.codingw.net/posts/5f8f7185.html">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="中间件兴趣圈">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/posts/5f8f7185.html" itemprop="url">源码分析 Sentinel 实时数据采集实现原理</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-09-22T22:47:35+08:00">
-                2020-09-22
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/sentinel/" itemprop="url" rel="index">
-                    <span itemprop="name">sentinel</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/posts/5f8f7185.html#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count valine-comment-count" data-xid="/posts/5f8f7185.html" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-             <span id="/posts/5f8f7185.html" class="leancloud_visitors" data-flag-title="源码分析 Sentinel 实时数据采集实现原理">
-               <span class="post-meta-divider">|</span>
-               <span class="post-meta-item-icon">
-                 <i class="fa fa-eye"></i>
-               </span>
-               
-                 <span class="post-meta-item-text">阅读次数&#58;</span>
-               
-                 <span class="leancloud-visitors-count"></span>
-             </span>
-          
-
-          
-
-          
-            <div class="post-wordcount">
-              
-                
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-file-word-o"></i>
-                </span>
-                
-                  <span class="post-meta-item-text">字数统计&#58;</span>
-                
-                <span title="字数统计">
-                  2.9k 字
-                </span>
-              
-
-              
-                <span class="post-meta-divider">|</span>
-              
-
-              
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-clock-o"></i>
-                </span>
-                
-                  <span class="post-meta-item-text">阅读时长 &asymp;</span>
-                
-                <span title="阅读时长">
-                  12 分钟
-                </span>
-              
-            </div>
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          <p>本篇将重点关注 Sentienl 实时数据收集，即 Sentienl 具体是如何收集调用信息，以此来判断是否需要触发限流或熔断。</p>
-<p>Sentienl 实时数据收集的入口类为 StatisticSlot。</p>
-<p>我们先简单来看一下 StatisticSlot 该类的注释，来看一下该类的整体定位。</p>
-<p>StatisticSlot，专用于实时统计的 slot。在进入一个资源时，在执行 Sentienl 的处理链条中会进入到该 slot 中，需要完成如下计算任务：</p>
-<ul>
-<li>集群维度计算资源的总统计信息，用于集群限流，后续文章将详细探讨。</li>
-<li>来自不同调用方/来源的群集节点的统计信息。</li>
-<li>特定调用上下文环境的统计信息。</li>
-<li>统计所有入口的统计信息。</li>
-</ul>
-<p>接下来用源码分析的手段来详细分析 StatisticSlot 的实现原理。</p>
-<h2 id="1、源码分析-StatisticSlot"><a href="#1、源码分析-StatisticSlot" class="headerlink" title="1、源码分析 StatisticSlot"></a>1、源码分析 StatisticSlot</h2><h4 id="1-1-StatisticSlot-entry-详解"><a href="#1-1-StatisticSlot-entry-详解" class="headerlink" title="1.1 StatisticSlot entry 详解"></a>1.1 StatisticSlot entry 详解</h4><p>StatisticSlot#entry </p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">entry</span><span class="params">(Context context, ResourceWrapper resourceWrapper, DefaultNode node, <span class="keyword">int</span> count,<span class="keyword">boolean</span> prioritized, Object... args)</span> <span class="keyword">throws</span> Throwable </span>&#123; </span><br><span class="line">	<span class="keyword">try</span> &#123;</span><br><span class="line">		<span class="comment">// Do some checking.</span></span><br><span class="line">                fireEntry(context, resourceWrapper, node, count, prioritized, args);  <span class="comment">// @1</span></span><br><span class="line">        	<span class="comment">// Request passed, add thread count and pass count.</span></span><br><span class="line">        	node.increaseThreadNum();                                                             <span class="comment">// @2</span></span><br><span class="line">       		node.addPassRequest(count);</span><br><span class="line">		<span class="keyword">if</span> (context.getCurEntry().getOriginNode() != <span class="keyword">null</span>) &#123;                           <span class="comment">// @3</span></span><br><span class="line">			<span class="comment">// Add count for origin node.</span></span><br><span class="line">            		context.getCurEntry().getOriginNode().increaseThreadNum();</span><br><span class="line">            		context.getCurEntry().getOriginNode().addPassRequest(count);</span><br><span class="line">       		 &#125;</span><br><span class="line">		<span class="keyword">if</span> (resourceWrapper.getEntryType() == EntryType.IN) &#123;                <span class="comment">// @4</span></span><br><span class="line">			<span class="comment">// Add count for global inbound entry node for global statistics.</span></span><br><span class="line">            		Constants.ENTRY_NODE.increaseThreadNum();</span><br><span class="line">           	 	Constants.ENTRY_NODE.addPassRequest(count);</span><br><span class="line">        	&#125;</span><br><span class="line">		<span class="comment">// Handle pass event with registered entry callback handlers.</span></span><br><span class="line">        	<span class="keyword">for</span> (ProcessorSlotEntryCallback&lt;DefaultNode&gt; handler : StatisticSlotCallbackRegistry.getEntryCallbacks()) &#123;   <span class="comment">// @5</span></span><br><span class="line">            		handler.onPass(context, resourceWrapper, node, count, args);</span><br><span class="line">        	&#125;</span><br><span class="line">    	&#125; <span class="keyword">catch</span> (PriorityWaitException ex) &#123;                                                                                                                                <span class="comment">// @6</span></span><br><span class="line">		node.increaseThreadNum();</span><br><span class="line">		<span class="keyword">if</span> (context.getCurEntry().getOriginNode() != <span class="keyword">null</span>) &#123;</span><br><span class="line">			<span class="comment">// Add count for origin node.</span></span><br><span class="line">            		context.getCurEntry().getOriginNode().increaseThreadNum();</span><br><span class="line">       	 	&#125;</span><br><span class="line">		<span class="keyword">if</span> (resourceWrapper.getEntryType() == EntryType.IN) &#123;</span><br><span class="line">			<span class="comment">// Add count for global inbound entry node for global statistics.</span></span><br><span class="line">            		Constants.ENTRY_NODE.increaseThreadNum();</span><br><span class="line">        	&#125;</span><br><span class="line">        	<span class="comment">// Handle pass event with registered entry callback handlers.</span></span><br><span class="line">        	<span class="keyword">for</span> (ProcessorSlotEntryCallback&lt;DefaultNode&gt; handler : StatisticSlotCallbackRegistry.getEntryCallbacks()) &#123;</span><br><span class="line">            		handler.onPass(context, resourceWrapper, node, count, args);</span><br><span class="line">        	&#125;</span><br><span class="line">    	&#125; <span class="keyword">catch</span> (BlockException e) &#123;     <span class="comment">// @7                                                                                                              </span></span><br><span class="line">        	<span class="comment">// Blocked, set block exception to current entry.</span></span><br><span class="line">        	context.getCurEntry().setError(e);</span><br><span class="line">		<span class="comment">// Add block count.</span></span><br><span class="line">        	node.increaseBlockQps(count);</span><br><span class="line">        	<span class="keyword">if</span> (context.getCurEntry().getOriginNode() != <span class="keyword">null</span>) &#123;</span><br><span class="line">            		context.getCurEntry().getOriginNode().increaseBlockQps(count);</span><br><span class="line">        	&#125;</span><br><span class="line">		<span class="keyword">if</span> (resourceWrapper.getEntryType() == EntryType.IN) &#123;</span><br><span class="line">            		<span class="comment">// Add count for global inbound entry node for global statistics.</span></span><br><span class="line">            		Constants.ENTRY_NODE.increaseBlockQps(count);</span><br><span class="line">        	&#125;</span><br><span class="line">        	<span class="comment">// Handle block event with registered entry callback handlers.</span></span><br><span class="line">        	<span class="keyword">for</span> (ProcessorSlotEntryCallback&lt;DefaultNode&gt; handler : StatisticSlotCallbackRegistry.getEntryCallbacks()) &#123;</span><br><span class="line">            		handler.onBlocked(e, context, resourceWrapper, node, count, args);</span><br><span class="line">        	&#125;</span><br><span class="line">		<span class="keyword">throw</span> e;</span><br><span class="line">    	&#125; <span class="keyword">catch</span> (Throwable e) &#123;   <span class="comment">// @8</span></span><br><span class="line">        	<span class="comment">// Unexpected error, set error to current entry.</span></span><br><span class="line">        	context.getCurEntry().setError(e);</span><br><span class="line">		<span class="comment">// This should not happen.</span></span><br><span class="line">        	node.increaseExceptionQps(count);</span><br><span class="line">        	<span class="keyword">if</span> (context.getCurEntry().getOriginNode() != <span class="keyword">null</span>) &#123;</span><br><span class="line">            		context.getCurEntry().getOriginNode().increaseExceptionQps(count);</span><br><span class="line">        	&#125;</span><br><span class="line">		<span class="keyword">if</span> (resourceWrapper.getEntryType() == EntryType.IN) &#123;</span><br><span class="line">            		Constants.ENTRY_NODE.increaseExceptionQps(count);</span><br><span class="line">        	&#125;</span><br><span class="line">        	<span class="keyword">throw</span> e;</span><br><span class="line">    	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>代码@1：首先调用 fireEntry，先调用 Sentinel Slot Chain 中其他的处理器，执行完其他处理器的逻辑，例如 FlowSlot、DegradeSlot，因为 StatisticSlot 的职责是收集统计信息。</p>
-<p>代码@2：如果后续处理器成功执行，则将正在执行线程数统计指标加一，并将通过的请求数量指标增加对应的值。下文会对 Sentinel Node 体系进行详细的介绍，在 Sentinel 中使用 Node 来表示调用链中的某一个节点，每个节点关联一个资源，资源的实时统计信息就存储在 Node 中，故该部分也是调用 DefaultNode 的相关方法来改变线程数等，将在下文会向详细介绍。</p>
-<p>代码@3：如果上下文环境中保存了调用的源头（调用方）的节点信息不为空，则更新该节点的统计数据：线程数与通过数量。</p>
-<p>代码@4：如果资源的进入类型为 EntryType.IN，表示入站流量，更新入站全局统计数据(集群范围 ClusterNode)。</p>
-<p>代码@5：执行注册的进入Handler，可以通过 StatisticSlotCallbackRegistry 的 addEntryCallback 注册相关监听器。</p>
-<p>代码@6：如果捕获到 PriorityWaitException ，则认为是等待过一定时间，但最终还是算通过，只需增加线程的个数，但无需增加节点通过的数量，具体原因我们在详细分析限流部分时会重点讨论，也会再次阐述 PriorityWaitException 的含义。</p>
-<p>代码@7：如果捕获到 BlockException，则主要增加阻塞的数量。</p>
-<p>代码@8：如果是系统异常，则增加异常数量。</p>
-<p>我想上面的代码应该不难理解，但涉及到统计指标数据的变化，都是调用 DefaultNode node 相关的方法，从这里也可以看出，Node 将是实时统计数据的直接持有者，那毋容置疑接下来将重点来学习 Node，为了知识体系的完备性，我们先来看一下 StatisticSlot 的 exit 方法。</p>
-          <!--noindex-->
-          <div class="post-button text-center">
-            <a class="btn" href="/posts/5f8f7185.html#more" rel="contents">
-              阅读全文 &raquo;
-            </a>
-          </div>
-          <!--/noindex-->
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="https://www.codingw.net/posts/e7bbdda0.html">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="中间件兴趣圈">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/posts/e7bbdda0.html" itemprop="url">Sentinel 调用上下文环境实现原理</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-09-21T22:45:35+08:00">
-                2020-09-21
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/sentinel/" itemprop="url" rel="index">
-                    <span itemprop="name">sentinel</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/posts/e7bbdda0.html#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count valine-comment-count" data-xid="/posts/e7bbdda0.html" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-             <span id="/posts/e7bbdda0.html" class="leancloud_visitors" data-flag-title="Sentinel 调用上下文环境实现原理">
-               <span class="post-meta-divider">|</span>
-               <span class="post-meta-item-icon">
-                 <i class="fa fa-eye"></i>
-               </span>
-               
-                 <span class="post-meta-item-text">阅读次数&#58;</span>
-               
-                 <span class="leancloud-visitors-count"></span>
-             </span>
-          
-
-          
-
-          
-            <div class="post-wordcount">
-              
-                
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-file-word-o"></i>
-                </span>
-                
-                  <span class="post-meta-item-text">字数统计&#58;</span>
-                
-                <span title="字数统计">
-                  2.4k 字
-                </span>
-              
-
-              
-                <span class="post-meta-divider">|</span>
-              
-
-              
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-clock-o"></i>
-                </span>
-                
-                  <span class="post-meta-item-text">阅读时长 &asymp;</span>
-                
-                <span title="阅读时长">
-                  9 分钟
-                </span>
-              
-            </div>
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          <p>用源码与图解的方式详细探究 Sentinel 调用上下文环境是如何管理的。</p>
-<p>本节将详细介绍 Sentienl 的上下文环境管理机制。</p>
-<h2 id="1、Sentinel-Context-调用上下文环境管理"><a href="#1、Sentinel-Context-调用上下文环境管理" class="headerlink" title="1、Sentinel Context 调用上下文环境管理"></a>1、Sentinel Context 调用上下文环境管理</h2><p>我们从  sentinel-apache-dubbo-adapter 模块的 SentinelDubboProviderFilter 的实现中不难看出，在其入口处会首先调用 ContextUtil.enter(resourceName, application) 。那我们就从该方法开始来探究上下文环境管理机制。</p>
-<p>说到 Sentinel 的调用上下文环境，那调用上下文环境中会保存哪些信息呢？我们先来看看 Context。</p>
-<h4 id="1-1-Context-详解"><a href="#1-1-Context-详解" class="headerlink" title="1.1 Context 详解"></a>1.1 Context 详解</h4><p>Context 类图如下：<br><img src="https://img-blog.csdnimg.cn/2020011209183558.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"></p>
-<ul>
-<li><p>Context<br>其核心属性与核心方法如下：</p>
-<ul>
-<li>String name<br>Sentinel 调用上下文环境的名称。</li>
-<li>DefaultNode entranceNode<br>调用链的入口节点信息。</li>
-<li>Entry curEntry<br>调用链中当前节点的信息。</li>
-<li>boolean async<br>是否是异步调用上下文环境。</li>
-<li>Entry<br>保存当前的调用信息，其主要核心属性：</li>
-<li>private long createTime<br>资源调用的时间戳。</li>
-<li>private Node curNode<br>该资源所对应的实时采集信息。</li>
-<li>protected ResourceWrapper resourceWrapper<br>资源对象。</li>
-</ul>
-</li>
-<li><p>CtEntry<br>同步调用调用信息封装对象。</p>
-</li>
-<li><p>AsyncEntry<br>异步调用调用信息的封装对象。</p>
-</li>
-</ul>
-<p>对应的核心方法将在下文具体用到时再详细介绍。</p>
-<h4 id="1-2-创建调用上下文环境"><a href="#1-2-创建调用上下文环境" class="headerlink" title="1.2 创建调用上下文环境"></a>1.2 创建调用上下文环境</h4><p>ContextUtil#enter</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> Context <span class="title">enter</span><span class="params">(String name, String origin)</span> </span>&#123;  <span class="comment">// @1</span></span><br><span class="line">	<span class="keyword">if</span> (Constants.CONTEXT_DEFAULT_NAME.equals(name)) &#123;</span><br><span class="line">            <span class="keyword">throw</span> <span class="keyword">new</span> ContextNameDefineException(</span><br><span class="line">                <span class="string">&quot;The &quot;</span> + Constants.CONTEXT_DEFAULT_NAME + <span class="string">&quot; can&#x27;t be permit to defined!&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> trueEnter(name, origin);   <span class="comment">// @2</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>代码@1：首先我们来看一下其参数：</p>
-<ul>
-<li>String name<br>上下文环境 Context 的名称。</li>
-<li>String origin<br>该参数的含义在介绍集群限流时会详细介绍，从 dubbo 模块的适配来看，通常该值会传入当前应用的 application 名称。</li>
-</ul>
-<p>代码@2：通过调用内部的 trueEnter 方法。</p>
-<p>在进入 trueEnter 方法之前，我们先来看一下 ContextUtil 中两个最核心的属性：<br><img src="https://img-blog.csdnimg.cn/20200112092204338.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>首先使用 ThreadLocal 对象来存储线程上下文环境对象 Context。Map&lt;String, DefaultNode&gt; contextNameNodeMap ，其键为 context 的名称，用来缓存其对应的 EntranceNode 。</p>
-<p>ContextUtil#trueEnter</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">protected</span> <span class="keyword">static</span> Context <span class="title">trueEnter</span><span class="params">(String name, String origin)</span> </span>&#123;</span><br><span class="line">    Context context = contextHolder.get();   <span class="comment">// @1 </span></span><br><span class="line">    <span class="keyword">if</span> (context == <span class="keyword">null</span>) &#123;</span><br><span class="line">	Map&lt;String, DefaultNode&gt; localCacheNameMap = contextNameNodeMap;</span><br><span class="line">        DefaultNode node = localCacheNameMap.get(name);   <span class="comment">// @2</span></span><br><span class="line">        <span class="keyword">if</span> (node == <span class="keyword">null</span>) &#123;</span><br><span class="line">		<span class="keyword">if</span> (localCacheNameMap.size() &gt; Constants.MAX_CONTEXT_NAME_SIZE) &#123;   <span class="comment">// @3</span></span><br><span class="line">                 	setNullContext();</span><br><span class="line">               	 	<span class="keyword">return</span> NULL_CONTEXT;</span><br><span class="line">           	 &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                	<span class="keyword">try</span> &#123;</span><br><span class="line">                    		LOCK.lock();</span><br><span class="line">                    		node = contextNameNodeMap.get(name);   <span class="comment">// @4</span></span><br><span class="line">                    		<span class="keyword">if</span> (node == <span class="keyword">null</span>) &#123;</span><br><span class="line">                        		<span class="keyword">if</span> (contextNameNodeMap.size() &gt; Constants.MAX_CONTEXT_NAME_SIZE) &#123;  </span><br><span class="line">                            			setNullContext();</span><br><span class="line">                            			<span class="keyword">return</span> NULL_CONTEXT;</span><br><span class="line">                        		&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                           			 node = <span class="keyword">new</span> EntranceNode(<span class="keyword">new</span> StringResourceWrapper(name, EntryType.IN), <span class="keyword">null</span>);  <span class="comment">// @5</span></span><br><span class="line">                            			<span class="comment">// Add entrance node.</span></span><br><span class="line">                            			Constant.ROOT.addChild(node);                                                                                     <span class="comment">// @6</span></span><br><span class="line">						Map&lt;String, DefaultNode&gt; newMap = <span class="keyword">new</span> HashMap&lt;&gt;(contextNameNodeMap.size() + <span class="number">1</span>);</span><br><span class="line">                            			newMap.putAll(contextNameNodeMap);</span><br><span class="line">                            			newMap.put(name, node);</span><br><span class="line">                            			contextNameNodeMap = newMap;</span><br><span class="line">                        		&#125;</span><br><span class="line">                    		&#125;</span><br><span class="line">                	&#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">                    		LOCK.unlock();</span><br><span class="line">               		&#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        context = <span class="keyword">new</span> Context(node, name);    <span class="comment">// @7</span></span><br><span class="line">        context.setOrigin(origin);</span><br><span class="line">        contextHolder.set(context);    <span class="comment">// @8</span></span><br><span class="line">   &#125;</span><br><span class="line">  <span class="keyword">return</span> context;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>代码@1：从 threadLocal 中获取 Context 对象，线程首次获取时为空。</p>
-<p>代码@2：根据 context 的名称尝试从缓存中去找对应的 Node，通常是 EntranceNode。即用来表示入口的节点Node 为 EntranceNode。</p>
-<p>代码@3：如果 localCacheNameMap 已缓存的对象容量默认超过2000，则不纳入 Sentinel 限流，熔断等机制中来，即一个应用，默认不能定义 2000个 资源统计入口，以 一个 Dubbo 服务为例，一个 Dubbo 服务应用，如果超过2000个服务，则超过的部分不会应用 Sentinel 限流与熔断机制。</p>
-<p>代码@4：锁应用的经典场景，dubbo check。</p>
-<p>代码@5：为该 context name 创建一个对应的 EntranceNode。</p>
-<p>代码@6：将创建的 EntranceNode 加入到根节点的子节点中，稍后重点讨论一下。</p>
-<p>代码@7：创建 Context 对象，将 Context 对象中的入口节点设置为 新创建的 EntranceNode。</p>
-<p>代码@8：将新创建的 Context 对象存入当前线程本地环境变量中(ThreadLocal)。</p>
-<p>接下来先来探讨代码@6 Constants.ROOT.addChild(node)。</p>
-<p>在 Sentinel 中，会定义一个固定根节点，其定义如下：<br><img src="https://img-blog.csdnimg.cn/20200112092324439.png" alt="在这里插入图片描述"><br>其资源名称为：machine-root。addChild 方法就是将节点添加到如下数据结构中：<br><img src="https://img-blog.csdnimg.cn/20200112092345428.png" alt="在这里插入图片描述"></p>
-<h4 id="1-3-移除调用上下文环境"><a href="#1-3-移除调用上下文环境" class="headerlink" title="1.3 移除调用上下文环境"></a>1.3 移除调用上下文环境</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">exit</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    Context context = contextHolder.get();</span><br><span class="line">    <span class="keyword">if</span> (context != <span class="keyword">null</span> &amp;&amp; context.getCurEntry() == <span class="keyword">null</span>) &#123;</span><br><span class="line">        contextHolder.set(<span class="keyword">null</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>退出当前上下文环境，这里有一个条件就是当前的上下文环境的当前调用节点已经退出，否则无法移除，故使用建议：ContextUtil . exit 一定要在持有的 Entry 退出之后再调用。</p>
-          <!--noindex-->
-          <div class="post-button text-center">
-            <a class="btn" href="/posts/e7bbdda0.html#more" rel="contents">
-              阅读全文 &raquo;
-            </a>
-          </div>
-          <!--/noindex-->
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="https://www.codingw.net/posts/a815ae71.html">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="中间件兴趣圈">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/posts/a815ae71.html" itemprop="url">Sentinel 系统自适应限流原理剖析与实战指导</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-09-20T23:03:35+08:00">
-                2020-09-20
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/sentinel/" itemprop="url" rel="index">
-                    <span itemprop="name">sentinel</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/posts/a815ae71.html#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count valine-comment-count" data-xid="/posts/a815ae71.html" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-             <span id="/posts/a815ae71.html" class="leancloud_visitors" data-flag-title="Sentinel 系统自适应限流原理剖析与实战指导">
-               <span class="post-meta-divider">|</span>
-               <span class="post-meta-item-icon">
-                 <i class="fa fa-eye"></i>
-               </span>
-               
-                 <span class="post-meta-item-text">阅读次数&#58;</span>
-               
-                 <span class="leancloud-visitors-count"></span>
-             </span>
-          
-
-          
-
-          
-            <div class="post-wordcount">
-              
-                
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-file-word-o"></i>
-                </span>
-                
-                  <span class="post-meta-item-text">字数统计&#58;</span>
-                
-                <span title="字数统计">
-                  1.8k 字
-                </span>
-              
-
-              
-                <span class="post-meta-divider">|</span>
-              
-
-              
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-clock-o"></i>
-                </span>
-                
-                  <span class="post-meta-item-text">阅读时长 &asymp;</span>
-                
-                <span title="阅读时长">
-                  6 分钟
-                </span>
-              
-            </div>
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          <p>看到标题中的几个关键字<strong>系统自适应</strong>限流是不是觉得高大上，这个自适应又是如何实现的呢？</p>
-<h2 id="1、Sentinel-系统自适应概述"><a href="#1、Sentinel-系统自适应概述" class="headerlink" title="1、Sentinel 系统自适应概述"></a>1、Sentinel 系统自适应概述</h2><p>从官方了解到 Sentienl 系统自适应限流是一个全局的概念，对应用入口流量统一进行统一控制，结合应用的机器负载、CPU 使用率，总体平均响应时间、入口 QPS 和并发线程数等几个维度的监控指标从而决定是否调用进行限流操作。为了有一个直观的感受，我们可以从官方的运维平台看看其系统自适应限流的操作界面：<br><img src="https://img-blog.csdnimg.cn/2020052413411896.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br>RT、线程数、入口QPS这三个指标是可以通过采集调用信息进行统计计算的，那系统LOAD、CPU使用率是如何获取的呢？大家可以带着这个问题进入本文的学习中来。</p>
-<p>在详细分析系统自适应实现原理之前我们先来思考一下 Sentinel 引入该机制的目的。</p>
-<p>官方文档针对这个问题有过仔细阐述，我们先来看看官方文档对其阐述。</p>
-<p>引入系统自适应限流的主要的目的有如下两个：</p>
-<ul>
-<li>保证系统不被拖垮</li>
-<li>在系统稳定的前提下保证系统的吞吐量。</li>
-</ul>
-<p>目前我们接触的限流的防护思路都是设定一个指标（阔值），例如系统的负载 load 超过某个阔值后就阻止或减少流量的继续进入，当系统负载降低到某一水平后则恢复流量的进入。通常都是被动的，其实际效果取决与阔值设置是否合理，但往往设置合理不是一件容易的事情。</p>
-<p>那 Sentinel 提供的系统自适应是可以将设定的规则作为一个保护因子，而允许通过的流量由处理请求的能力来决定，即根据请求的响应时间、当前系统正在处理的请求速率来决定。</p>
-<p>那 Sentinel 是如何实现的呢？接下来用源码的手段来揭晓其实现原理。</p>
-<h2 id="2、系统自适应限流原理"><a href="#2、系统自适应限流原理" class="headerlink" title="2、系统自适应限流原理"></a>2、系统自适应限流原理</h2><p>Sentinel 执行系统限流的核心入口类为 SystemSlot，该类实现简单，如下图所示：<br><img src="https://img-blog.csdnimg.cn/20200524134158678.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="SystemRuleManager#checkSystem"><br>从这里可以看出实现的关键在于SystemRuleManager，这里是直接调用 checkSystem 进行是否触发其限流，那我们接下来重点跟踪一下该方法的实现。</p>
-<h4 id="2-1-自适应限流检测流程"><a href="#2-1-自适应限流检测流程" class="headerlink" title="2.1 自适应限流检测流程"></a>2.1 自适应限流检测流程</h4><p>系统自适应限流检测具体由 SystemRuleManager 的 checkSystem 方法实现，接下来详细剖析其实现细节。<br><img src="https://img-blog.csdnimg.cn/2020052413421556.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br>Step1：验证相关资源，主要包含三层验证：</p>
-<ul>
-<li>如果资源名称为空，则直接跳过，这个是容错机制。</li>
-<li>如果系统自适应开关为打开，直接放行，该开关初始化时为 false，在加载到一条系统自适应配置规则时该状态会设置为 true，具体在 loadSystemConf 中。</li>
-<li>如果资源的类型不是入口流量(EntryType.IN),则直接放行。<br><img src="https://img-blog.csdnimg.cn/20200524134428924.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br>Step2：从QPS为维度验证是否需要被限流，其实现关键点如下：</li>
-<li>当前的qps，如果 ENTRY_NODE 为空则返回0，否则返回该统计节点的成功 qps，那 ENTRY_NODE 统计节点是“何许人也”，原来是 Sentinel 特定定义了一个资源，其名称为__total_inbound_traffic__，用来采集所有入口调用的信息，当资源进入类型为 ENTRY_TYPE_IN 时，会自动采集信息，其具体统计信息在 StatisticSlot 的 entry 方法中被调用，其截图如下：<br><img src="https://img-blog.csdnimg.cn/20200524134513299.png#pic_center" alt="在这里插入图片描述"></li>
-<li>如果当前调用的 QPS 大于设定的QPS，即触发限流，那这个 qps 又是在什么时候被设置的呢？也是在加载系统限流规则时被设置，如果一个应用同一个限流点（LOAD、QPS)设置了多条规则，最小值生效。<br><img src="https://img-blog.csdnimg.cn/20200524134545735.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br>Step3：关于线程数、响应时间限流模式与QPS类似，就不再重复介绍。<br><img src="https://img-blog.csdnimg.cn/20200524134621142.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br>Step4：如果当前系统的负载超过了设定的阔值的处理逻辑，这里就是自适应的核心所在，并不是超过负载就限流，而是需要根据当前系统的请求处理能力进行综合判断，具体逻辑在 checkBbr 方法中实现。关于如何获得系统负载与 checkBbr 方法稍后会详细介绍。<br><img src="https://img-blog.csdnimg.cn/20200524134709868.png#pic_center" alt="在这里插入图片描述"><br>Step5：如果当前CPU的负载超过了设置的阔值，触发限流，那在JAVA中是如何获取CPU的使用率的呢？稍后详细介绍。</li>
-</ul>
-          <!--noindex-->
-          <div class="post-button text-center">
-            <a class="btn" href="/posts/a815ae71.html#more" rel="contents">
-              阅读全文 &raquo;
-            </a>
-          </div>
-          <!--/noindex-->
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="https://www.codingw.net/posts/9502f6ef.html">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="中间件兴趣圈">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/posts/9502f6ef.html" itemprop="url">RocketMQ一个新的消费组初次启动时从何处开始消费呢？</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-09-19T21:55:35+08:00">
-                2020-09-19
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/rocketmq/" itemprop="url" rel="index">
-                    <span itemprop="name">rocketmq</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/posts/9502f6ef.html#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count valine-comment-count" data-xid="/posts/9502f6ef.html" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-             <span id="/posts/9502f6ef.html" class="leancloud_visitors" data-flag-title="RocketMQ一个新的消费组初次启动时从何处开始消费呢？">
-               <span class="post-meta-divider">|</span>
-               <span class="post-meta-item-icon">
-                 <i class="fa fa-eye"></i>
-               </span>
-               
-                 <span class="post-meta-item-text">阅读次数&#58;</span>
-               
-                 <span class="leancloud-visitors-count"></span>
-             </span>
-          
-
-          
-
-          
-            <div class="post-wordcount">
-              
-                
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-file-word-o"></i>
-                </span>
-                
-                  <span class="post-meta-item-text">字数统计&#58;</span>
-                
-                <span title="字数统计">
-                  3.1k 字
-                </span>
-              
-
-              
-                <span class="post-meta-divider">|</span>
-              
-
-              
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-clock-o"></i>
-                </span>
-                
-                  <span class="post-meta-item-text">阅读时长 &asymp;</span>
-                
-                <span title="阅读时长">
-                  13 分钟
-                </span>
-              
-            </div>
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          <h2 id="1、抛出问题"><a href="#1、抛出问题" class="headerlink" title="1、抛出问题"></a>1、抛出问题</h2><p>一个新的消费组订阅一个已存在的Topic主题时，消费组是从该Topic的哪条消息开始消费呢？</p>
-<p>首先翻阅DefaultMQPushConsumer的API时，setConsumeFromWhere(ConsumeFromWhere consumeFromWhere)API映入眼帘，从字面意思来看是设置消费者从哪里开始消费，正是解开该问题的”钥匙“。ConsumeFromWhere枚举类图如下：<br><img src="https://img-blog.csdnimg.cn/20190720120834686.png" alt="在这里插入图片描述"></p>
-<ul>
-<li>CONSUME_FROM_MAX_OFFSET<br>从消费队列最大的偏移量开始消费。</li>
-<li>CONSUME_FROM_FIRST_OFFSET<br>从消费队列最小偏移量开始消费。</li>
-<li>CONSUME_FROM_TIMESTAMP<br>从指定的时间戳开始消费，默认为消费者启动之前的30分钟处开始消费。可以通过DefaultMQPushConsumer#setConsumeTimestamp。</li>
-</ul>
-<p>是不是点小激动，还不快试试。</p>
-<p>需求：新的消费组启动时，从队列最后开始消费，即只消费启动后发送到消息服务器后的最新消息。</p>
-<h3 id="1-1-环境准备"><a href="#1-1-环境准备" class="headerlink" title="1.1 环境准备"></a>1.1 环境准备</h3><p>本示例所用到的Topic路由信息如下：<br><img src="https://img-blog.csdnimg.cn/20190720120920850.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"></p>
-<p><strong>Broker的配置如下(broker.conf)</strong></p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">brokerClusterName &#x3D; DefaultCluster</span><br><span class="line">brokerName &#x3D; broker-a</span><br><span class="line">brokerId &#x3D; 0</span><br><span class="line">deleteWhen &#x3D; 04</span><br><span class="line">fileReservedTime &#x3D; 48</span><br><span class="line">brokerRole &#x3D; ASYNC_MASTER</span><br><span class="line">flushDiskType &#x3D; ASYNC_FLUSH</span><br><span class="line"></span><br><span class="line">storePathRootDir&#x3D;E:&#x2F;SH2019&#x2F;tmp&#x2F;rocketmq_home&#x2F;rocketmq4.5_simple&#x2F;store</span><br><span class="line">storePathCommitLog&#x3D;E:&#x2F;SH2019&#x2F;tmp&#x2F;rocketmq_home&#x2F;rocketmq4.5_simple&#x2F;store&#x2F;commitlog</span><br><span class="line">namesrvAddr&#x3D;127.0.0.1:9876</span><br><span class="line">autoCreateTopicEnable&#x3D;false</span><br><span class="line">mapedFileSizeCommitLog&#x3D;10240</span><br><span class="line">mapedFileSizeConsumeQueue&#x3D;2000</span><br></pre></td></tr></table></figure>
-<p>其中重点修改了如下两个参数：</p>
-<ul>
-<li>mapedFileSizeCommitLog<br>单个commitlog文件的大小，这里使用10M，方便测试用。</li>
-<li>mapedFileSizeConsumeQueue<br>单个consumequeue队列长度，这里使用1000，表示一个consumequeue文件中包含1000个条目。</li>
-</ul>
-<h3 id="1-2-消息发送者代码"><a href="#1-2-消息发送者代码" class="headerlink" title="1.2 消息发送者代码"></a>1.2 消息发送者代码</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> MQClientException, InterruptedException </span>&#123;</span><br><span class="line">    DefaultMQProducer producer = <span class="keyword">new</span> DefaultMQProducer(<span class="string">&quot;please_rename_unique_group_name&quot;</span>);</span><br><span class="line">    producer.setNamesrvAddr(<span class="string">&quot;127.0.0.1:9876&quot;</span>);</span><br><span class="line">    producer.start();</span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; <span class="number">300</span>; i++) &#123;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            Message msg = <span class="keyword">new</span> Message(<span class="string">&quot;TopicTest&quot;</span> ,<span class="string">&quot;TagA&quot;</span> , (<span class="string">&quot;Hello RocketMQ &quot;</span> + i).getBytes(RemotingHelper.DEFAULT_CHARSET));</span><br><span class="line">            SendResult sendResult = producer.send(msg);</span><br><span class="line">            System.out.printf(<span class="string">&quot;%s%n&quot;</span>, sendResult);</span><br><span class="line">        &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">            e.printStackTrace();</span><br><span class="line">            Thread.sleep(<span class="number">1000</span>);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    producer.shutdown();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>通过上述，往TopicTest发送300条消息，发送完毕后，RocketMQ Broker存储结构如下：<br><img src="https://img-blog.csdnimg.cn/20190720121132299.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"></p>
-<h3 id="1-3-消费端验证代码"><a href="#1-3-消费端验证代码" class="headerlink" title="1.3 消费端验证代码"></a>1.3 消费端验证代码</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> InterruptedException, MQClientException </span>&#123;</span><br><span class="line">    DefaultMQPushConsumer consumer = <span class="keyword">new</span> DefaultMQPushConsumer(<span class="string">&quot;my_consumer_01&quot;</span>);</span><br><span class="line">    consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET);</span><br><span class="line">    consumer.subscribe(<span class="string">&quot;TopicTest&quot;</span>, <span class="string">&quot;*&quot;</span>);</span><br><span class="line">    consumer.setNamesrvAddr(<span class="string">&quot;127.0.0.1:9876&quot;</span>);</span><br><span class="line">    consumer.registerMessageListener(<span class="keyword">new</span> MessageListenerConcurrently() &#123;</span><br><span class="line">        <span class="meta">@Override</span></span><br><span class="line">        <span class="function"><span class="keyword">public</span> ConsumeConcurrentlyStatus <span class="title">consumeMessage</span><span class="params">(List&lt;MessageExt&gt; msgs,</span></span></span><br><span class="line"><span class="function"><span class="params">            ConsumeConcurrentlyContext context)</span> </span>&#123;</span><br><span class="line">            System.out.printf(<span class="string">&quot;%s Receive New Messages: %s %n&quot;</span>, Thread.currentThread().getName(), msgs);</span><br><span class="line">            <span class="keyword">return</span> ConsumeConcurrentlyStatus.CONSUME_SUCCESS;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;);</span><br><span class="line">    consumer.start();</span><br><span class="line">    System.out.printf(<span class="string">&quot;Consumer Started.%n&quot;</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>执行上述代码后，按照期望，应该是不会消费任何消息，只有等生产者再发送消息后，才会对消息进行消费，事实是这样吗？执行效果如图所示：<br><img src="https://img-blog.csdnimg.cn/20190720121225978.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br><strong>令人意外的是，竟然从队列的最小偏移量开始消费了</strong>，这就“尴尬”了。难不成是RocketMQ的Bug。带着这个疑问，从源码的角度尝试来解读该问题，并指导我们实践。</p>
-          <!--noindex-->
-          <div class="post-button text-center">
-            <a class="btn" href="/posts/9502f6ef.html#more" rel="contents">
-              阅读全文 &raquo;
-            </a>
-          </div>
-          <!--/noindex-->
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="https://www.codingw.net/posts/e6afac5e.html">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="中间件兴趣圈">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/posts/e6afac5e.html" itemprop="url">RocketMQ实战：生产环境中，autoCreateTopicEnable为什么不能设置为true</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-09-18T22:25:35+08:00">
-                2020-09-18
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/rocketmq/" itemprop="url" rel="index">
-                    <span itemprop="name">rocketmq</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/posts/e6afac5e.html#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count valine-comment-count" data-xid="/posts/e6afac5e.html" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-             <span id="/posts/e6afac5e.html" class="leancloud_visitors" data-flag-title="RocketMQ实战：生产环境中，autoCreateTopicEnable为什么不能设置为true">
-               <span class="post-meta-divider">|</span>
-               <span class="post-meta-item-icon">
-                 <i class="fa fa-eye"></i>
-               </span>
-               
-                 <span class="post-meta-item-text">阅读次数&#58;</span>
-               
-                 <span class="leancloud-visitors-count"></span>
-             </span>
-          
-
-          
-
-          
-            <div class="post-wordcount">
-              
-                
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-file-word-o"></i>
-                </span>
-                
-                  <span class="post-meta-item-text">字数统计&#58;</span>
-                
-                <span title="字数统计">
-                  2.2k 字
-                </span>
-              
-
-              
-                <span class="post-meta-divider">|</span>
-              
-
-              
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-clock-o"></i>
-                </span>
-                
-                  <span class="post-meta-item-text">阅读时长 &asymp;</span>
-                
-                <span title="阅读时长">
-                  8 分钟
-                </span>
-              
-            </div>
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          <h2 id="1、现象"><a href="#1、现象" class="headerlink" title="1、现象"></a>1、现象</h2><p>很多网友会问，为什么明明集群中有多台Broker服务器，autoCreateTopicEnable设置为true，表示开启Topic自动创建，但新创建的Topic的路由信息只包含在其中一台Broker服务器上，这是为什么呢？</p>
-<p>期望值：为了消息发送的高可用，希望新创建的Topic在集群中的每台Broker上创建对应的队列，避免Broker的单节点故障。</p>
-<p>现象截图如下：<br><img src="https://img-blog.csdnimg.cn/20190611220611635.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="Broker集群信息"><br><img src="https://img-blog.csdnimg.cn/20190611220736135.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>正如上图所示，自动创建的topicTest5的路由信息：</p>
-<ul>
-<li>topicTest5只在broker-a服务器上创建了队列，并没有在broker-b服务器创建队列，不符合期望。</li>
-<li>默认读写队列的个数为4。</li>
-</ul>
-<p>我们再来看一下RocketMQ默认topic的路由信息截图如下：<br><img src="https://img-blog.csdnimg.cn/20190611220839184.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>从图中可以默认Topic的路由信息为broker-a、broker-b上各8个队列。</p>
-<h2 id="2、思考"><a href="#2、思考" class="headerlink" title="2、思考"></a>2、思考</h2><p>默认Topic的路由信息是如何创建的？</p>
-<ol>
-<li>Topic的路由信息是存储在哪里？Nameserver？broker?</li>
-<li>RocketMQ Topic默认队列个数是多少呢？</li>
-</ol>
-<h2 id="3、原理"><a href="#3、原理" class="headerlink" title="3、原理"></a>3、原理</h2><h3 id="3-1-RocketMQ基本路由规则"><a href="#3-1-RocketMQ基本路由规则" class="headerlink" title="3.1 RocketMQ基本路由规则"></a>3.1 RocketMQ基本路由规则</h3><p><img src="https://img-blog.csdnimg.cn/20190611221028332.jpg?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"></p>
-<ol>
-<li>Broker在启动时向Nameserver注册存储在该服务器上的路由信息，并每隔30s向Nameserver发送心跳包，并更新路由信息。</li>
-<li>Nameserver每隔10s扫描路由表，如果检测到Broker服务宕机，则移除对应的路由信息。</li>
-<li>消息生产者每隔30s会从Nameserver重新拉取Topic的路由信息并更新本地路由表；在消息发送之前，如果本地路由表中不存在对应主题的路由消息时，会主动向Nameserver拉取该主题的消息。</li>
-</ol>
-<p>回到本文的主题：autoCreateTopicEnable，开启自动创建主题，试想一下，如果生产者向一个不存在的主题发送消息时，上面的任何一个步骤都无法获取一个不存在的主题的路由信息，那该如何处理这种情况呢？</p>
-          <!--noindex-->
-          <div class="post-button text-center">
-            <a class="btn" href="/posts/e6afac5e.html#more" rel="contents">
-              阅读全文 &raquo;
-            </a>
-          </div>
-          <!--/noindex-->
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="https://www.codingw.net/posts/e0111576.html">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="中间件兴趣圈">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/posts/e0111576.html" itemprop="url">RocketMQ msgId与offsetMsgId释疑(实战篇)</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-09-17T22:53:57+08:00">
-                2020-09-17
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/rocketmq/" itemprop="url" rel="index">
-                    <span itemprop="name">rocketmq</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/posts/e0111576.html#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count valine-comment-count" data-xid="/posts/e0111576.html" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-             <span id="/posts/e0111576.html" class="leancloud_visitors" data-flag-title="RocketMQ msgId与offsetMsgId释疑(实战篇)">
-               <span class="post-meta-divider">|</span>
-               <span class="post-meta-item-icon">
-                 <i class="fa fa-eye"></i>
-               </span>
-               
-                 <span class="post-meta-item-text">阅读次数&#58;</span>
-               
-                 <span class="leancloud-visitors-count"></span>
-             </span>
-          
-
-          
-
-          
-            <div class="post-wordcount">
-              
-                
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-file-word-o"></i>
-                </span>
-                
-                  <span class="post-meta-item-text">字数统计&#58;</span>
-                
-                <span title="字数统计">
-                  1.9k 字
-                </span>
-              
-
-              
-                <span class="post-meta-divider">|</span>
-              
-
-              
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-clock-o"></i>
-                </span>
-                
-                  <span class="post-meta-item-text">阅读时长 &asymp;</span>
-                
-                <span title="阅读时长">
-                  8 分钟
-                </span>
-              
-            </div>
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <div id="vip-container"><p>本篇详细介绍消息发送、消息消费、RocketMQ queryMsgById 命令以及 rocketmq-console 等使用场景中究竟是用的哪一个ID。</p>
-<p>@<a href="%E6%9C%AC%E8%8A%82%E7%9B%AE%E5%BD%95">TOC</a></p>
-<h2 id="1、抛出问题"><a href="#1、抛出问题" class="headerlink" title="1、抛出问题"></a>1、抛出问题</h2><h4 id="1-1-从消息发送看消息ID"><a href="#1-1-从消息发送看消息ID" class="headerlink" title="1.1 从消息发送看消息ID"></a>1.1 从消息发送看消息ID</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> org.apache.rocketmq.example.quickstart;</span><br><span class="line"><span class="keyword">import</span> org.apache.rocketmq.client.producer.DefaultMQProducer;</span><br><span class="line"><span class="keyword">import</span> org.apache.rocketmq.client.producer.SendResult;</span><br><span class="line"><span class="keyword">import</span> org.apache.rocketmq.common.message.Message;</span><br><span class="line"><span class="keyword">import</span> org.apache.rocketmq.remoting.common.RemotingHelper;</span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Producer</span> </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span>  </span>&#123;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            DefaultMQProducer producer = <span class="keyword">new</span> DefaultMQProducer(<span class="string">&quot;please_rename_unique_group_name&quot;</span>);</span><br><span class="line">            producer.setNamesrvAddr(<span class="string">&quot;127.0.0.1:9876&quot;</span>);</span><br><span class="line">            producer.start();</span><br><span class="line">            Message msg = <span class="keyword">new</span> Message(<span class="string">&quot;TestTopic&quot;</span> <span class="comment">/* Topic */</span>,<span class="keyword">null</span> <span class="comment">/* Tag */</span>, (<span class="string">&quot;Hello RocketMQ test1&quot;</span> ).getBytes(RemotingHelper.DEFAULT_CHARSET) <span class="comment">/* Message body */</span>);</span><br><span class="line">            SendResult sendResult = producer.send(msg);</span><br><span class="line">            System.out.printf(<span class="string">&quot;%s%n&quot;</span>, sendResult);</span><br><span class="line">            producer.shutdown();</span><br><span class="line">        &#125; <span class="keyword">catch</span> (Throwable e) &#123;</span><br><span class="line">            e.printStackTrace();</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>执行效果如图所示：<br><img src="https://img-blog.csdnimg.cn/20200308201940382.png" alt="在这里插入图片描述">即消息发送会返回 msgId 与 offsetMsgId。</p>
-<h4 id="1-2-从消息消费看消息ID"><a href="#1-2-从消息消费看消息ID" class="headerlink" title="1.2 从消息消费看消息ID"></a>1.2 从消息消费看消息ID</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> org.apache.rocketmq.example.quickstart;</span><br><span class="line"><span class="keyword">import</span> java.util.List;</span><br><span class="line"><span class="keyword">import</span> org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;</span><br><span class="line"><span class="keyword">import</span> org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext;</span><br><span class="line"><span class="keyword">import</span> org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;</span><br><span class="line"><span class="keyword">import</span> org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently;</span><br><span class="line"><span class="keyword">import</span> org.apache.rocketmq.client.exception.MQClientException;</span><br><span class="line"><span class="keyword">import</span> org.apache.rocketmq.common.consumer.ConsumeFromWhere;</span><br><span class="line"><span class="keyword">import</span> org.apache.rocketmq.common.message.MessageExt;</span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Consumer</span> </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> InterruptedException, MQClientException </span>&#123;</span><br><span class="line">        DefaultMQPushConsumer consumer = <span class="keyword">new</span> DefaultMQPushConsumer(<span class="string">&quot;please_rename_unique_group_name_1&quot;</span>);</span><br><span class="line">        consumer.setNamesrvAddr(<span class="string">&quot;127.0.0.1:9876&quot;</span>);</span><br><span class="line">        consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET);</span><br><span class="line">        consumer.subscribe(<span class="string">&quot;TestTopic&quot;</span>, <span class="string">&quot;*&quot;</span>);</span><br><span class="line">        consumer.registerMessageListener(<span class="keyword">new</span> MessageListenerConcurrently() &#123;</span><br><span class="line">            <span class="function"><span class="keyword">public</span> ConsumeConcurrentlyStatus <span class="title">consumeMessage</span><span class="params">(List&lt;MessageExt&gt; msgs,</span></span></span><br><span class="line"><span class="function"><span class="params">                ConsumeConcurrentlyContext context)</span> </span>&#123;</span><br><span class="line">                System.out.println(<span class="string">&quot;MessageExt msg.getMsgId():&quot;</span> +  msgs.get(<span class="number">0</span>).getMsgId());</span><br><span class="line">                System.out.println(<span class="string">&quot;-------------------分割线-----------------&quot;</span>);</span><br><span class="line">                System.out.printf(<span class="string">&quot;%s Receive New Messages: %s %n&quot;</span>, Thread.currentThread().getName(), msgs);</span><br><span class="line">                <span class="keyword">return</span> ConsumeConcurrentlyStatus.CONSUME_SUCCESS;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;);</span><br><span class="line">        consumer.start();</span><br><span class="line">        System.out.printf(<span class="string">&quot;Consumer Started.%n&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>执行效果如图所示：<br><img src="https://img-blog.csdnimg.cn/20200308202103968.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br><strong>不知道大家是否有注意到，调用 msgs.get(0).getMsgId()返回的msgId 与直接输出msgs中的 msgId 不一样，那这又是为什么呢？答案在本文的第二部分有详细分析。</strong></p>
-<h2 id="2、消息ID释疑"><a href="#2、消息ID释疑" class="headerlink" title="2、消息ID释疑"></a>2、消息ID释疑</h2><p>从消息发送的结果可以得知，RocketMQ 发送的返回结果会返回msgId 与 offsetMsgId，那这两个 msgId 分别是代表什么呢？</p>
-<ul>
-<li>msgId：该ID 是消息发送者在消息发送时会首先在客户端生成，全局唯一，在 RocketMQ 中该 ID 还有另外的一个叫法：uniqId，无不体现其全局唯一性。</li>
-<li>offsetMsgId：消息偏移ID，该 ID 记录了消息所在集群的物理地址，主要包含所存储 Broker 服务器的地址( IP 与端口号)以及所在commitlog 文件的物理偏移量。</li>
-</ul>
-<h4 id="2-1-msgId-即全局唯一-ID-构建规则"><a href="#2-1-msgId-即全局唯一-ID-构建规则" class="headerlink" title="2.1 msgId 即全局唯一 ID 构建规则"></a>2.1 msgId 即全局唯一 ID 构建规则</h4><p><img src="https://img-blog.csdnimg.cn/20200308202402908.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>从这张图可以看出，msgId确实是客户端生成的，接下来我们详细分析一下其生成算法。</p>
-<p>MessageClientIDSetter#createUniqID</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> String <span class="title">createUniqID</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    StringBuilder sb = <span class="keyword">new</span> StringBuilder(LEN * <span class="number">2</span>);</span><br><span class="line">    sb.append(FIX_STRING);    <span class="comment">// @1</span></span><br><span class="line">    sb.append(UtilAll.bytes2string(createUniqIDBuffer()));  <span class="comment">// @2</span></span><br><span class="line">    <span class="keyword">return</span> sb.toString();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>一个 uniqID 的构建主要分成两个部分：FIX_STRING 与唯一 ID 生成算法，顾名思义，FIX_STRING 就是一个客户端固定一个前缀，那接下来先看一下固定字符串的生成规则。</p>
-<h5 id="2-1-1-FIX-STRING"><a href="#2-1-1-FIX-STRING" class="headerlink" title="2.1.1 FIX_STRING"></a>2.1.1 FIX_STRING</h5><p>MessageClientIDSetter静态代码块</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">static</span> &#123;</span><br><span class="line">    <span class="keyword">byte</span>[] ip;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        ip = UtilAll.getIP();</span><br><span class="line">    &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">        ip = createFakeIP();</span><br><span class="line">    &#125;</span><br><span class="line">    LEN = ip.length + <span class="number">2</span> + <span class="number">4</span> + <span class="number">4</span> + <span class="number">2</span>;</span><br><span class="line">    ByteBuffer tempBuffer = ByteBuffer.allocate(ip.length + <span class="number">2</span> + <span class="number">4</span>);</span><br><span class="line">    tempBuffer.position(<span class="number">0</span>);</span><br><span class="line">    tempBuffer.put(ip);</span><br><span class="line">    tempBuffer.position(ip.length);</span><br><span class="line">    tempBuffer.putInt(UtilAll.getPid());</span><br><span class="line">    tempBuffer.position(ip.length + <span class="number">2</span>);</span><br><span class="line">    tempBuffer.putInt(MessageClientIDSetter.class.getClassLoader().hashCode());</span><br><span class="line">    FIX_STRING = UtilAll.bytes2string(tempBuffer.array());</span><br><span class="line">    setStartTime(System.currentTimeMillis());</span><br><span class="line">    COUNTER = <span class="keyword">new</span> AtomicInteger(<span class="number">0</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>从这里可以看出 FIX_STRING 的主要由：客户端的IP、进程ID、加载 MessageClientIDSetter 的类加载器的 hashcode。</p>
-<h5 id="2-1-2-唯一性算法"><a href="#2-1-2-唯一性算法" class="headerlink" title="2.1.2 唯一性算法"></a>2.1.2 唯一性算法</h5><p>msgId 的唯一性算法由 MessageClientIDSetter 的createUniqIDBuffer 方法实现。</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">byte</span>[] createUniqIDBuffer() &#123;</span><br><span class="line">    ByteBuffer buffer = ByteBuffer.allocate(<span class="number">4</span> + <span class="number">2</span>);</span><br><span class="line">    <span class="keyword">long</span> current = System.currentTimeMillis();</span><br><span class="line">    <span class="keyword">if</span> (current &gt;= nextStartTime) &#123;</span><br><span class="line">        setStartTime(current);</span><br><span class="line">    &#125;</span><br><span class="line">    buffer.position(<span class="number">0</span>);</span><br><span class="line">    buffer.putInt((<span class="keyword">int</span>) (System.currentTimeMillis() - startTime));</span><br><span class="line">    buffer.putShort((<span class="keyword">short</span>) COUNTER.getAndIncrement());</span><br><span class="line">    <span class="keyword">return</span> buffer.array();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>可以得出 msgId 的后半段主要由：当前时间与系统启动时间的差值，以及自增序号。</p>
-<h4 id="2-2-offsetMsgId构建规则"><a href="#2-2-offsetMsgId构建规则" class="headerlink" title="2.2 offsetMsgId构建规则"></a>2.2 offsetMsgId构建规则</h4><p><img src="https://img-blog.csdnimg.cn/20200308202705728.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>在消息 Broker 服务端将消息追加到内存后会返回其物理偏移量，即在 commitlog 文件中的文件，然后会再次生成一个id，代码中虽然也叫 msgId，其实这里就是我们常说的 offsetMsgId，即记录了消息的物理偏移量，故我们重点来看一下其具体生成规则：<br>MessageDecoder#createMessageId</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> String <span class="title">createMessageId</span><span class="params">(<span class="keyword">final</span> ByteBuffer input ,</span></span></span><br><span class="line"><span class="function"><span class="params">            <span class="keyword">final</span> ByteBuffer addr, <span class="keyword">final</span> <span class="keyword">long</span> offset)</span> </span>&#123;</span><br><span class="line">	input.flip();</span><br><span class="line">    <span class="keyword">int</span> msgIDLength = addr.limit() == <span class="number">8</span> ? <span class="number">16</span> : <span class="number">28</span>;</span><br><span class="line">    input.limit(msgIDLength);</span><br><span class="line">    input.put(addr);</span><br><span class="line">    input.putLong(offset);</span><br><span class="line">    <span class="keyword">return</span> UtilAll.bytes2string(input.array());</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>首先结合该方法的调用上下文，先解释一下该方法三个入参的含义：</p>
-<ul>
-<li>ByteBuffer input<br>用来存放 offsetMsgId 的字节缓存区( NIO 相关的基础知识)</li>
-<li>ByteBuffer addr<br>当前 Broker 服务器的 IP 地址与端口号，即通过解析 offsetMsgId 从而得到消息服务器的地址信息。</li>
-<li>long offset<br>消息的物理偏移量。<br>即构成 offsetMsgId 的组成部分：Broker 服务器的 IP 与端口号、消息的物理偏移量。</li>
-</ul>
-<blockquote>
-<p>温馨提示：即在 RocketMQ中，只需要提供 offsetMsgId，可用不必知道该消息所属的topic信息即可查询该条消息的内容。</p>
-</blockquote>
-<h4 id="2-3-消息发送与消息消费返回的消息ID信息"><a href="#2-3-消息发送与消息消费返回的消息ID信息" class="headerlink" title="2.3 消息发送与消息消费返回的消息ID信息"></a>2.3 消息发送与消息消费返回的消息ID信息</h4><p>消息发送时会在 SendSesult中返回 msgId、offsetMsgId，在了解了这个两个 ID 的含义时则问题不大，接下来重点介绍一下消息消费时返回的 msgId 到底是哪一个。</p>
-<p>在消息消费时，我们更加希望因为 msgId (即客户端生成的全局唯一性ID)，因为该全局性 ID 非常方便实现消费端的幂等。</p>
-<p>在本文的1.2节我们也提到一个现象，为什么如下图代码中输出的 msgId 会不一样呢？<br><img src="https://img-blog.csdnimg.cn/20200308203117923.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>在客户端返回的 msg 信息，其最终返回的对象是  MessageClientExt ，继承自 MessageExt。<br>那我们接下来分别看一下其 getMsgId() 方法与 toString 方法即可。</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Override</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> String <span class="title">getMsgId</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    String uniqID = MessageClientIDSetter.getUniqID(<span class="keyword">this</span>);</span><br><span class="line">    <span class="keyword">if</span> (uniqID == <span class="keyword">null</span>) &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">this</span>.getOffsetMsgId();</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> uniqID;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>原来在调用 MessageClientExt 中的 getMsgId 方法时，如果消息的属性中存在其唯一ID，则返回消息的全局唯一ID，否则返回消息的 offsetMsgId。</p>
-<p>而 MessageClientExt 方法并没有重写 MessageExt 的 toString 方法，其实现如图所示：<br><img src="https://img-blog.csdnimg.cn/20200308203311967.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>故返回的是 MessageExt中 的 msgId，该 msgId 存放的是offsetMsgId，所以才造成了困扰。</p>
-<blockquote>
-<p>温馨提示：如果消息消费失败需要重试，RocketMQ 的做法是将消息重新发送到 Broker 服务器，此时全局 msgId 是不会发送变化的，但该消息的 offsetMsgId 会发送变化，因为其存储在服务器中的位置发生了变化。</p>
-</blockquote>
-<h2 id="3、实践经验"><a href="#3、实践经验" class="headerlink" title="3、实践经验"></a>3、实践经验</h2><p>在回答了消息发送与消息消费关于msgId与offsetMsgId的困扰后，再来介绍一下如果根据msgId去查询消息。</p>
-<p>想必大家对 rocketmq-console ，那在消息查找界面，展示的消息列表中返回的 msgId 又是哪一个呢？<br><img src="https://img-blog.csdnimg.cn/20200308203400221.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>这里的 Message ID 返回的是消息的全局唯一ID。</p>
-<p>其实 RokcetMQ 也提供了 queryMsgById 命令来查看消息的内容，不过这里的 msgId 是 offsetMsgId，我们首先将全局唯一ID传入命令，其执行效果如下：<br><img src="https://img-blog.csdnimg.cn/20200308203431178.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>发现报错，那我们将 offsetMsgId 传入其执行效果如图所示：<br><img src="https://img-blog.csdnimg.cn/20200308203452188.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>但在 rocketmq-console 的根据消息ID去查找消息，无论传入哪个msgId，下图该功能都能返回正确的结果：<br><img src="https://img-blog.csdnimg.cn/20200308203540222.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>这是因为 rocketmq-console 做了兼容，首先将传入的 msgId 用 queryMsgById 该命令去查，如果报错，则当成 uniqID(全局ID)去查，首先全局ID会存储在消息的属性中，并会创建 Hash 索引，即可用通过 indexfile 快速定位到该条消息。</p>
-</div>
-
-			<script src="https://my.openwrite.cn/js/readmore.js" type="text/javascript"></script>
-			<script>
-			var isMobile = navigator.userAgent.match(/(phone|pad|pod|iPhone|iPod|ios|iPad|Android|Mobile|BlackBerry|IEMobile|MQQBrowser|JUC|Fennec|wOSBrowser|BrowserNG|WebOS|Symbian|Windows Phone)/i);
-			if (!isMobile) {
-			    var btw = new BTWPlugin();
-			    btw.init({
-			        "id": "vip-container",
-			        "blogId": "18019-1573088808868-542",
-			        "name": "中间件兴趣圈",
-			        "qrcode": "https://img-blog.csdnimg.cn/20190314214003962.jpg",
-			        "keyword": "more"
-			    });
-			}
-			</script>
-		
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="https://www.codingw.net/posts/7c04b5f0.html">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="中间件兴趣圈">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/posts/7c04b5f0.html" itemprop="url">Mybatis执行SQL的4大基础组件详解</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-09-16T22:53:35+08:00">
-                2020-09-16
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/mybatis/" itemprop="url" rel="index">
-                    <span itemprop="name">mybatis</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/posts/7c04b5f0.html#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count valine-comment-count" data-xid="/posts/7c04b5f0.html" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-             <span id="/posts/7c04b5f0.html" class="leancloud_visitors" data-flag-title="Mybatis执行SQL的4大基础组件详解">
-               <span class="post-meta-divider">|</span>
-               <span class="post-meta-item-icon">
-                 <i class="fa fa-eye"></i>
-               </span>
-               
-                 <span class="post-meta-item-text">阅读次数&#58;</span>
-               
-                 <span class="leancloud-visitors-count"></span>
-             </span>
-          
-
-          
-
-          
-            <div class="post-wordcount">
-              
-                
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-file-word-o"></i>
-                </span>
-                
-                  <span class="post-meta-item-text">字数统计&#58;</span>
-                
-                <span title="字数统计">
-                  1.6k 字
-                </span>
-              
-
-              
-                <span class="post-meta-divider">|</span>
-              
-
-              
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-clock-o"></i>
-                </span>
-                
-                  <span class="post-meta-item-text">阅读时长 &asymp;</span>
-                
-                <span title="阅读时长">
-                  6 分钟
-                </span>
-              
-            </div>
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          <h2 id="1、Executor"><a href="#1、Executor" class="headerlink" title="1、Executor"></a>1、Executor</h2><p>sql执行器，其对应的类全路径：org.apache.ibatis.executor.Executor。</p>
-<h3 id="1-1-Executor类图"><a href="#1-1-Executor类图" class="headerlink" title="1.1 Executor类图"></a>1.1 Executor类图</h3><p><img src="https://img-blog.csdnimg.cn/20190526170433414.jpg?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3ByZXN0aWdlZGluZw==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"></p>
-<ul>
-<li><p>Executor<br>执行器根据接口，定义update(更新或插入)、query(查询)、commit(提交事务)、rollback(回滚事务)。接下来简单介绍几个重要方法：</p>
-<ul>
-<li>int update(MappedStatement ms, Object parameter) throws SQLException<br>更新或插入方法，其参数含义如下：、<br>1）MappedStatement ms：SQL映射语句（Mapper.xml文件每一个方法对应一个MappedStatement对象）<br>2）Object parameter：参数，通常是List集合。</li>
-<li>&lt; E&gt; List&lt; E&gt; query(MappedStatement ms, Object parameter, RowBounds rowBounds, ResultHandler resultHandler)<br>查询方法，其参数含义如下：<br>1）RowBounds：行边界，主要值分页参数limit、offset。<br>2）ResultHandler resultHandler：结果处理器。</li>
-<li>CacheKey createCacheKey(MappedStatement ms, Object parameterObj, RowBounds bounds, BoundSql bSql)<br>创建缓存Key，Mybatis一二级缓存的缓存Key，可以看出Key由上述4个参数来决定。<br>1）BoundSql boundSql：可以通过该对象获取SQL语句。</li>
-</ul>
-</li>
-<li><p>CachingExecutor<br>支持结果缓存的SQL执行器，注意其设计模式的应用，该类中，会持有Executor的一个委托对象，CachingExecutor关注与缓存特定的逻辑，其最终的SQL执行由其委托对象来实现，即其内部的委托对象为BaseExecutor的实现类。</p>
-</li>
-<li><p>BaseExecutor<br>Executor的基础实现类，该类为抽象类，关于查询、更新具体的实现由其子类来实现，下面4个都是其子类。</p>
-</li>
-<li><p>SimpleExecutor<br>简单的Executor执行器。</p>
-</li>
-<li><p>BatchExecutor<br>支持批量执行的Executor执行器。</p>
-</li>
-<li><p>ClosedExecutor<br>表示一个已关闭的Executor。</p>
-</li>
-<li><p>ReuseExecutor<br>支持重复使用Statement,以SQL为键，缓存Statement对象。</p>
-</li>
-</ul>
-<h3 id="1-2-创建Executor"><a href="#1-2-创建Executor" class="headerlink" title="1.2 创建Executor"></a>1.2 创建Executor</h3><p>在Mybatis中，Executor的创建由Configuration对象来创建，具体的代码如下：</p>
-<h4 id="Configuration-newExecitor"><a href="#Configuration-newExecitor" class="headerlink" title="Configuration#newExecitor"></a>Configuration#newExecitor</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> Executor <span class="title">newExecutor</span><span class="params">(Transaction transaction)</span> </span>&#123;</span><br><span class="line">  <span class="keyword">return</span> newExecutor(transaction, defaultExecutorType);   <span class="comment">// @1</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">public</span> Executor <span class="title">newExecutor</span><span class="params">(Transaction transaction, ExecutorType executorType)</span> </span>&#123;</span><br><span class="line">  executorType = executorType == <span class="keyword">null</span> ? defaultExecutorType : executorType;</span><br><span class="line">  executorType = executorType == <span class="keyword">null</span> ? ExecutorType.SIMPLE : executorType;</span><br><span class="line">  Executor executor;</span><br><span class="line">  <span class="keyword">if</span> (ExecutorType.BATCH == executorType) &#123;   <span class="comment">// @2</span></span><br><span class="line">    executor = <span class="keyword">new</span> BatchExecutor(<span class="keyword">this</span>, transaction);</span><br><span class="line">  &#125; <span class="keyword">else</span> <span class="keyword">if</span> (ExecutorType.REUSE == executorType) &#123;</span><br><span class="line">    executor = <span class="keyword">new</span> ReuseExecutor(<span class="keyword">this</span>, transaction);</span><br><span class="line">  &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">    executor = <span class="keyword">new</span> SimpleExecutor(<span class="keyword">this</span>, transaction);</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">if</span> (cacheEnabled) &#123; <span class="comment">// @3</span></span><br><span class="line">    executor = <span class="keyword">new</span> CachingExecutor(executor);</span><br><span class="line">  &#125;</span><br><span class="line">  executor = (Executor) interceptorChain.pluginAll(executor);  <span class="comment">// @4</span></span><br><span class="line">  <span class="keyword">return</span> executor;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>从上面的代码可以看出，Executor的创建由如下三个关键点：<br>代码@1：默认的ExecutorType为ExecutorType.SIMPLE，即默认创建的Executory为SimpleExecutor。<br>代码@2：根据executorType的值创建对应的Executory。<br>代码@3：如果cacheEnabled为true，则创建CachingExecutory，然后在其内部持有上面创建的Executor,cacheEnabled默认为true，则默认创建的Executor为CachingExecutor，并且其内部包裹着SimpleExecutor。<br>代码@4：使用InterceptorChain.pluginAll为executor创建代理对象，即Mybatis的拆件机制，将在该系列文章中详细介绍。</p>
-          <!--noindex-->
-          <div class="post-button text-center">
-            <a class="btn" href="/posts/7c04b5f0.html#more" rel="contents">
-              阅读全文 &raquo;
-            </a>
-          </div>
-          <!--/noindex-->
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="https://www.codingw.net/posts/42760d48.html">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="中间件兴趣圈">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/posts/42760d48.html" itemprop="url">快速排序算法java版实现</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-09-15T23:26:35+08:00">
-                2020-09-15
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/java/" itemprop="url" rel="index">
-                    <span itemprop="name">java</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/posts/42760d48.html#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count valine-comment-count" data-xid="/posts/42760d48.html" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-             <span id="/posts/42760d48.html" class="leancloud_visitors" data-flag-title="快速排序算法java版实现">
-               <span class="post-meta-divider">|</span>
-               <span class="post-meta-item-icon">
-                 <i class="fa fa-eye"></i>
-               </span>
-               
-                 <span class="post-meta-item-text">阅读次数&#58;</span>
-               
-                 <span class="leancloud-visitors-count"></span>
-             </span>
-          
-
-          
-
-          
-            <div class="post-wordcount">
-              
-                
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-file-word-o"></i>
-                </span>
-                
-                  <span class="post-meta-item-text">字数统计&#58;</span>
-                
-                <span title="字数统计">
-                  1.7k 字
-                </span>
-              
-
-              
-                <span class="post-meta-divider">|</span>
-              
-
-              
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-clock-o"></i>
-                </span>
-                
-                  <span class="post-meta-item-text">阅读时长 &asymp;</span>
-                
-                <span title="阅读时长">
-                  7 分钟
-                </span>
-              
-            </div>
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          <p>快速排序思想：从待排序序列中找到一个关键字（默认为第一个元素） 然后将比关键字少的数据排列在左边，大于关键字的排在右边，然后对关键字左右两边的序列继续上面步骤，直至关键字两边的序列都已经排好序。具体算法如下：</p>
-<p>设要排序的数组是A[0]……A[N-1]，首先任意选取一个数据（通常选用数组的第一个数）作为关键数据，</p>
-<p> 然后将所有比它小的数都放到它前面，所有比它大的数都放到它后面，这个过程称为一趟快速排序。<br> 值得注意的是，快速排序不是一种稳定的排序算法，也就是说，多个相同的值的相对位置也许会在算法结束时产生变动。<br> 一趟快速排序的算法是：<br> 1）设置两个变量i、j，排序开始的时候：i=0，j=N-1；<br> 2）以第一个数组元素作为关键数据，赋值给key，即key=A[0]；<br> 3）从j开始向前搜索，即由后开始向前搜索(j–)，找到第一个小于key的值A[j]，将A[j]和A[i]互换；<br> 4）从i开始向后搜索，即由前开始向后搜索(i++)，找到第一个大于key的A[i]，将A[i]和A[j]互换；<br> 5）重复第3、4步，直到i=j； (3,4步中，没找到符合条件的值，即3中A[j]不小于key,<br> 4中A[i]不大于key的时候改变j、i的值，使得j=j-1，i=i+1，直至找到为止。</p>
-<p> 找到符合条件的值，进行交换的时候i， j指针位置不变。另外，i==j这一过程一定正好是i+或j-完成的时候，此时令循环结束）。</p>
-<blockquote>
-<p>温馨提示：上述算法的描述来源与百度，大家也可以按照上面的算法，用自己熟悉的语言尝试实现一遍。</p>
-</blockquote>
-<p>一言不合继续用代码说话。</p>
-          <!--noindex-->
-          <div class="post-button text-center">
-            <a class="btn" href="/posts/42760d48.html#more" rel="contents">
-              阅读全文 &raquo;
-            </a>
-          </div>
-          <!--/noindex-->
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
   </section>
 
   
@@ -2612,7 +2622,7 @@
               
                 <a href="/archives/">
               
-                  <span class="site-state-item-count">122</span>
+                  <span class="site-state-item-count">130</span>
                   <span class="site-state-item-name">日志</span>
                 </a>
               </div>
@@ -2623,7 +2633,7 @@
               
               <div class="site-state-item site-state-categories">
                 <a href="/categories/index.html">
-                  <span class="site-state-item-count">20</span>
+                  <span class="site-state-item-count">23</span>
                   <span class="site-state-item-name">分类</span>
                 </a>
               </div>
@@ -2634,7 +2644,7 @@
               
               <div class="site-state-item site-state-tags">
                 <a href="/tags/index.html">
-                  <span class="site-state-item-count">195</span>
+                  <span class="site-state-item-count">201</span>
                   <span class="site-state-item-name">标签</span>
                 </a>
               </div>
@@ -2692,7 +2702,7 @@
     
       <span class="post-meta-item-text">Site words total count&#58;</span>
     
-    <span title="Site words total count">320.1k</span>
+    <span title="Site words total count">334.3k</span>
   
 </div>
 
